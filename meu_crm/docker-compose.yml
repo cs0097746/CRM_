@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Serviço do Banco de Dados PostgreSQL
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  # Serviço da Aplicação Django
+  app:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+    command: gunicorn --bind 0.0.0.0:8000 crm_project.wsgi:application
+
+  # Serviço do Servidor Web Nginx
+  nginx:
+    image: nginx:1.25
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
