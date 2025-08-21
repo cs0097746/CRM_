@@ -77,4 +77,19 @@ class Negocio(models.Model):
 
     def __str__(self):
         return self.titulo
+
+class RespostasRapidas(models.Model):
+    atalho = models.CharField(max_length=50, help_text="Ex: /saudacao")
+    texto = models.TextField()
+    operador = models.ForeignKey(Operador, related_name='respostas_rapidas', on_delete=models.CASCADE)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        # Garante que um operador não pode ter dois atalhos com o mesmo nome
+        unique_together = ('operador', 'atalho')
+        ordering = ['atalho']
+
+    def __str__(self):
+        return f"{self.atalho} ({self.operador.user.username})"  
     

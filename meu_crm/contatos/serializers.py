@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Contato, Interacao, Estagio, Negocio, Conversa, Operador
+from .models import Contato, Interacao, Estagio, Negocio, Conversa, Operador, RespostasRapidas
 
 # --- SERIALIZERS BÁSICOS ---
 
@@ -68,3 +68,8 @@ class ConversaDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversa
         fields = ['id', 'contato', 'operador', 'status', 'criado_em', 'atualizado_em', 'interacoes']
+
+class RespostasRapidasSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RespostasRapidas
+        fields = ['id', 'atalho', 'texto', 'operador']

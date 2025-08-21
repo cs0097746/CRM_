@@ -1,10 +1,10 @@
 # contatos/views.py
 
-from rest_framework import status, generics, status
+from rest_framework import status, generics, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Contato, Interacao, Estagio, Negocio, Conversa
-from .serializers import NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer # Adicione os novos serializers
+from .models import Contato, Interacao, Estagio, Negocio, Conversa, RespostasRapidas
+from .serializers import NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer, RespostasRapidasSerializer # Adicione os novos serializers
 
 class EvolutionWebhookView(APIView):
     """
@@ -95,3 +95,15 @@ class InteracaoCreateView(generics.CreateAPIView):
         conversa = Conversa.objects.get(pk=self.kwargs['conversa_pk'])
         # Salva a mensagem, associando à conversa e marcando o remetente como 'operador'
         serializer.save(conversa=conversa, remetente='operador')
+
+class RespostasRapidasListView(generics.ListCreateAPIView):
+    serializer_class = RespostasRapidasSerializer
+    # Adicionando o sistema de busca
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['atalho', 'texto'] # Campos onde a busca vai procurar
+
+    def get_queryset(self):
+        # Filtra para retornar apenas as respostas rápidas do usuário logado (operador)
+        # Esta é uma implementação simples, no futuro faremos a autenticação do operador
+        # Por enquanto, vamos retornar todas para teste
+        return RespostasRapidas.objects.all()
