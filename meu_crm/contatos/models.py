@@ -20,14 +20,40 @@ class Contato(models.Model):
     def __str__(self):
         return self.nome
     
+class Operador(models.Model):
+    # Link um-para-um com o usuário do Django. Cada usuário é um operador.
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # Podemos adicionar outros campos depois, como ramal, foto, etc.
+
+    def __str__(self):
+        return self.user.username
+
+
+class Conversa(models.Model):
+    STATUS_CHOICES = [
+        ('entrada', 'Entrada'),
+        ('atendimento', 'Em Atendimento'),
+        ('resolvida', 'Resolvida'),
+    ]
+    
+    contato = models.ForeignKey(Contato, related_name='conversas', on_delete=models.CASCADE)
+    operador = models.ForeignKey(Operador, related_name='conversas', on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='entrada')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Conversa com {self.contato.nome or self.contato.telefone} - Status: {self.status}"
+     
 class Interacao(models.Model):
-    contato = models.ForeignKey(Contato, related_name='interacoes', on_delete=models.CASCADE)
+    # MUDANÇA AQUI: Trocamos o ForeignKey de Contato para Conversa
+    conversa = models.ForeignKey(Conversa, related_name='interacoes', on_delete=models.CASCADE) 
     mensagem = models.TextField()
-    remetente = models.CharField(max_length=20) # 'cliente' ou 'empresa'
+    remetente = models.CharField(max_length=20)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Mensagem de {self.contato.nome} em {self.criado_em.strftime('%d/%m/%Y %H:%M')}"
+        return f"Mensagem para '{self.conversa}'"
     
 
 class Estagio(models.Model):
@@ -51,3 +77,4 @@ class Negocio(models.Model):
 
     def __str__(self):
         return self.titulo
+    
