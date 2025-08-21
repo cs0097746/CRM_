@@ -3,8 +3,8 @@
 from rest_framework import status, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Contato, Interacao, Estagio, Negocio
-from .serializers import ContatoSerializer, NegocioSerializer
+from .models import Contato, Interacao, Estagio, Negocio, Conversa
+from .serializers import NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer # Adicione os novos serializers
 
 class EvolutionWebhookView(APIView):
     """
@@ -74,3 +74,24 @@ class NegocioListCreateView(generics.ListCreateAPIView):
 class NegocioDetailView(generics.RetrieveUpdateAPIView):
     queryset = Negocio.objects.all()
     serializer_class = NegocioSerializer
+
+# View para LISTAR todas as conversas (usada nas filas)
+class ConversaListView(generics.ListAPIView):
+    queryset = Conversa.objects.all().order_by('-atualizado_em') # Mais recentes primeiro
+    serializer_class = ConversaListSerializer
+    # No futuro, vamos adicionar filtros aqui (ex: ?status=entrada)
+
+# View para ver os DETALHES de uma conversa (com todas as mensagens)
+class ConversaDetailView(generics.RetrieveAPIView):
+    queryset = Conversa.objects.all()
+    serializer_class = ConversaDetailSerializer
+
+# View para um operador CRIAR uma nova mensagem em uma conversa
+class InteracaoCreateView(generics.CreateAPIView):
+    serializer_class = InteracaoSerializer
+
+    def perform_create(self, serializer):
+        # Pega a conversa da URL (ex: /api/conversas/123/mensagens/)
+        conversa = Conversa.objects.get(pk=self.kwargs['conversa_pk'])
+        # Salva a mensagem, associando à conversa e marcando o remetente como 'operador'
+        serializer.save(conversa=conversa, remetente='operador')

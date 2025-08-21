@@ -1,17 +1,32 @@
 # contatos/urls.py
 
 from django.urls import path
-from .views import EvolutionWebhookView, NegocioListCreateView, NegocioDetailView 
+from .views import (
+    EvolutionWebhookView, 
+    NegocioListCreateView, 
+    NegocioDetailView,
+    ConversaListView,      # <--- Adicionar
+    ConversaDetailView,    # <--- Adicionar
+    InteracaoCreateView    # <--- Adicionar
+)
 
 urlpatterns = [
-    # A URL agora pode ser mais específica, como 'webhook/evolution/'
+    # URLs existentes
     path('webhook/evolution/', EvolutionWebhookView.as_view(), name='webhook-evolution'),
-
-    # URL para listar todos os negócios e criar um novo
-    # Ex: GET /api/negocios/  ou POST /api/negocios/
     path('negocios/', NegocioListCreateView.as_view(), name='lista-cria-negocio'),
-    
-    # URL para ver ou atualizar um negócio específico pelo seu ID (pk = Primary Key)
-    # Ex: GET /api/negocios/1/ ou PATCH /api/negocios/1/
     path('negocios/<int:pk>/', NegocioDetailView.as_view(), name='detalhe-negocio'),
+
+    # --- NOVAS URLS PARA O MÓDULO DE ATENDIMENTO ---
+
+    # Para listar todas as conversas
+    # Ex: GET /api/conversas/
+    path('conversas/', ConversaListView.as_view(), name='lista-conversas'),
+
+    # Para ver os detalhes e mensagens de uma conversa
+    # Ex: GET /api/conversas/1/
+    path('conversas/<int:pk>/', ConversaDetailView.as_view(), name='detalhe-conversa'),
+
+    # Para um operador enviar uma mensagem para uma conversa
+    # Ex: POST /api/conversas/1/mensagens/
+    path('conversas/<int:conversa_pk>/mensagens/', InteracaoCreateView.as_view(), name='cria-interacao'),
 ]
