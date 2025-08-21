@@ -1,9 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import User 
 
-# Create your models here.
-# contatos/models.py
 
-from django.db import models
 
 class Contato(models.Model):
     # Informações básicas do contato
@@ -30,3 +28,26 @@ class Interacao(models.Model):
 
     def __str__(self):
         return f"Mensagem de {self.contato.nome} em {self.criado_em.strftime('%d/%m/%Y %H:%M')}"
+    
+
+class Estagio(models.Model):
+    nome = models.CharField(max_length=100)
+    ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem das colunas no Kanban")
+
+    class Meta:
+        ordering = ['ordem'] # Garante que os estágios sempre apareçam na ordem correta
+
+    def __str__(self):
+        return self.nome
+
+class Negocio(models.Model):
+    titulo = models.CharField(max_length=255)
+    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    contato = models.ForeignKey(Contato, related_name='negocios', on_delete=models.CASCADE)
+    estagio = models.ForeignKey(Estagio, related_name='negocios', on_delete=models.PROTECT)
+    # on_delete=models.PROTECT impede que um estágio seja deletado se houver negócios nele
+    criado_em = models.DateTimeField(auto_now_add=True)
+    # Adicionaremos um ForeignKey para Operador no futuro
+
+    def __str__(self):
+        return self.titulo

@@ -1,9 +1,10 @@
 # contatos/views.py
 
-from rest_framework import status
+from rest_framework import status, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Contato, Interacao
+from .models import Contato, Interacao, Estagio, Negocio
+from .serializers import ContatoSerializer, NegocioSerializer
 
 class EvolutionWebhookView(APIView):
     """
@@ -62,3 +63,14 @@ class EvolutionWebhookView(APIView):
 
         # Retorna uma resposta de sucesso
         return Response({"status": "Mensagem processada com sucesso"}, status=status.HTTP_201_CREATED)
+    
+
+# View para LISTAR todos os negócios e CRIAR um novo
+class NegocioListCreateView(generics.ListCreateAPIView):
+    queryset = Negocio.objects.all()
+    serializer_class = NegocioSerializer
+
+# View para VER, ATUALIZAR ou DELETAR um negócio específico
+class NegocioDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Negocio.objects.all()
+    serializer_class = NegocioSerializer

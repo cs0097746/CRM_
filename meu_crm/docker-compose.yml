@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Serviço do Banco de Dados PostgreSQL
   db:
     image: postgres:15
     volumes:
@@ -10,11 +9,10 @@ services:
       - .env
     restart: unless-stopped
 
-  # Serviço da Aplicação Django
   app:
     build: .
     volumes:
-      - .:/app
+      - static_volume:/app/static # <--- MUDANÇA AQUI
     ports:
       - "8000:8000"
     env_file:
@@ -24,10 +22,10 @@ services:
     restart: unless-stopped
     command: gunicorn --bind 0.0.0.0:8000 crm_project.wsgi:application
 
-  # Serviço do Servidor Web Nginx
   nginx:
     image: nginx:1.25
     volumes:
+      - static_volume:/app/static # <--- ADICIONADO
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     ports:
       - "80:80"
@@ -37,3 +35,4 @@ services:
 
 volumes:
   postgres_data:
+  static_volume: # <--- ADICIONADO (Define o nosso "depósito")
