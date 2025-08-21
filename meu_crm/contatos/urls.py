@@ -8,7 +8,8 @@ from .views import (
     ConversaListView,      # <--- Adicionar
     ConversaDetailView,    # <--- Adicionar
     InteracaoCreateView,
-    RespostasRapidasListView 
+    RespostasRapidasListView,
+    FunilStatsView
 )
 
 urlpatterns = [
@@ -24,4 +25,5 @@ urlpatterns = [
     path('conversas/<int:conversa_pk>/mensagens/', InteracaoCreateView.as_view(), name='cria-interacao'),
 
     path('respostas-rapidas/', RespostasRapidasListView.as_view(), name='lista-cria-respostas-rapidas'),
+    path('stats/funil/', FunilStatsView.as_view(), name='stats-funil'),
 ]

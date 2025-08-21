@@ -3,8 +3,10 @@
 from rest_framework import status, generics, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Contato, Interacao, Estagio, Negocio, Conversa, RespostasRapidas
+from .models import Contato, Interacao, Estagio, Negocio, Conversa, RespostasRapidas, Estagio
 from .serializers import NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer, RespostasRapidasSerializer # Adicione os novos serializers
+from django.db.models import Count
+
 
 class EvolutionWebhookView(APIView):
     """
@@ -107,3 +109,22 @@ class RespostasRapidasListView(generics.ListCreateAPIView):
         # Esta é uma implementação simples, no futuro faremos a autenticação do operador
         # Por enquanto, vamos retornar todas para teste
         return RespostasRapidas.objects.all()
+    
+class FunilStatsView(APIView):
+    """
+    Retorna estatísticas sobre o funil de vendas,
+    contando quantos negócios existem em cada estágio.
+    """
+    def get(self, request, *args, **kwargs):
+        # Usamos o ORM do Django para fazer a mágica:
+        # 1. Pega todos os Estagios
+        # 2. "Anota" (annotate) em cada um a contagem de negócios associados
+        # 3. Organiza os valores que queremos retornar
+        dados_funil = Estagio.objects.annotate(
+            total_negocios=Count('negocios')
+        ).values(
+            'nome', 
+            'total_negocios'
+        ).order_by('ordem')
+
+        return Response(dados_funil)
