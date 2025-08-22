@@ -72,11 +72,6 @@ class NegocioListCreateView(generics.ListCreateAPIView):
     queryset = Negocio.objects.all()
     serializer_class = NegocioSerializer
 
-# View para VER, ATUALIZAR ou DELETAR um negócio específico
-class NegocioDetailView(generics.RetrieveUpdateAPIView):
-    queryset = Negocio.objects.all()
-    serializer_class = NegocioSerializer
-
 # View para LISTAR todas as conversas (usada nas filas)
 class ConversaListView(generics.ListAPIView):
     queryset = Conversa.objects.all().order_by('-atualizado_em') # Mais recentes primeiro
@@ -128,3 +123,63 @@ class FunilStatsView(APIView):
         ).order_by('ordem')
 
         return Response(dados_funil)
+    
+
+class TempoRespostaStatsView(APIView):
+    """
+    Calcula o tempo médio da primeira resposta do operador em todas as conversas.
+    """
+    def get(self, request, *args, **kwargs):
+        tempos_de_resposta = []
+        
+        conversas = Conversa.objects.filter(status__in=['atendimento', 'resolvida'])
+
+        for conversa in conversas:
+            # Pega a primeira mensagem da conversa que NÃO foi enviada por um operador
+            primeira_mensagem_cliente = conversa.interacoes.filter(remetente='cliente').order_by('criado_em').first() # type: ignore
+            
+            # Pega a primeira resposta de um operador NAQUELA conversa
+            primeira_resposta_operador = conversa.interacoes.filter(remetente='operador').order_by('criado_em').first() # type: ignore
+
+            # Se ambas existirem, calcula a diferença de tempo
+            if primeira_mensagem_cliente and primeira_resposta_operador:
+                if primeira_resposta_operador.criado_em > primeira_mensagem_cliente.criado_em:
+                    diferenca = primeira_resposta_operador.criado_em - primeira_mensagem_cliente.criado_em
+                    tempos_de_resposta.append(diferenca.total_seconds())
+
+        if tempos_de_resposta:
+            tempo_medio = sum(tempos_de_resposta) / len(tempos_de_resposta)
+        else:
+            tempo_medio = 0
+
+        dados = {
+            "tempo_medio_primeira_resposta_segundos": round(tempo_medio, 2),
+            "conversas_analisadas": len(tempos_de_resposta)
+        }
+
+        return Response(dados)
+
+class NegocioDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Negocio.objects.all()
+    serializer_class = NegocioSerializer
+
+    # --- MÉTODO DE ATUALIZAÇÃO CUSTOMIZADO ---
+    def update(self, request, *args, **kwargs):
+        # Pega o objeto Negocio que está sendo atualizado (ex: Negocio de ID 2)
+        instance = self.get_object()
+        
+        # Pega os dados enviados na requisição PATCH (ex: {"estagio_id": 2})
+        data = request.data.copy()
+
+        # Atualiza o campo 'estagio' na instância do Negocio
+        # com base no 'estagio_id' que recebemos.
+        instance.estagio_id = data.get('estagio_id', instance.estagio_id)
+        
+        # Salva a instância atualizada no banco de dados
+        instance.save()
+
+        # Cria um serializer com a instância já atualizada para retornar a resposta
+        serializer = self.get_serializer(instance)
+        
+        # Retorna a resposta de sucesso com os dados atualizados
+        return Response(serializer.data)

@@ -32,17 +32,15 @@ class OperadorSerializer(serializers.ModelSerializer):
 # --- SERIALIZERS DE CRM (KANBAN) ---
 
 class NegocioSerializer(serializers.ModelSerializer):
+    # Para a leitura (GET), mostramos os detalhes do contato e do estágio
+    contato = ContatoSerializer(read_only=True)
     estagio = EstagioSerializer(read_only=True)
-    estagio_id = serializers.IntegerField(write_only=True)
-    contato = ContatoSerializer(read_only=True) # Adicionado para exibir os dados do contato
-    contato_id = serializers.IntegerField(write_only=True) # Para receber o ID ao criar/atualizar
 
     class Meta:
         model = Negocio
-        fields = ['id', 'titulo', 'valor', 'contato', 'contato_id', 'estagio', 'estagio_id', 'criado_em']
-
-# --- SERIALIZERS DE ATENDIMENTO (CHAT) ---
-
+        # Nos campos, incluímos apenas os nomes dos relacionamentos
+        fields = ['id', 'titulo', 'valor', 'contato', 'estagio', 'criado_em']
+        
 # Serializer para listar as mensagens DENTRO de uma conversa
 class InteracaoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -73,3 +71,4 @@ class RespostasRapidasSerializer(serializers.ModelSerializer):
     class Meta:
         model = RespostasRapidas
         fields = ['id', 'atalho', 'texto', 'operador']
+

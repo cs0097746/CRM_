@@ -9,7 +9,8 @@ from .views import (
     ConversaDetailView,    # <--- Adicionar
     InteracaoCreateView,
     RespostasRapidasListView,
-    FunilStatsView
+    FunilStatsView,
+    TempoRespostaStatsView
 )
 
 urlpatterns = [
@@ -26,4 +27,6 @@ urlpatterns = [
 
     path('respostas-rapidas/', RespostasRapidasListView.as_view(), name='lista-cria-respostas-rapidas'),
     path('stats/funil/', FunilStatsView.as_view(), name='stats-funil'),
+    path('stats/tempo-resposta/', TempoRespostaStatsView.as_view(), name='stats-tempo-resposta'),
+
 ]
