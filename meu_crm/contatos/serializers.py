@@ -56,19 +56,44 @@ class ConversaListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Conversa
-        fields = ['id', 'contato', 'operador', 'status', 'atualizado_em']
+        fields = ['id', 'contato', 'operador', 'status', 'criado_em', 'atualizado_em']
+        depth = 1
 
 class ConversaDetailSerializer(serializers.ModelSerializer):
+    # Para leitura, mostramos os detalhes completos
     contato = ContatoSerializer(read_only=True)
-    operador = OperadorSerializer(read_only=True) # <-- Corrigido
+    operador = OperadorSerializer(read_only=True)
     interacoes = InteracaoSerializer(many=True, read_only=True)
+
+    # Para escrita (PATCH), aceitamos os IDs
+    operador_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Conversa
-        fields = ['id', 'contato', 'operador', 'status', 'criado_em', 'atualizado_em', 'interacoes']
+        fields = ['id', 'contato', 'operador', 'operador_id', 'status', 'criado_em', 'atualizado_em', 'interacoes']
+
+    # --- MÉTODO DE ATUALIZAÇÃO CORRIGIDO E MAIS ROBUSTO ---
+    def update(self, instance, validated_data):
+        # Procura pelo 'operador_id' nos dados recebidos
+        operador_id = validated_data.get('operador_id')
+
+        # Se um operador_id foi enviado, procuramos o objeto Operador e o atribuímos
+        if operador_id is not None:
+            try:
+                novo_operador = Operador.objects.get(pk=operador_id)
+                instance.operador = novo_operador
+            except Operador.DoesNotExist:
+                # Se o ID do operador não for válido, podemos lançar um erro
+                raise serializers.ValidationError({"operador_id": "Operador não encontrado."})
+
+        # Atualiza o status se ele foi enviado na requisição
+        instance.status = validated_data.get('status', instance.status)
+
+        # Salva todas as alterações na base de dados
+        instance.save()
+        return instance
 
 class RespostasRapidasSerializer(serializers.ModelSerializer):
     class Meta:
         model = RespostasRapidas
         fields = ['id', 'atalho', 'texto', 'operador']
-
