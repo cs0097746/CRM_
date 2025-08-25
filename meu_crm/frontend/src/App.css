@@ -1,0 +1,62 @@
+/* frontend/src/App.css */
+
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+/* --- ESTILOS PARA O FORMULÁRIO DE LOGIN --- */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Espaçamento entre os elementos */
+  width: 100%;
+  max-width: 300px;
+  margin-top: 20px;
+}
+
+form div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+form label {
+  margin-bottom: 5px;
+  font-size: 0.8em;
+}
+
+form input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  font-size: 1em;
+  box-sizing: border-box;
+  background-color: #fff; /* Fundo branco */
+  color: #000; /* Texto preto */
+}
+
+form button {
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: none;
+  background-color: #61dafb; /* Azul React */
+  color: #282c34; /* Texto escuro */
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
