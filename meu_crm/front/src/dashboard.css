@@ -1,0 +1,54 @@
+.dashboard-board, .kanban-board {
+  display: flex;
+  justify-content: space-around;
+  padding: 20px;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.coluna, .kanban-coluna {
+  background-color: #3b4252; /* Fundo da coluna */
+  border-radius: 8px;
+  padding: 15px;
+  width: 300px; /* Largura fixa */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coluna h2, .kanban-coluna h2 {
+  margin-top: 0;
+  color: #d8dee9;
+  border-bottom: 1px solid #4c566a;
+  padding-bottom: 10px;
+  font-size: 1.2rem;
+}
+
+.card-conversa, .card-negocio {
+  background-color: #4c566a; /* Fundo do cartão */
+  border-radius: 5px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  color: #eceff4;
+  text-align: left;
+}
+
+.card-conversa p, .card-negocio p {
+  margin: 5px 0;
+}
+
+.card-conversa button {
+  background-color: #88c0d0;
+  color: #2e3440;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.card-conversa button:hover {
+  background-color: #8fbcbb;
+}

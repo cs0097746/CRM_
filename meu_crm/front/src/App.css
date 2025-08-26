@@ -1,42 +1,47 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+.App {
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.main-nav {
+  background-color: #3b4252;
+  padding: 1rem;
+  display: flex;
+  justify-content: flex-start; /* Alinha à esquerda */
+  align-items: center;
+  gap: 1.5rem;
+  border-bottom: 1px solid #4c566a;
+  padding-left: 2rem;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.main-nav a {
+  color: #eceff4;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease-in-out;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.main-nav a:hover {
+  background-color: #4c566a;
+  color: #88c0d0;
 }
 
-.card {
-  padding: 2em;
+.main-nav button {
+  margin-left: auto; /* Empurra o botão de Sair para a direita */
+  margin-right: 2rem;
+  color: #eceff4;
+  background-color: #bf616a;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease-in-out;
+}
+.main-nav button:hover {
+  background-color: #d08770;
 }
 
-.read-the-docs {
-  color: #888;
-}
+/* (Mantenha os estilos do seu formulário de login aqui) */
