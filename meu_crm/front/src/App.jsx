@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import Kanban from './Kanban';
+import ConversaDetalhe from './ConversaDetalhe';
 import './App.css';
 
 // Componente de Login separado para maior clareza
@@ -68,6 +69,7 @@ function App() {
             <Route path="/login" element={!token ? <Login onLogin={handleLogin} error={error} /> : <Navigate to="/" />} />
             <Route path="/kanban" element={token ? <Kanban token={token} /> : <Navigate to="/login" />} />
             <Route path="/" element={token ? <Dashboard token={token} /> : <Navigate to="/login" />} />
+            <Route path="/conversas/:id" element={token ? <ConversaDetalhe token={token} /> : <Navigate to="/login" />} />
           </Routes>
         </main>
       </div>

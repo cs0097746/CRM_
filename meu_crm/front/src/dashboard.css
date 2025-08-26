@@ -52,3 +52,8 @@
 .card-conversa button:hover {
   background-color: #8fbcbb;
 }
+
+.card-link {
+  text-decoration: none; /* Remove o sublinhado */
+  color: inherit; /* Faz com que o texto do cartão herde a cor correta */
+}
