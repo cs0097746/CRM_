@@ -11,7 +11,8 @@ from .views import (
     InteracaoCreateView,
     RespostasRapidasListView,
     FunilStatsView,
-    TempoRespostaStatsView
+    TempoRespostaStatsView,
+    EstagioListView,
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
     path('respostas-rapidas/', RespostasRapidasListView.as_view(), name='lista-cria-respostas-rapidas'),
     path('stats/funil/', FunilStatsView.as_view(), name='stats-funil'),
     path('stats/tempo-resposta/', TempoRespostaStatsView.as_view(), name='stats-tempo-resposta'),
+    path('estagios/', EstagioListView.as_view(), name='lista-estagios'),
 ]

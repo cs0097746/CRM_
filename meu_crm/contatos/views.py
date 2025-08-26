@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import Contato, Interacao, Estagio, Negocio, Conversa, RespostasRapidas, Estagio
-from .serializers import NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer, RespostasRapidasSerializer # Adicione os novos serializers
+from .serializers import EstagioSerializer, NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer, RespostasRapidasSerializer # Adicione os novos serializers
 from django.db.models import Count
 
 
@@ -70,6 +70,11 @@ class EvolutionWebhookView(APIView):
         return Response({"status": "Mensagem processada com sucesso"}, status=status.HTTP_201_CREATED)
 
 
+class EstagioListView(generics.ListAPIView):
+    queryset = Estagio.objects.all().order_by('ordem')
+    serializer_class = EstagioSerializer
+    permission_classes = [IsAuthenticated]
+    
 # View para LISTAR todos os negócios e CRIAR um novo
 class NegocioListCreateView(generics.ListCreateAPIView):
     queryset = Negocio.objects.all()
