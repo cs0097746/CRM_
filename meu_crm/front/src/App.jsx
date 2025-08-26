@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-ro
 import Dashboard from './Dashboard';
 import Kanban from './Kanban';
 import ConversaDetalhe from './ConversaDetalhe';
+import NegocioDetalhe from './NegocioDetalhe';
 import './App.css';
 
 // Componente de Login separado para maior clareza
@@ -69,6 +70,7 @@ function App() {
             <Route path="/login" element={!token ? <Login onLogin={handleLogin} error={error} /> : <Navigate to="/" />} />
             <Route path="/kanban" element={token ? <Kanban token={token} /> : <Navigate to="/login" />} />
             <Route path="/" element={token ? <Dashboard token={token} /> : <Navigate to="/login" />} />
+            <Route path="/negocios/:id" element={token ? <NegocioDetalhe token={token} /> : <Navigate to="/login" />} />
             <Route path="/conversas/:id" element={token ? <ConversaDetalhe token={token} /> : <Navigate to="/login" />} />
           </Routes>
         </main>

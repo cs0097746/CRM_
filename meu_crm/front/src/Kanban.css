@@ -74,3 +74,40 @@
   border-radius: 5px;
   cursor: pointer;
 }
+
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.card-title-link {
+  text-decoration: none;
+  color: inherit;
+  flex-grow: 1; /* Faz o título ocupar o espaço disponível */
+}
+
+.card-title-link:hover p strong {
+  color: #88c0d0;
+  text-decoration: underline;
+}
+
+.card-negocio p {
+  margin: 0; /* Remove a margem padrão dos parágrafos */
+}
+
+.drag-handle {
+  padding: 5px;
+  cursor: grab;
+}
+
+.drag-handle-icon {
+  fill: #d8dee9; /* Cor do ícone */
+}
+
+.card-negocio.dragging {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  transform: rotate(3deg);
+}

@@ -40,7 +40,7 @@ const Kanban = ({ token }) => {
 
   useEffect(() => {
     fetchData();
-  }, [token]);
+  });
 
   const getNegociosPorEstagio = (estagioId) => {
     return negocios.filter(n => n.estagio?.id === estagioId);
