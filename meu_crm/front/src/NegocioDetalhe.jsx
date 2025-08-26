@@ -47,6 +47,8 @@ const NegocioDetalhe = ({ token }) => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    console.log(e);
+    console.log(formData);
     api.patch(`/api/negocios/${id}/`, formData)
       .then(res => {
         setNegocio(res.data);
