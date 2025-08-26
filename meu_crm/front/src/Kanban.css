@@ -52,3 +52,11 @@
 .card-conversa button:hover {
   background-color: #8fbcbb;
 }
+
+/* Adicione estas regras no final do seu Kanban.css */
+
+.card-negocio.dragging {
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3); /* Sombra mais pronunciada */
+  transform: rotate(3deg); /* Inclina ligeiramente */
+  cursor: grabbing;
+}
