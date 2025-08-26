@@ -1,13 +1,12 @@
-// frontend/src/Dashboard.jsx (VERSÃO CORRIGIDA E FUNCIONAL)
+// frontend/src/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
-import './Dashboard.css'; // Usaremos um estilo dedicado
+import './Dashboard.css';
 
 const Dashboard = ({ token }) => {
   const [conversas, setConversas] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchConversas = () => {
-    setLoading(true);
     fetch('http://localhost/api/conversas/', {
       headers: { 'Authorization': `Token ${token}` }
     })
@@ -16,7 +15,10 @@ const Dashboard = ({ token }) => {
       setConversas(data);
       setLoading(false);
     })
-    .catch(error => console.error("Erro ao buscar conversas:", error));
+    .catch(error => {
+      console.error("Erro ao buscar conversas:", error);
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
@@ -30,46 +32,41 @@ const Dashboard = ({ token }) => {
       body: JSON.stringify(dataToUpdate),
     })
     .then(res => res.json())
-    .then(() => {
-      fetchConversas(); // Re-busca a lista inteira para garantir a atualização
+    .then(updatedConversa => {
+      setConversas(prev => prev.map(c => c.id === updatedConversa.id ? updatedConversa : c));
     });
   };
 
   if (loading) return <p>A carregar painel de atendimento...</p>;
 
+  const conversasEntrada = conversas.filter(c => c.status === 'entrada');
+  const conversasAtendimento = conversas.filter(c => c.status === 'atendimento');
+  const conversasResolvida = conversas.filter(c => c.status === 'resolvida');
+
   return (
     <div className="dashboard">
-      {/* Coluna de Entrada */}
       <div className="dashboard-coluna">
-        <h2>Entrada</h2>
-        {conversas.filter(c => c.status === 'entrada').map(conversa => (
+        <h2>Entrada ({conversasEntrada.length})</h2>
+        {conversasEntrada.map(conversa => (
           <div key={conversa.id} className="card-conversa">
             <p><strong>Cliente:</strong> {conversa.contato?.nome || 'Desconhecido'}</p>
-            <button onClick={() => handleUpdateConversa(conversa.id, { status: 'atendimento', operador_id: 1 })}>
-              Aceitar
-            </button>
+            <button onClick={() => handleUpdateConversa(conversa.id, { operador: 1, status: 'atendimento' })}>Aceitar</button>
           </div>
         ))}
       </div>
-
-      {/* Coluna Em Atendimento */}
       <div className="dashboard-coluna">
-        <h2>Em Atendimento</h2>
-        {conversas.filter(c => c.status === 'atendimento').map(conversa => (
+        <h2>Em Atendimento ({conversasAtendimento.length})</h2>
+        {conversasAtendimento.map(conversa => (
           <div key={conversa.id} className="card-conversa">
             <p><strong>Cliente:</strong> {conversa.contato?.nome || 'Desconhecido'}</p>
             <p><strong>Operador:</strong> {conversa.operador?.user?.username || 'Ninguém'}</p>
-            <button onClick={() => handleUpdateConversa(conversa.id, { status: 'resolvida' })}>
-              Resolver
-            </button>
+            <button onClick={() => handleUpdateConversa(conversa.id, { status: 'resolvida' })}>Resolver</button>
           </div>
         ))}
       </div>
-
-      {/* Coluna Resolvida */}
       <div className="dashboard-coluna">
-        <h2>Resolvida</h2>
-        {conversas.filter(c => c.status === 'resolvida').map(conversa => (
+        <h2>Resolvida ({conversasResolvida.length})</h2>
+        {conversasResolvida.map(conversa => (
           <div key={conversa.id} className="card-conversa">
             <p><strong>Cliente:</strong> {conversa.contato?.nome || 'Desconhecido'}</p>
             <p><strong>Operador:</strong> {conversa.operador?.user?.username || 'Ninguém'}</p>

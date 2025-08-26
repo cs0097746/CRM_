@@ -1,19 +1,18 @@
+// frontend/src/App.jsx
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import Kanban from './Kanban';
-import './App.css'; // Para estilos globais e do menu
+import './App.css';
 
-// Componente de Login
-const Login = ({ onLogin }) => {
+// Componente de Login separado para maior clareza
+const Login = ({ onLogin, error }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-    onLogin(username, password).catch(err => setError(err.message));
+    onLogin(username, password);
   };
 
   return (
@@ -24,17 +23,19 @@ const Login = ({ onLogin }) => {
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Senha" />
         <button type="submit">Entrar</button>
       </form>
-      {error && <p style={{color: 'red'}}>{error}</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
 };
 
-// Componente Principal da Aplicação
+// Componente principal da Aplicação
 function App() {
   const [token, setToken] = useState(localStorage.getItem('authToken'));
+  const [error, setError] = useState('');
 
   const handleLogin = (username, password) => {
-    return fetch('http://localhost/api-token-auth/', {
+    setError('');
+    fetch('http://localhost/api-token-auth/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -43,7 +44,8 @@ function App() {
     .then(data => {
       localStorage.setItem('authToken', data.token);
       setToken(data.token);
-    });
+    })
+    .catch(err => setError(err.message));
   };
 
   const handleLogout = () => {
@@ -63,7 +65,7 @@ function App() {
         )}
         <main>
           <Routes>
-            <Route path="/login" element={!token ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
+            <Route path="/login" element={!token ? <Login onLogin={handleLogin} error={error} /> : <Navigate to="/" />} />
             <Route path="/kanban" element={token ? <Kanban token={token} /> : <Navigate to="/login" />} />
             <Route path="/" element={token ? <Dashboard token={token} /> : <Navigate to="/login" />} />
           </Routes>
