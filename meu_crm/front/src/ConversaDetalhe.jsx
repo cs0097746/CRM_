@@ -4,11 +4,12 @@ import { useParams } from 'react-router-dom';
 import './ConversaDetalhe.css';
 
 const ConversaDetalhe = ({ token }) => {
-  const { id } = useParams(); // Pega o ID da conversa a partir do URL
+  const { id } = useParams();
   const [conversa, setConversa] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [novaMensagem, setNovaMensagem] = useState(''); // Estado para a nova mensagem
 
-  useEffect(() => {
+  const fetchConversaDetalhes = () => {
     if (token) {
       fetch(`http://localhost/api/conversas/${id}/`, {
         headers: { 'Authorization': `Token ${token}` }
@@ -19,7 +20,31 @@ const ConversaDetalhe = ({ token }) => {
         setLoading(false);
       });
     }
+  };
+
+  useEffect(() => {
+    fetchConversaDetalhes();
   }, [id, token]);
+
+  const handleEnviarMensagem = (e) => {
+    e.preventDefault();
+    if (!novaMensagem.trim()) return; // Não envia mensagens vazias
+
+    fetch(`http://localhost/api/conversas/${id}/mensagens/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Token ${token}`,
+        },
+        body: JSON.stringify({ mensagem: novaMensagem }),
+    })
+    .then(res => res.json())
+    .then(() => {
+        setNovaMensagem(''); // Limpa o campo de texto
+        fetchConversaDetalhes(); // Re-busca a conversa para mostrar a nova mensagem
+    })
+    .catch(error => console.error("Erro ao enviar mensagem:", error));
+  };
 
   if (loading) return <p>A carregar detalhes da conversa...</p>;
   if (!conversa) return <p>Conversa não encontrada.</p>;
@@ -34,7 +59,17 @@ const ConversaDetalhe = ({ token }) => {
           </div>
         ))}
       </div>
-      {/* Formulário para responder (próximo passo) */}
+
+      {/* --- NOVO FORMULÁRIO DE RESPOSTA --- */}
+      <form onSubmit={handleEnviarMensagem} className="formulario-resposta">
+        <textarea
+          value={novaMensagem}
+          onChange={(e) => setNovaMensagem(e.target.value)}
+          placeholder="Digite a sua resposta..."
+          rows="3"
+        />
+        <button type="submit">Enviar</button>
+      </form>
     </div>
   );
 };

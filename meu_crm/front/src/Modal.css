@@ -1,0 +1,23 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(40, 44, 52, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .modal-content {
+    background: #4c566a;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    color: #eceff4;
+  }
+  
+  .modal-content form { display: flex; flex-direction: column; gap: 15px; }
+  .modal-content input, .modal-content select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #d8dee9; font-size: 1rem; }
