@@ -10,20 +10,40 @@ interface KanbanColumnProps {
 }
 
 export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
-  return (
+return (
     <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
-      <div className="card h-100 shadow-sm border-0">
-
+      <div
+        className="card h-100 border-0"
+        style={{
+          borderRadius: "1rem",
+          backgroundColor: "#ffffff",
+          boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+        }}
+      >
         <div
-          className="card-header d-flex justify-content-between align-items-center text-white fw-bold"
+          className="card-header d-flex justify-content-between align-items-center"
           style={{
-            background: "linear-gradient(90deg, #4e73df, #224abe)",
-            borderTopLeftRadius: "0.75rem",
-            borderTopRightRadius: "0.75rem",
+            background: "#316dbd",
+            borderTopLeftRadius: "1rem",
+            borderTopRightRadius: "1rem",
+            padding: "0.75rem 1rem",
+            color: "#fff",
+            fontWeight: 600,
+            fontSize: "1.1rem",
+            letterSpacing: "0.3px",
           }}
         >
           <span>{estagio.nome}</span>
-          <Badge bg="light" text="dark" pill>
+          <Badge
+            style={{
+              backgroundColor: "#7ed957",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              padding: "0.4rem 0.7rem",
+            }}
+            pill
+          >
             {negocios.length}
           </Badge>
         </div>
@@ -35,10 +55,10 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
               ref={provided.innerRef}
               {...provided.droppableProps}
               style={{
-                minHeight: "150px",
-                backgroundColor: snapshot.isDraggingOver ? "#f1f3f7" : "#f8f9fc",
-                transition: "background-color 0.2s",
-                borderRadius: "0 0 0.75rem 0.75rem",
+                minHeight: "220px",
+                backgroundColor: snapshot.isDraggingOver ? "#e6efff" : "#fafbfe",
+                transition: "background-color 0.25s ease",
+                borderRadius: "0 0 1rem 1rem",
                 overflowY: "auto",
               }}
             >
@@ -47,7 +67,12 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
                   <KanbanTask key={negocio.id} negocio={negocio} index={index} />
                 ))
               ) : (
-                <p className="text-muted text-center mt-3">Nenhum negócio</p>
+                <p
+                  className="text-muted text-center mt-3"
+                  style={{ fontSize: "0.9rem", fontStyle: "italic" }}
+                >
+                  Nenhum negócio
+                </p>
               )}
               {provided.placeholder}
             </div>
@@ -55,5 +80,5 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
         </Droppable>
       </div>
     </div>
-  );
+);
 }

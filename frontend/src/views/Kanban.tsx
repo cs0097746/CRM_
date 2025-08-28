@@ -32,13 +32,11 @@ export default function Kanban() {
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
-
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
-    ) {
+    )
       return;
-    }
 
     setNegocios((prev) =>
       prev.map((n) =>
@@ -49,18 +47,26 @@ export default function Kanban() {
     );
   };
 
-  return (
+return (
     <div
       className="kanban-container d-flex flex-column"
       style={{
         minHeight: "100vh",
         width: "100vw",
-        background: "linear-gradient(135deg, #e9ecef, #f8f9fa)",
+        background: "#f5f8fc",
         padding: "2rem",
         boxSizing: "border-box",
       }}
     >
-      <h2 className="mb-4 text-center" style={{ color: "#495057" }}>
+      <h2
+        className="mb-4 text-center"
+        style={{
+          color: "#316dbd",
+          fontWeight: 700,
+          fontSize: "1.8rem",
+          letterSpacing: "0.5px",
+        }}
+      >
         LoomieCRM
       </h2>
 

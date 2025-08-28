@@ -23,9 +23,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       <Draggable draggableId={String(negocio.id)} index={index}>
         {(provided, snapshot) => (
           <div
-            className={`card mb-3 shadow-sm border-0 ${
-              snapshot.isDragging ? "border-primary" : ""
-            }`}
+            className="card mb-3"
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
@@ -34,35 +32,62 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               ...provided.draggableProps.style,
               cursor: "pointer",
               borderRadius: "0.75rem",
-              backgroundColor: snapshot.isDragging ? "#e3f2fd" : "white",
-              transition: "background-color 0.2s, transform 0.2s",
+              backgroundColor: snapshot.isDragging ? "#e6efff" : "#ffffff",
+              boxShadow: snapshot.isDragging
+                ? "0 8px 18px rgba(49,109,189,0.25)"
+                : "0 3px 8px rgba(0,0,0,0.08)",
+              transition: "all 0.2s ease",
             }}
           >
             <div className="card-body p-3">
               <div className="d-flex justify-content-between align-items-start mb-2">
-                <h6 className="card-title mb-0">{negocio.titulo}</h6>
+                <h6
+                  style={{
+                    color: "#316dbd",
+                    fontWeight: 600,
+                    margin: 0,
+                  }}
+                >
+                  {negocio.titulo}
+                </h6>
                 {valor > 0 && (
-                  <Badge bg="success" pill>
+                  <Badge
+                    style={{
+                      backgroundColor: "#7ed957",
+                      color: "#fff",
+                      fontWeight: 600,
+                      fontSize: "0.8rem",
+                      padding: "0.35rem 0.6rem",
+                    }}
+                    pill
+                  >
                     R${valor}
                   </Badge>
                 )}
               </div>
-              <p className="card-text text-muted mb-0">
-                Cliente: {negocio.contato.nome}
+              <p style={{ fontSize: "0.85rem", color: "#8c52ff", margin: 0 }}>
+                👤 {negocio.contato.nome}
               </p>
             </div>
           </div>
         )}
       </Draggable>
 
-      <Modal show={show} onHide={() => setShow(false)}>
-        <Modal.Header closeButton>
+      <Modal show={show} onHide={() => setShow(false)} centered>
+        <Modal.Header
+          closeButton
+          style={{
+            backgroundColor: "#316dbd",
+            color: "#fff",
+            borderBottom: "none",
+          }}
+        >
           <Modal.Title>Detalhes do Negócio</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body style={{ backgroundColor: "#f9fafe" }}>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Título</Form.Label>
+              <Form.Label style={{ fontWeight: 600 }}>Título</Form.Label>
               <Form.Control
                 type="text"
                 value={titulo}
@@ -71,7 +96,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Valor</Form.Label>
+              <Form.Label style={{ fontWeight: 600 }}>Valor</Form.Label>
               <Form.Control
                 type="number"
                 value={valor}
@@ -80,11 +105,23 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             </Form.Group>
           </Form>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShow(false)}>
+        <Modal.Footer style={{ borderTop: "none" }}>
+          <Button
+            variant="secondary"
+            onClick={() => setShow(false)}
+            style={{ borderRadius: "0.5rem" }}
+          >
             Fechar
           </Button>
-          <Button variant="primary" onClick={handleSave}>
+          <Button
+            onClick={handleSave}
+            style={{
+              backgroundColor: "#316dbd",
+              borderColor: "#316dbd",
+              borderRadius: "0.5rem",
+              fontWeight: 600,
+            }}
+          >
             Salvar
           </Button>
         </Modal.Footer>
