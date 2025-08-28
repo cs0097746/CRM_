@@ -28,7 +28,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             {...provided.draggableProps}
             {...provided.dragHandleProps}
             onClick={() => setShow(true)}
-            style={{ cursor: "pointer" }}
+            style={{...provided.draggableProps.style, cursor: "pointer" }}
           >
             <div className="card-body p-2">
               <h6 className="card-title mb-1">{negocio.titulo}</h6>

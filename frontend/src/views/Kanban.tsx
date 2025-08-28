@@ -54,7 +54,7 @@ export default function Kanban() {
   return (
     <div className="container mt-4">
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="row flex-row flex-nowrap overflow-auto">
+        <div className="row flex-row flex-nowrap overflow-invisible">
           {estagios.map((estagio) => {
             const negociosDoEstagio = negocios.filter(
               (negocio) => negocio.estagio.id === estagio.id
