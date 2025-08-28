@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import KanbanColumn from "../components/KanbanColumn.tsx";
 import { DragDropContext } from "@hello-pangea/dnd";
-import type {DropResult} from "@hello-pangea/dnd";
+import type { DropResult } from "@hello-pangea/dnd";
 
 export default function Kanban() {
   const [estagios, setEstagios] = useState<Estagio[]>([]);
@@ -47,14 +47,33 @@ export default function Kanban() {
           : n
       )
     );
-
-    // api.patch(`/api/negocios/${draggableId}/`, { estagio: destination.droppableId });
   };
 
   return (
-    <div className="container mt-4">
+    <div
+      className="kanban-container d-flex flex-column"
+      style={{
+        minHeight: "100vh",
+        width: "100vw",
+        background: "linear-gradient(135deg, #e9ecef, #f8f9fa)",
+        padding: "2rem",
+        boxSizing: "border-box",
+      }}
+    >
+      <h2 className="mb-4 text-center" style={{ color: "#495057" }}>
+        LoomieCRM
+      </h2>
+
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="row flex-row flex-nowrap overflow-invisible">
+        <div
+          className="d-flex flex-row overflow-auto"
+          style={{
+            gap: "1.5rem",
+            flexGrow: 1,
+            paddingBottom: "1rem",
+            scrollbarWidth: "thin",
+          }}
+        >
           {estagios.map((estagio) => {
             const negociosDoEstagio = negocios.filter(
               (negocio) => negocio.estagio.id === estagio.id
