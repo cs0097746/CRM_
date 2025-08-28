@@ -1,7 +1,0 @@
-.conversa-detalhe { padding: 20px; max-width: 800px; margin: auto; }
-.historico-mensagens { background-color: #3b4252; border-radius: 8px; padding: 20px; margin-bottom: 20px; height: 50vh; overflow-y: auto; display: flex; flex-direction: column; }
-.mensagem { max-width: 70%; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; }
-.mensagem.cliente { background-color: #4c566a; color: #eceff4; align-self: flex-start; }
-.mensagem.operador { background-color: #88c0d0; color: #2e3440; align-self: flex-end; }
-.formulario-resposta { display: flex; gap: 10px; }
-.formulario-resposta textarea { flex-grow: 1; /* ... adicione mais estilos se desejar */ }
