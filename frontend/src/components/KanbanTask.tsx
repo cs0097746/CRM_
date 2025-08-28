@@ -31,12 +31,12 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             style={{
               ...provided.draggableProps.style,
               cursor: "pointer",
-              borderRadius: "0.75rem",
-              backgroundColor: snapshot.isDragging ? "#e6efff" : "#ffffff",
+              borderRadius: "0.9rem",
+              backgroundColor: snapshot.isDragging ? "#eef5ff" : "#ffffff",
               boxShadow: snapshot.isDragging
-                ? "0 8px 18px rgba(49,109,189,0.25)"
-                : "0 3px 8px rgba(0,0,0,0.08)",
-              transition: "all 0.2s ease",
+                ? "0 8px 20px rgba(49,109,189,0.25)"
+                : "0 4px 10px rgba(0,0,0,0.08)",
+              transition: "all 0.25s ease",
             }}
           >
             <div className="card-body p-3">
@@ -44,7 +44,8 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 <h6
                   style={{
                     color: "#316dbd",
-                    fontWeight: 600,
+                    fontWeight: 700,
+                    fontSize: "1rem",
                     margin: 0,
                   }}
                 >
@@ -52,20 +53,28 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 </h6>
                 {valor > 0 && (
                   <Badge
+                    pill
                     style={{
                       backgroundColor: "#7ed957",
                       color: "#fff",
                       fontWeight: 600,
                       fontSize: "0.8rem",
-                      padding: "0.35rem 0.6rem",
+                      padding: "0.4rem 0.7rem",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                     }}
-                    pill
                   >
                     R${valor}
                   </Badge>
                 )}
               </div>
-              <p style={{ fontSize: "0.85rem", color: "#8c52ff", margin: 0 }}>
+              <p
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#8c52ff",
+                  margin: 0,
+                  fontWeight: 500,
+                }}
+              >
                 👤 {negocio.contato.nome}
               </p>
             </div>
@@ -77,39 +86,53 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         <Modal.Header
           closeButton
           style={{
-            backgroundColor: "#316dbd",
+            background: "linear-gradient(135deg, #316dbd, #8c52ff)",
             color: "#fff",
             borderBottom: "none",
           }}
         >
           <Modal.Title>Detalhes do Negócio</Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ backgroundColor: "#f9fafe" }}>
+
+        <Modal.Body style={{ backgroundColor: "#f9fafe", padding: "1.5rem" }}>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600 }}>Título</Form.Label>
+              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>
+                Título
+              </Form.Label>
               <Form.Control
                 type="text"
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
+                style={{ borderRadius: "0.6rem" }}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600 }}>Valor</Form.Label>
+              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>
+                Valor
+              </Form.Label>
               <Form.Control
                 type="number"
                 value={valor}
                 onChange={(e) => setValor(Number(e.target.value))}
+                style={{ borderRadius: "0.6rem" }}
               />
             </Form.Group>
           </Form>
         </Modal.Body>
+
         <Modal.Footer style={{ borderTop: "none" }}>
           <Button
             variant="secondary"
             onClick={() => setShow(false)}
-            style={{ borderRadius: "0.5rem" }}
+            style={{
+              borderRadius: "0.5rem",
+              fontWeight: 500,
+              backgroundColor: "#e0e0e0",
+              border: "none",
+              color: "#333",
+            }}
           >
             Fechar
           </Button>
@@ -120,6 +143,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               borderColor: "#316dbd",
               borderRadius: "0.5rem",
               fontWeight: 600,
+              padding: "0.45rem 1.2rem",
             }}
           >
             Salvar

@@ -10,39 +10,41 @@ interface KanbanColumnProps {
 }
 
 export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
-return (
+  return (
     <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
       <div
         className="card h-100 border-0"
         style={{
-          borderRadius: "1rem",
+          borderRadius: "1.2rem",
           backgroundColor: "#ffffff",
-          boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+          transition: "transform 0.2s ease, box-shadow 0.2s ease",
         }}
       >
         <div
           className="card-header d-flex justify-content-between align-items-center"
           style={{
-            background: "#316dbd",
-            borderTopLeftRadius: "1rem",
-            borderTopRightRadius: "1rem",
-            padding: "0.75rem 1rem",
+            background: "linear-gradient(135deg, #316dbd, #8c52ff)",
+            borderTopLeftRadius: "1.2rem",
+            borderTopRightRadius: "1.2rem",
+            padding: "1rem 1.2rem",
             color: "#fff",
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: "1.1rem",
             letterSpacing: "0.3px",
           }}
         >
           <span>{estagio.nome}</span>
           <Badge
+            pill
             style={{
               backgroundColor: "#7ed957",
               color: "#fff",
               fontWeight: 600,
               fontSize: "0.85rem",
-              padding: "0.4rem 0.7rem",
+              padding: "0.45rem 0.8rem",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             }}
-            pill
           >
             {negocios.length}
           </Badge>
@@ -56,9 +58,9 @@ return (
               {...provided.droppableProps}
               style={{
                 minHeight: "220px",
-                backgroundColor: snapshot.isDraggingOver ? "#e6efff" : "#fafbfe",
+                backgroundColor: snapshot.isDraggingOver ? "#eef5ff" : "#ffffff",
                 transition: "background-color 0.25s ease",
-                borderRadius: "0 0 1rem 1rem",
+                borderRadius: "0 0 1.2rem 1.2rem",
                 overflowY: "auto",
               }}
             >
@@ -68,8 +70,12 @@ return (
                 ))
               ) : (
                 <p
-                  className="text-muted text-center mt-3"
-                  style={{ fontSize: "0.9rem", fontStyle: "italic" }}
+                  className="text-center mt-3"
+                  style={{
+                    fontSize: "0.9rem",
+                    fontStyle: "italic",
+                    color: "#8c52ff",
+                  }}
                 >
                   Nenhum negócio
                 </p>
@@ -80,5 +86,5 @@ return (
         </Droppable>
       </div>
     </div>
-);
+  );
 }

@@ -47,28 +47,39 @@ export default function Kanban() {
     );
   };
 
-return (
+  return (
     <div
       className="kanban-container d-flex flex-column"
       style={{
         minHeight: "100vh",
         width: "100vw",
-        background: "#f5f8fc",
+        background: "linear-gradient(135deg, #316dbd 0%, #8c52ff 5%, #7ed957 10%, #ffffff 20%, #ffffff 80%, #7ed957 90%, #8c52ff 95%, #316dbd 100%)",
         padding: "2rem",
         boxSizing: "border-box",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
-      <h2
-        className="mb-4 text-center"
+      <header
         style={{
-          color: "#316dbd",
-          fontWeight: 700,
-          fontSize: "1.8rem",
-          letterSpacing: "0.5px",
+          marginBottom: "2rem",
+          textAlign: "center",
         }}
       >
-        LoomieCRM
-      </h2>
+        <h1
+          style={{
+            color: "#316dbd",
+            fontWeight: 800,
+            fontSize: "2.2rem",
+            letterSpacing: "0.5px",
+            marginBottom: "0.5rem",
+          }}
+        >
+          Loomie<span style={{ color: "#7ed957" }}>CRM</span>
+        </h1>
+        <p style={{ color: "#6c757d", fontSize: "1rem" }}>
+          Organize seus negócios de forma fácil e visual
+        </p>
+      </header>
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div
@@ -95,6 +106,18 @@ return (
           })}
         </div>
       </DragDropContext>
+
+      <footer
+        style={{
+          marginTop: "2rem",
+          textAlign: "center",
+          fontSize: "0.85rem",
+          color: "#8c52ff",
+          fontWeight: 500,
+        }}
+      >
+        🚀 Powered by <span style={{ color: "#316dbd", fontWeight: 600 }}>Loomie</span>
+      </footer>
     </div>
   );
 }
