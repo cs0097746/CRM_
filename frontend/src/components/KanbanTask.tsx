@@ -20,9 +20,6 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     setShow(false);
   };
 
-  const formatCurrency = (amount: number) =>
-    amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
   return (
     <>
       <Draggable draggableId={String(negocio.id)} index={index}>
@@ -73,7 +70,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                       boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
                     }}
                   >
-                    R${formatCurrency(valor)}
+                    R${valor}
                   </Badge>
                 )}
               </div>
