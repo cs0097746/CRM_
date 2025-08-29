@@ -48,11 +48,12 @@ const KpiCard = ({ title, value, subValue, chartData }: KpiCardProps) => {
                   dataKey="valor"
                   nameKey="nome"
                 >
-                  {chartData.map((entry, index) => (
+                  {/* CORREÇÃO AQUI: renomeamos 'entry' para '_entry' para indicar que não está em uso */}
+                  {chartData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(val) => `${val}%`} />
+                <Tooltip formatter={(val: any) => `${val}%`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
