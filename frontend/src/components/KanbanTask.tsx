@@ -15,10 +15,34 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [contato, setContato] = useState(negocio.contato.nome);
   const [estagio, setEstagio] = useState(negocio.estagio.nome);
 
-  const handleSave = () => {
-    console.log("Salvar:", { id: negocio.id, titulo, valor, contato, estagio });
-    setShow(false);
-  };
+  const handleSave = async () => {
+      const payload = {
+        titulo,
+        valor,
+        contato,
+        estagio,
+      };
+
+      try {
+        const response = await fetch(`http://localhost:8000/api/negocios/${negocio.id}/`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) throw new Error("Erro ao atualizar negócio");
+
+        const data = await response.json();
+        console.log("Atualizado com sucesso:", data);
+
+        setShow(false);
+      } catch (error) {
+        console.error("Erro ao salvar:", error);
+        alert("Falha ao salvar os dados.");
+      }
+    };
 
   return (
     <>

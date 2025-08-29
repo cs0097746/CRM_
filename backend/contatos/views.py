@@ -189,25 +189,30 @@ class NegocioDetailView(generics.RetrieveUpdateAPIView):
     queryset = Negocio.objects.all()
     serializer_class = NegocioSerializer
 
-    # --- MÉTODO DE ATUALIZAÇÃO CUSTOMIZADO ---
     def update(self, request, *args, **kwargs):
-        # Pega o objeto Negocio que está sendo atualizado (ex: Negocio de ID 2)
         instance = self.get_object()
-
-        # Pega os dados enviados na requisição PATCH (ex: {"estagio_id": 2})
         data = request.data.copy()
 
-        # Atualiza o campo 'estagio' na instância do Negocio
-        # com base no 'estagio_id' que recebemos.
-        instance.estagio_id = data.get('estagio_id', instance.estagio_id)
+        print("Data ", data)
 
-        # Salva a instância atualizada no banco de dados
+        instance.titulo = data.get("titulo", instance.titulo)
+        instance.valor = data.get("valor", instance.valor)
+
+        if "contato_id" in data:
+            instance.contato_id = data["contato_id"]
+
+        if "estagio_id" in data:
+            instance.estagio_id = data["estagio_id"]
+        elif "estagio" in data:
+            from .models import Estagio
+            try:
+                estagio = Estagio.objects.get(nome=data["estagio"])
+                instance.estagio = estagio
+            except Estagio.DoesNotExist:
+                pass
+
         instance.save()
-
-        # Cria um serializer com a instância já atualizada para retornar a resposta
         serializer = self.get_serializer(instance)
-
-        # Retorna a resposta de sucesso com os dados atualizados
         return Response(serializer.data)
 
 class DashboardStatsView(APIView):

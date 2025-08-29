@@ -29,23 +29,46 @@ export default function Kanban() {
     fetchData();
   }, []);
 
-  const onDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-    if (!destination) return;
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    )
-      return;
+    const onDragEnd = async (result: DropResult) => {
+      const { destination, source, draggableId } = result;
+      if (!destination) return;
 
-    setNegocios((prev) =>
-      prev.map((n) =>
-        n.id.toString() === draggableId
-          ? { ...n, estagio: { ...n.estagio, id: Number(destination.droppableId) } }
-          : n
+      if (
+        destination.droppableId === source.droppableId &&
+        destination.index === source.index
       )
-    );
-  };
+        return;
+
+      const negocioId = Number(draggableId);
+      const novoEstagioId = Number(destination.droppableId);
+
+      setNegocios((prev) =>
+        prev.map((n) =>
+          n.id === negocioId
+            ? { ...n, estagio: { ...n.estagio, id: novoEstagioId } }
+            : n
+        )
+      );
+
+      console.log("Negócio id", negocioId);
+        console.log("Estágio final ", novoEstagioId);
+
+      try {
+        await api.patch(`/api/negocios/${negocioId}/`, {
+          estagio_id: novoEstagioId,
+        });
+      } catch (error) {
+        console.error("Erro ao atualizar estágio no backend:", error);
+
+        setNegocios((prev) =>
+          prev.map((n) =>
+            n.id === negocioId
+              ? { ...n, estagio: { ...n.estagio, id: Number(source.droppableId) } }
+              : n
+          )
+        );
+      }
+    };
 
   return (
     <div

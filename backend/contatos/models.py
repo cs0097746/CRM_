@@ -62,7 +62,7 @@ class Interacao(models.Model):
 
 class Estagio(models.Model):
     nome = models.CharField(max_length=100)
-    ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem das colunas no Kanban")
+    ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem das colunas no Kanban", unique=True)
 
     class Meta:
         ordering = ['ordem']
