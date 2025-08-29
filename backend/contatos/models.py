@@ -5,16 +5,16 @@ from django.contrib.auth.models import User
 class Contato(models.Model):
     # Informações básicas do contato
     nome = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)  # Garante que não hajam emails duplicados
-    telefone = models.CharField(max_length=20, blank=True, null=True, unique=True)  # unique=True é bom aqui
+    email = models.EmailField(unique=True, null=True, blank=True)
+    telefone = models.CharField(max_length=20, unique=True)
 
     # Informações da empresa (pode ser um modelo separado no futuro)
     empresa = models.CharField(max_length=255, blank=True, null=True)
     cargo = models.CharField(max_length=100, blank=True, null=True)
 
     # Timestamps automáticos
-    criado_em = models.DateTimeField(auto_now_add=True)  # Data de criação
-    atualizado_em = models.DateTimeField(auto_now=True)  # Data da última atualização
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nome
@@ -25,7 +25,6 @@ class Operador(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
     # Podemos adicionar outros campos depois, como ramal, foto, etc.
-
     def __str__(self):
         return self.user.username
 
@@ -48,14 +47,17 @@ class Conversa(models.Model):
 
 
 class Interacao(models.Model):
-    # MUDANÇA AQUI: Trocamos o ForeignKey de Contato para Conversa
+    REMETENTE_CHOICES = (
+        ('cliente', 'Cliente'),
+        ('operador', 'Operador'),
+    )
     conversa = models.ForeignKey(Conversa, related_name='interacoes', on_delete=models.CASCADE)
     mensagem = models.TextField()
-    remetente = models.CharField(max_length=20)
+    remetente = models.CharField(max_length=10, choices=REMETENTE_CHOICES)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Mensagem para '{self.conversa}'"
+        return f"Mensagem de {self.remetente} em {self.criado_em.strftime('%d/%m/%Y %H:%M')}"
 
 
 class Estagio(models.Model):
@@ -63,7 +65,7 @@ class Estagio(models.Model):
     ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem das colunas no Kanban")
 
     class Meta:
-        ordering = ['ordem']  # Garante que os estágios sempre apareçam na ordem correta
+        ordering = ['ordem']
 
     def __str__(self):
         return self.nome
@@ -74,10 +76,8 @@ class Negocio(models.Model):
     valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     contato = models.ForeignKey(Contato, related_name='negocios', on_delete=models.CASCADE)
     estagio = models.ForeignKey(Estagio, related_name='negocios', on_delete=models.PROTECT)
-    # on_delete=models.PROTECT impede que um estágio seja deletado se houver negócios nele
     criado_em = models.DateTimeField(auto_now_add=True)
-
-    # Adicionaremos um ForeignKey para Operador no futuro
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.titulo
@@ -97,3 +97,4 @@ class RespostasRapidas(models.Model):
 
     def __str__(self):
         return f"{self.atalho} ({self.operador.user.username})"
+

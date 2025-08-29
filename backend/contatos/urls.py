@@ -12,6 +12,7 @@ from .views import (
     RespostasRapidasListView,
     FunilStatsView,
     TempoRespostaStatsView,
+    DashboardStatsView,
     EstagioListView,
 )
 
@@ -31,4 +32,6 @@ urlpatterns = [
     path('stats/funil/', FunilStatsView.as_view(), name='stats-funil'),
     path('stats/tempo-resposta/', TempoRespostaStatsView.as_view(), name='stats-tempo-resposta'),
     path('estagios/', EstagioListView.as_view(), name='lista-estagios'),
+
+     path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
 ]
