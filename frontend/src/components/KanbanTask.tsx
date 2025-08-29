@@ -13,6 +13,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [titulo, setTitulo] = useState(negocio.titulo);
   const [valor, setValor] = useState(negocio.valor ?? 0);
   const [contato, setContato] = useState(negocio.contato.nome);
+  console.log("teste");
   const [estagio, setEstagio] = useState(negocio.estagio.nome);
 
   const handleSave = () => {
