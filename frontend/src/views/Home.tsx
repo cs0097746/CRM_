@@ -16,7 +16,7 @@ const Home = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // No futuro, você pode passar o timeFilter como parâmetro: /api/dashboard-stats/?period=${timeFilter}
+
         const response = await api.get<DashboardData>('/api/dashboard-stats/');
         setData(response.data);
       } catch (err) {
@@ -68,6 +68,14 @@ const Home = () => {
             <Button variant={timeFilter === 'hoje' ? 'primary' : 'light'} onClick={() => setTimeFilter('hoje')}>Hoje</Button>
             <Button variant={timeFilter === 'semana' ? 'primary' : 'light'} onClick={() => setTimeFilter('semana')}>Semana</Button>
             <Button variant={timeFilter === 'mes' ? 'primary' : 'light'} onClick={() => setTimeFilter('mes')}>Mês</Button>
+            <Button
+              variant="success"
+              href="/kanban"
+              target="_blank"
+              style={{ marginLeft: "10px", borderRadius: "10px" }}
+            >
+              Ir para o CRM
+            </Button>
         </ButtonGroup>
       </header>
 
@@ -77,14 +85,12 @@ const Home = () => {
       {data && (
         <Container fluid className="p-0">
           <Row>
-            {/* Linha 1 */}
             <Col md={4} lg={2} className="mb-4"><KpiCard title="Mensagens Recebidas" value={data.mensagens_recebidas} /></Col>
             <Col md={4} lg={2} className="mb-4"><KpiCard title="Conversas Atuais" value={data.conversas_atuais} /></Col>
             <Col md={4} lg={2} className="mb-4"><KpiCard title="Chats sem Respostas" value={data.chats_sem_respostas} /></Col>
             <Col md={6} lg={3} className="mb-4"><KpiCard title="Tempo de Resposta" value={`${data.tempo_resposta_medio_min} min`} /></Col>
             <Col md={6} lg={3} className="mb-4"><KpiCard title="Maior Tempo de Espera" value={`${data.tempo_espera_max_horas} h`} /></Col>
 
-            {/* Linha 2 */}
             <Col md={6} lg={3} className="mb-4"><KpiCard title="Leads Ganhos" value={data.leads_ganhos.total} subValue={formatCurrency(data.leads_ganhos.valor)} /></Col>
             <Col md={6} lg={3} className="mb-4"><KpiCard title="Leads Ativos" value={data.leads_ativos.total} /></Col>
             <Col md={6} lg={3} className="mb-4"><KpiCard title="Leads Perdidos" value={data.leads_perdidos.total} subValue={formatCurrency(data.leads_perdidos.valor)} /></Col>
