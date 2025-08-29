@@ -1,0 +1,79 @@
+/* Reset básico para as páginas não terem margens estranhas */
+body, #root {
+    background-color: #f8f9fa; /* Cor de fundo principal */
+  }
+  
+  .loading-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.5rem;
+    color: #316dbd;
+  }
+  
+  /* 1. Estilo do Botão Flutuante (FAB) */
+  .fab {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: #316dbd; /* Azul principal */
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+    transition: transform 0.2s ease-in-out, background-color 0.2s;
+  }
+  
+  .fab:hover {
+    background-color: #8c52ff; /* Roxo no hover */
+    transform: scale(1.1);
+  }
+  
+  /* 2. Estilos do Modal de Navegação */
+  .nav-modal .modal-content {
+    background-color: #ffffff;
+    border-radius: 1.5rem; /* Bordas bem arredondadas */
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+  
+  .nav-modal .modal-header {
+    background-color: #316dbd; /* Azul principal */
+    color: white;
+    border-bottom: none;
+    border-top-left-radius: 1.5rem;
+    border-top-right-radius: 1.5rem;
+  }
+  
+  .nav-modal .modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+  
+  .nav-modal-links .nav-link {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #343a40;
+    padding: 0.8rem 1.5rem;
+    border-radius: 0.8rem;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  
+  .nav-modal-links .nav-link:hover {
+    background-color: #f1f3f5;
+    color: #316dbd; /* Azul no hover */
+  }
+  
+  /* Estilo do link ativo, usando a cor verde */
+  .nav-modal-links .nav-link.active {
+    background-color: #7ed957; /* Verde folha */
+    color: white;
+    font-weight: 600;
+  }
+  
+  

@@ -91,7 +91,7 @@ class NegocioListCreateView(generics.ListCreateAPIView):
 class ConversaListView(generics.ListAPIView):
     queryset = Conversa.objects.all().order_by('-atualizado_em')  # Mais recentes primeiro
     serializer_class = ConversaListSerializer
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
     # No futuro, vamos adicionar filtros aqui (ex: ?status=entrada)
 
 

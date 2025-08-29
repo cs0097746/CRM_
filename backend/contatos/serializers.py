@@ -60,12 +60,27 @@ class InteracaoSerializer(serializers.ModelSerializer):
 
 class ConversaListSerializer(serializers.ModelSerializer):
     contato = ContatoSerializer(read_only=True)
-    operador = OperadorSerializer(read_only=True)  # <-- Corrigido
+    operador = OperadorSerializer(read_only=True)
+    # Novo campo para buscar a última mensagem da conversa
+    ultima_mensagem = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversa
-        fields = ['id', 'contato', 'operador', 'status', 'criado_em', 'atualizado_em']
-        depth = 1
+        fields = [
+            'id', 'contato', 'operador', 'status', 
+            'criado_em', 'atualizado_em', 'ultima_mensagem'
+        ]
+
+    def get_ultima_mensagem(self, obj):
+        """
+        Esta função busca a interação mais recente da conversa.
+        """
+        ultima = obj.interacoes.order_by('-criado_em').first()
+        if ultima:
+            # Retorna apenas o texto da mensagem para ser mais leve
+            return ultima.mensagem
+        return None
+
 
 
 class ConversaDetailSerializer(serializers.ModelSerializer):
