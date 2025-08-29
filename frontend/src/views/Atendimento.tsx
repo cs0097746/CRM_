@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, ListGroup, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, ListGroup, Spinner, Alert, Button } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { toast, ToastContainer } from 'react-toastify'; // Importação adicionada
-import 'react-toastify/dist/ReactToastify.css'; // Importa o CSS das notificações
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import type { Conversa } from '../types/Conversa';
+import type { Interacao } from '../types/Interacao';
 import ConversaListItem from '../components/ConversaListItem';
 import ChatWindow from '../components/ChatWindow';
 
@@ -34,7 +36,6 @@ export default function Atendimento() {
   }, []);
 
   const handleSelectConversa = async (id: number) => {
-    // Se a conversa já estiver ativa, não faz nada para evitar recarregamento
     if (conversaAtiva?.id === id) return;
 
     try {
@@ -47,6 +48,18 @@ export default function Atendimento() {
     } finally {
       setLoadingChat(false);
     }
+  };
+
+  // FUNÇÃO ADICIONADA: Atualiza o chat em tempo real com a nova mensagem enviada
+  const handleNewMessageSent = (novaMensagem: Interacao) => {
+    setConversaAtiva(conversaAtual => {
+      if (!conversaAtual) return null;
+      // Adiciona a nova mensagem à lista de interações da conversa ativa
+      return {
+        ...conversaAtual,
+        interacoes: [...(conversaAtual.interacoes || []), novaMensagem],
+      };
+    });
   };
 
   const renderContentList = () => {
@@ -77,8 +90,12 @@ export default function Atendimento() {
     <Container fluid className="vh-100 d-flex flex-column p-0">
       <Row className="flex-grow-1 g-0">
         <Col md={4} className="border-end d-flex flex-column bg-white">
-          <div className="p-3 border-bottom">
+          <div className="p-3 border-bottom d-flex justify-content-between align-items-center">
             <h5 className="m-0">Caixa de Entrada</h5>
+            {/* BOTÃO VOLTAR ADICIONADO */}
+            <Link to="/">
+              <Button variant="outline-secondary" size="sm">Voltar</Button>
+            </Link>
           </div>
           <div className="flex-grow-1" style={{ overflowY: 'auto' }}>
             {renderContentList()}
@@ -90,12 +107,12 @@ export default function Atendimento() {
               <Spinner animation="border" />
             </div>
           ) : (
-            <ChatWindow conversa={conversaAtiva} />
+            // PROP onNewMessageSent ADICIONADA AQUI
+            <ChatWindow conversa={conversaAtiva} onNewMessageSent={handleNewMessageSent} />
           )}
         </Col>
       </Row>
-      {/* Componente para exibir as notificações */}
-      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} />
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </Container>
   );
 }

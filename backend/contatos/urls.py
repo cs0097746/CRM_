@@ -33,5 +33,11 @@ urlpatterns = [
     path('stats/tempo-resposta/', TempoRespostaStatsView.as_view(), name='stats-tempo-resposta'),
     path('estagios/', EstagioListView.as_view(), name='lista-estagios'),
 
-     path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
+    # Rota para um operador criar uma nova mensagem (Interacao) em uma conversa específica
+    path('conversas/<int:conversa_pk>/mensagens/', InteracaoCreateView.as_view(), name='criar-interacao'),
+
+    # ... (sua rota de webhook e outras)
+    path('webhook/evolution/', EvolutionWebhookView.as_view(), name='webhook-evolution'),
+
+    path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
 ]

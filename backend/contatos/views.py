@@ -99,7 +99,7 @@ class ConversaListView(generics.ListAPIView):
 class ConversaDetailView(generics.RetrieveUpdateAPIView):
     queryset = Conversa.objects.all()
     serializer_class = ConversaDetailSerializer
-    permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
 
 # View para um operador CRIAR uma nova mensagem em uma conversa
