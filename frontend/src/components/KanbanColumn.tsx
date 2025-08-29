@@ -15,9 +15,9 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
       <div
         className="card h-100 border-0"
         style={{
-          borderRadius: "1.2rem",
+          borderRadius: "1.5rem",
           backgroundColor: "#ffffff",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+          boxShadow: "0 12px 25px rgba(0,0,0,0.08)",
           transition: "transform 0.2s ease, box-shadow 0.2s ease",
         }}
       >
@@ -25,13 +25,14 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
           className="card-header d-flex justify-content-between align-items-center"
           style={{
             background: "linear-gradient(135deg, #316dbd, #8c52ff)",
-            borderTopLeftRadius: "1.2rem",
-            borderTopRightRadius: "1.2rem",
+            borderTopLeftRadius: "1.5rem",
+            borderTopRightRadius: "1.5rem",
             padding: "1rem 1.2rem",
             color: "#fff",
             fontWeight: 700,
-            fontSize: "1.1rem",
-            letterSpacing: "0.3px",
+            fontSize: "1.15rem",
+            letterSpacing: "0.4px",
+            boxShadow: "inset 0 -2px 4px rgba(0,0,0,0.15)",
           }}
         >
           <span>{estagio.nome}</span>
@@ -43,7 +44,7 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
               fontWeight: 600,
               fontSize: "0.85rem",
               padding: "0.45rem 0.8rem",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
             }}
           >
             {negocios.length}
@@ -57,10 +58,10 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
               ref={provided.innerRef}
               {...provided.droppableProps}
               style={{
-                minHeight: "220px",
+                minHeight: "250px",
                 backgroundColor: snapshot.isDraggingOver ? "#eef5ff" : "#ffffff",
-                transition: "background-color 0.25s ease",
-                borderRadius: "0 0 1.2rem 1.2rem",
+                transition: "background-color 0.25s ease, transform 0.2s ease",
+                borderRadius: "0 0 1.5rem 1.5rem",
                 overflowY: "auto",
               }}
             >

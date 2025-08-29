@@ -53,7 +53,7 @@ export default function Kanban() {
       style={{
         minHeight: "100vh",
         width: "100vw",
-        background: "linear-gradient(135deg, #316dbd 0%, #8c52ff 5%, #7ed957 10%, #ffffff 20%, #ffffff 80%, #7ed957 90%, #8c52ff 95%, #316dbd 100%)",
+        background: "linear-gradient(135deg, #316dbd 0%, #8c52ff 2%, #7ed957 4%, #ffffff 6%, #ffffff 94%, #7ed957 96%, #8c52ff 98%, #316dbd 100%)",
         padding: "2rem",
         boxSizing: "border-box",
         fontFamily: "'Inter', sans-serif",
@@ -62,23 +62,36 @@ export default function Kanban() {
       <header
         style={{
           marginBottom: "2rem",
-          textAlign: "center",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "0.5rem",
         }}
       >
-        <h1
+        <img
+          src="/Loomie.svg"
+          alt="Loomie Logo"
           style={{
-            color: "#316dbd",
-            fontWeight: 800,
-            fontSize: "2.2rem",
-            letterSpacing: "0.5px",
-            marginBottom: "0.5rem",
+            width: "80px",
+            height: "80px",
           }}
-        >
-          Loomie<span style={{ color: "#7ed957" }}>CRM</span>
-        </h1>
-        <p style={{ color: "#6c757d", fontSize: "1rem" }}>
-          Organize seus negócios de forma fácil e visual
-        </p>
+        />
+        <div style={{ textAlign: "left" }}>
+          <h1
+            style={{
+              color: "#316dbd",
+              fontWeight: 800,
+              fontSize: "2.2rem",
+              letterSpacing: "0.5px",
+              margin: 0,
+            }}
+          >
+            loomie<span style={{ color: "#7ed957" }}> CRM</span>
+          </h1>
+          <p style={{ color: "#6c757d", fontSize: "1rem", margin: 0 }}>
+            Organize seus negócios de forma fácil e visual
+          </p>
+        </div>
       </header>
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -116,7 +129,7 @@ export default function Kanban() {
           fontWeight: 500,
         }}
       >
-        🚀 Powered by <span style={{ color: "#316dbd", fontWeight: 600 }}>Loomie</span>
+        🚀 Powered by <span style={{ color: "#316dbd", fontWeight: 600 }}>loomie</span>
       </footer>
     </div>
   );
