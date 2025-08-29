@@ -6,9 +6,12 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import Contato, Interacao, Estagio, Negocio, Conversa, RespostasRapidas, Estagio
 from .serializers import EstagioSerializer, NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, \
-    InteracaoSerializer, RespostasRapidasSerializer  # Adicione os novos serializers
+    InteracaoSerializer, RespostasRapidasSerializer # Adicione os novos serializers
 from django.db.models import Count
 
+from django.db.models import Count, Sum, Avg, F, Subquery, OuterRef
+from django.utils import timezone
+from datetime import timedelta
 
 class EvolutionWebhookView(APIView):
     """
@@ -208,18 +211,83 @@ class NegocioDetailView(generics.RetrieveUpdateAPIView):
         return Response(serializer.data)
 
 class DashboardStatsView(APIView):
+    """
+    Fornece dados estatísticos REAIS para o dashboard principal,
+    calculados a partir do banco de dados.
+    """
+    # permission_classes = [IsAuthenticated] # Descomente quando a autenticação estiver pronta
+
     def get(self, request, format=None):
+        # --- MÉTRICAS DE ATENDIMENTO ---
+
+        # 1. Total de mensagens recebidas de clientes
+        mensagens_recebidas_count = Interacao.objects.filter(remetente='cliente').count()
+
+        # 2. Conversas em aberto (status 'entrada' ou 'em atendimento')
+        conversas_atuais_count = Conversa.objects.filter(status__in=['entrada', 'atendimento']).count()
+
+        # 3. Chats que precisam de resposta (última mensagem é do cliente)
+        # Encontra a última mensagem de cada conversa
+        ultima_interacao = Interacao.objects.filter(conversa=OuterRef('pk')).order_by('-criado_em')
+        # Anota o remetente da última mensagem em cada conversa
+        conversas_com_ultimo_remetente = Conversa.objects.annotate(
+            ultimo_remetente=Subquery(ultima_interacao.values('remetente')[:1])
+        )
+        # Filtra as conversas em aberto cujo último remetente foi o cliente
+        chats_sem_respostas_count = conversas_com_ultimo_remetente.filter(
+            status__in=['entrada', 'atendimento'],
+            ultimo_remetente='cliente'
+        ).count()
+        
+        # 4. Maior tempo de espera (conversa no status 'entrada' há mais tempo)
+        conversa_mais_antiga = Conversa.objects.filter(status='entrada').order_by('criado_em').first()
+        tempo_espera_max_horas = 0
+        if conversa_mais_antiga:
+            diferenca = timezone.now() - conversa_mais_antiga.criado_em
+            tempo_espera_max_horas = round(diferenca.total_seconds() / 3600, 1)
+
+        # --- MÉTRICAS DE VENDAS (NEGÓCIOS) ---
+        # IMPORTANTE: Estes cálculos assumem que você tem estágios chamados 'Ganhos' e 'Perdidos'.
+        # Ajuste os nomes se forem diferentes no seu banco de dados.
+        
+        # 5. Leads Ganhos
+        ganhos_agregado = Negocio.objects.filter(estagio__nome__iexact='Ganhos').aggregate(
+            total=Count('id'),
+            valor=Sum('valor')
+        )
+        leads_ganhos_stats = {
+            'total': ganhos_agregado['total'] or 0,
+            'valor': ganhos_agregado['valor'] or 0
+        }
+
+        # 6. Leads Perdidos
+        perdidos_agregado = Negocio.objects.filter(estagio__nome__iexact='Perdidos').aggregate(
+            total=Count('id'),
+            valor=Sum('valor')
+        )
+        leads_perdidos_stats = {
+            'total': perdidos_agregado['total'] or 0,
+            'valor': perdidos_agregado['valor'] or 0
+        }
+
+        # 7. Leads Ativos (todos que não estão em 'Ganhos' ou 'Perdidos')
+        leads_ativos_count = Negocio.objects.exclude(estagio__nome__iexact='Ganhos').exclude(estagio__nome__iexact='Perdidos').count()
+
+
+        # --- MONTAGEM FINAL DOS DADOS ---
         data = {
-            'mensagens_recebidas': 1452,
-            'conversas_atuais': 20,
-            'chats_sem_respostas': 12,
-            'tempo_resposta_medio_min': 2,
-            'tempo_espera_max_horas': 5,
-            'leads_ganhos': {'total': 550, 'valor': 521307.00},
-            'leads_ativos': {'total': 16198},
-            'tarefas_pendentes': 0,
-            'leads_perdidos': {'total': 897, 'valor': 115631.00},
-            'fontes_lead': [
+            'mensagens_recebidas': mensagens_recebidas_count,
+            'conversas_atuais': conversas_atuais_count,
+            'chats_sem_respostas': chats_sem_respostas_count,
+            'tempo_resposta_medio_min': 0, # TODO: Implementar lógica de tempo de resposta
+            'tempo_espera_max_horas': tempo_espera_max_horas,
+            'leads_ganhos': leads_ganhos_stats,
+            'leads_ativos': {
+                'total': leads_ativos_count
+            },
+            'tarefas_pendentes': 0, # TODO: Implementar lógica de tarefas
+            'leads_perdidos': leads_perdidos_stats,
+            'fontes_lead': [ # TODO: Implementar lógica de fontes de lead
                 {'nome': 'Comercial Gráfica', 'valor': 40},
                 {'nome': 'Comercial Digital', 'valor': 35},
                 {'nome': 'Analista de Suporte', 'valor': 25},
