@@ -4,14 +4,11 @@ from rest_framework import status, generics, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import Contato, Interacao, Estagio, Negocio, Conversa, RespostasRapidas, Estagio
+from .models import Contato, Interacao, Negocio, Conversa, RespostasRapidas, Estagio
 from .serializers import EstagioSerializer, NegocioSerializer, ConversaListSerializer, ConversaDetailSerializer, \
-    InteracaoSerializer, RespostasRapidasSerializer # Adicione os novos serializers
-from django.db.models import Count
-
+    InteracaoSerializer, RespostasRapidasSerializer
 from django.db.models import Count, Sum, Avg, F, Subquery, OuterRef
 from django.utils import timezone
-from datetime import timedelta
 
 class EvolutionWebhookView(APIView):
     """
@@ -204,7 +201,6 @@ class NegocioDetailView(generics.RetrieveUpdateAPIView):
         if "estagio_id" in data:
             instance.estagio_id = data["estagio_id"]
         elif "estagio" in data:
-            from .models import Estagio
             try:
                 estagio = Estagio.objects.get(nome=data["estagio"])
                 instance.estagio = estagio
