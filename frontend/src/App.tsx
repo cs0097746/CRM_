@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router
 import { lazy, Suspense, useState } from "react";
 import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
+import AtendimentoDashboard from './views/AtendimentoDashboard';
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -33,6 +34,7 @@ const AppContent = () => {
             <Route path="/" element={<Home />} />
             <Route path="/kanban" element={<Kanban />} />
             <Route path="/atendimento" element={<Atendimento />} />
+            <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
           </Routes>
         </Suspense>
       </div>

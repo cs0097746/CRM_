@@ -1,9 +1,15 @@
-import type {Conversa} from "./Conversa.ts";
-
 export interface Interacao {
   id: number;
-  conversa: Conversa;
   mensagem: string;
-  remetente: string;
-  criado_em: string;
+  timestamp: string;
+  remetente: 'operador' | 'cliente'; // Usar 'remetente' como principal
+  autor?: 'operador' | 'cliente';    // Manter 'autor' como opcional para compatibilidade
+  conversa: number;
+  operador?: {
+    id: number;
+    user: {
+      username: string;
+    };
+  } | null;
+  anexo?: string | null;
 }
