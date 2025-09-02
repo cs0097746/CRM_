@@ -27,26 +27,25 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
-
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'oauth2_provider',
     'rest_framework',
-    'contatos'
+    'corsheaders',
+    'contatos',
+    'oauth2_integration',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  
+    'oauth2_provider.middleware.OAuth2TokenMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -127,3 +126,73 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.Application'
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = 'oauth2_provider.AccessToken'
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth2_provider.RefreshToken'
+
+# =========================
+# CONFIGURAÇÕES OAUTH2
+# =========================
+OAUTH2_PROVIDER = {
+    'SCOPES': {
+        'contacts.read': 'Ler contatos',
+        'contacts.write': 'Criar e editar contatos',
+        'contacts.delete': 'Deletar contatos',
+        'conversations.read': 'Ler conversas',
+        'conversations.write': 'Enviar mensagens',
+        'conversations.manage': 'Gerenciar status de conversas',
+        'knowledge.read': 'Ler base de conhecimento',
+        'knowledge.write': 'Editar base de conhecimento',
+        'analytics.read': 'Visualizar relatórios e analytics',
+        'admin.all': 'Acesso administrativo completo',
+    },
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 3600,
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 3600 * 24 * 7,
+    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,
+    'ROTATE_REFRESH_TOKEN': True,
+    
+    # Configurações para desenvolvimento
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
+    'ALLOWED_ORIGINS': ['*'],  # Permitir todas para desenvolvimento
+    'RESOURCE_SERVER_INTROSPECTION_URL': None,
+    'RESOURCE_SERVER_AUTH_TOKEN': None,
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https', 'localhost'],
+}
+
+# ADICIONAR também esta configuração:
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.Application'
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = 'oauth2_provider.AccessToken'
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth2_provider.RefreshToken'
+
+
+
+# =========================
+# REST FRAMEWORK COM OAUTH2
+# =========================
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50
+}
+
+# =========================
+# CONFIGURAÇÕES CORS
+# =========================
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",  
+]
+
+CORS_ALLOW_CREDENTIALS = True

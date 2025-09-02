@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 
 
 class Contato(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     # Informações básicas do contato
     nome = models.CharField(max_length=255)
     email = models.EmailField(unique=True, null=True, blank=True)
@@ -11,6 +13,14 @@ class Contato(models.Model):
     # Informações da empresa (pode ser um modelo separado no futuro)
     empresa = models.CharField(max_length=255, blank=True, null=True)
     cargo = models.CharField(max_length=100, blank=True, null=True)
+
+    # Informações adicionais removidas do serializer anterior
+    endereco = models.CharField(max_length=255, blank=True, null=True)
+    cidade = models.CharField(max_length=100, blank=True, null=True)
+    estado = models.CharField(max_length=2, blank=True, null=True)
+    cep = models.CharField(max_length=10, blank=True, null=True)
+    data_nascimento = models.DateField(null=True, blank=True)
+    observacoes = models.TextField(blank=True, null=True)
 
     # Timestamps automáticos
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -21,6 +31,8 @@ class Contato(models.Model):
 
 
 class Operador(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     # Link um-para-um com o usuário do Django. Cada usuário é um operador.
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
@@ -30,6 +42,8 @@ class Operador(models.Model):
 
 
 class Conversa(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     STATUS_CHOICES = [
         ('entrada', 'Entrada'),
         ('atendimento', 'Em Atendimento'),
@@ -47,6 +61,8 @@ class Conversa(models.Model):
 
 
 class Interacao(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     REMETENTE_CHOICES = (
         ('cliente', 'Cliente'),
         ('operador', 'Operador'),
@@ -55,12 +71,18 @@ class Interacao(models.Model):
     mensagem = models.TextField()
     remetente = models.CharField(max_length=10, choices=REMETENTE_CHOICES)
     criado_em = models.DateTimeField(auto_now_add=True)
+    
+    # Campo que estava sendo usado no serializer
+    timestamp = models.DateTimeField(auto_now_add=True)  # ADICIONAR ESTA LINHA
+    anexo = models.FileField(upload_to='anexos/', null=True, blank=True)  # ADICIONAR ESTA LINHA
 
     def __str__(self):
         return f"Mensagem de {self.remetente} em {self.criado_em.strftime('%d/%m/%Y %H:%M')}"
 
 
 class Estagio(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     nome = models.CharField(max_length=100)
     ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem das colunas no Kanban", unique=True)
 
@@ -72,6 +94,8 @@ class Estagio(models.Model):
 
 
 class Negocio(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     titulo = models.CharField(max_length=255)
     valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     contato = models.ForeignKey(Contato, related_name='negocios', on_delete=models.CASCADE)
@@ -84,6 +108,8 @@ class Negocio(models.Model):
 
 
 class RespostasRapidas(models.Model):
+    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    
     atalho = models.CharField(max_length=50, help_text="Ex: /saudacao")
     texto = models.TextField()
     operador = models.ForeignKey(Operador, related_name='respostas_rapidas', on_delete=models.CASCADE)
@@ -97,4 +123,3 @@ class RespostasRapidas(models.Model):
 
     def __str__(self):
         return f"{self.atalho} ({self.operador.user.username})"
-
