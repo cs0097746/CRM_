@@ -291,6 +291,7 @@ export default function Atendimento() {
           }
         });
 
+        // @ts-ignore
         setConversas(response.data.results);
         setError(null);
 
@@ -304,30 +305,35 @@ export default function Atendimento() {
 
   const criarChamadoTeste = async () => {
     try {
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
       await api.patch('/api/conversas/1/', {
         operador_id: null,
         status: 'entrada'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       showToastWithSound('Chamado de teste criado', 'success', 'success');
       await fetchConversas();
-      
     } catch (error) {
       console.error('Erro ao criar chamado teste:', error);
       showToastWithSound('Erro ao criar chamado de teste', 'danger', 'alert');
     }
   };
 
+
   const pegarProximoChamado = useCallback(async () => {
     if (pegandoChamado) return;
 
     try {
       setPegandoChamado(true);
-      
-      const conversasEntrada = conversas.filter(conv => 
+
+      const conversasEntrada = conversas.filter(conv =>
         conv.status === 'entrada' && !conv.operador
       );
-      
+
       if (conversasEntrada.length === 0) {
         showToastWithSound('Não há chamados aguardando atendimento', 'warning', 'alert');
         return;
@@ -336,9 +342,14 @@ export default function Atendimento() {
       const chamadoMaisAntigo = conversasEntrada
         .sort((a, b) => new Date(a.criado_em).getTime() - new Date(b.criado_em).getTime())[0];
 
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
       const response = await api.patch(`/api/conversas/${chamadoMaisAntigo.id}/`, {
         status: 'atendimento',
         operador_id: 1
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.status === 200) {
@@ -358,7 +369,14 @@ export default function Atendimento() {
     try {
       setLoadingChat(true);
       setError(null);
-      const response = await api.get<Conversa>(`/api/conversas/${conversa.id}/`);
+
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
+      const response = await api.get<Conversa>(`/api/conversas/${conversa.id}/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
       setConversaAtiva(response.data);
       playSound('success');
     } catch (err) {
@@ -370,35 +388,42 @@ export default function Atendimento() {
     }
   };
 
-  const handleNewMessageSent = useCallback(async () => {
-    if (conversaAtiva) {
-      try {
-        const [conversaResponse, listResponse] = await Promise.all([
-          api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`),
-          api.get<Conversa[]>('/api/conversas/')
-        ]);
-        
-        setConversaAtiva(conversaResponse.data);
-        setConversas(listResponse.data);
-      } catch (error) {
-        console.error('Erro ao atualizar após envio de mensagem:', error);
-      }
+ const handleNewMessageSent = useCallback(async () => {
+    if (!conversaAtiva) return;
+
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
+      const [conversaResponse, listResponse] = await Promise.all([
+        api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('/api/conversas/', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      setConversaAtiva(conversaResponse.data);
+      setConversas(listResponse.data);
+    } catch (error) {
+      console.error('Erro ao atualizar após envio de mensagem:', error);
     }
   }, [conversaAtiva]);
 
-  const handleStatusChange = async (novoStatus: StatusConversa) => {
+
+ const handleStatusChange = async (novoStatus: StatusConversa) => {
     if (!conversaAtiva) return;
-    
+
     try {
-      await api.patch(`/api/conversas/${conversaAtiva.id}/`, {
-        status: novoStatus
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
+      await api.patch(`/api/conversas/${conversaAtiva.id}/`, { status: novoStatus }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`),
-        api.get<Conversa[]>('/api/conversas/')
+        api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('/api/conversas/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      
+
       setConversaAtiva(conversaResponse.data);
       setConversas(listResponse.data);
 
@@ -439,23 +464,23 @@ export default function Atendimento() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const response = await api.get<Conversa[]>('/api/conversas/');
+        const token = await getToken();
+        if (!token) return;
+
+        const response = await api.get<Conversa[]>('/api/conversas/', { headers: { Authorization: `Bearer ${token}` } });
         const novasConversas = response.data;
-        
+
         const conversasAnteriores = conversas;
         const novasMensagens = novasConversas.some(nova => {
           const anterior = conversasAnteriores.find(ant => ant.id === nova.id);
           return anterior && nova.atualizado_em !== anterior.atualizado_em;
         });
-        
-        if (novasMensagens) {
-          playSound('message');
-        }
-        
+
+        if (novasMensagens) playSound('message');
         setConversas(novasConversas);
-        
+
         if (conversaAtiva) {
-          const updatedConversa = await api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`);
+          const updatedConversa = await api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } });
           setConversaAtiva(updatedConversa.data);
         }
       } catch (error) {
@@ -466,7 +491,7 @@ export default function Atendimento() {
     return () => clearInterval(interval);
   }, [conversaAtiva, conversas, playSound]);
 
-    console.log("Conversas, ", conversas, "Type conversa", typeof conversas);
+  console.log("Conversas, ", conversas, "Type conversa", typeof conversas);
 
   // Filtrar conversas
   const conversasFiltradas = conversas.filter(conversa => {
