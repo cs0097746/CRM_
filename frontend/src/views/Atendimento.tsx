@@ -254,19 +254,53 @@ export default function Atendimento() {
     }
   };
 
+    const USERNAME = "admin";
+    const PASSWORD = "admin";
+    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+
+    const getToken = async () => {
+      const params = new URLSearchParams();
+      params.append("grant_type", "password");
+      params.append("username", USERNAME);
+      params.append("password", PASSWORD);
+      params.append("client_id", CLIENT_ID);
+      params.append("client_secret", CLIENT_SECRET);
+
+      try {
+        const res = await axios.post("http://localhost:8000/o/token/", params);
+        return res.data.access_token;
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
   const fetchConversas = useCallback(async () => {
-    try {
-      setLoadingList(true);
-      const response = await api.get<Conversa[]>('/api/conversas/');
-      setConversas(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Não foi possível carregar as conversas.');
-      console.error('Erro ao buscar conversas:', err);
-    } finally {
-      setLoadingList(false);
-    }
-  }, []);
+      try {
+        setLoadingList(true);
+
+        const token = await getToken();
+        if (!token) {
+          setError("Não foi possível autenticar.");
+          return;
+        }
+
+        const response = await api.get<Conversa[]>('/api/conversas/', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        setConversas(response.data.results);
+        setError(null);
+
+      } catch (err) {
+        setError('Não foi possível carregar as conversas.');
+        console.error('Erro ao buscar conversas:', err);
+      } finally {
+        setLoadingList(false);
+      }
+    }, []);
 
   const criarChamadoTeste = async () => {
     try {
@@ -431,6 +465,8 @@ export default function Atendimento() {
 
     return () => clearInterval(interval);
   }, [conversaAtiva, conversas, playSound]);
+
+    console.log("Conversas, ", conversas, "Type conversa", typeof conversas);
 
   // Filtrar conversas
   const conversasFiltradas = conversas.filter(conversa => {
