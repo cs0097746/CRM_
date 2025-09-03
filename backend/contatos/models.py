@@ -1,125 +1,355 @@
 from django.db import models
 from django.contrib.auth.models import User
-
-
-class Contato(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
-    
-    # Informações básicas do contato
-    nome = models.CharField(max_length=255)
-    email = models.EmailField(unique=True, null=True, blank=True)
-    telefone = models.CharField(max_length=20, unique=True)
-
-    # Informações da empresa (pode ser um modelo separado no futuro)
-    empresa = models.CharField(max_length=255, blank=True, null=True)
-    cargo = models.CharField(max_length=100, blank=True, null=True)
-
-    # Informações adicionais removidas do serializer anterior
-    endereco = models.CharField(max_length=255, blank=True, null=True)
-    cidade = models.CharField(max_length=100, blank=True, null=True)
-    estado = models.CharField(max_length=2, blank=True, null=True)
-    cep = models.CharField(max_length=10, blank=True, null=True)
-    data_nascimento = models.DateField(null=True, blank=True)
-    observacoes = models.TextField(blank=True, null=True)
-
-    # Timestamps automáticos
-    criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.nome
-
+from django.utils import timezone
+from decimal import Decimal
 
 class Operador(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
-    
-    # Link um-para-um com o usuário do Django. Cada usuário é um operador.
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-
-    # Podemos adicionar outros campos depois, como ramal, foto, etc.
+    ativo = models.BooleanField(default=True)
+    ramal = models.CharField(max_length=10, blank=True, null=True)
+    setor = models.CharField(max_length=50, blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
     def __str__(self):
-        return self.user.username
+        return f"{self.user.first_name} {self.user.last_name}" if self.user.first_name else self.user.username
+    
+    @property
+    def nome_display(self):
+        return self.__str__()
+    
+    class Meta:
+        verbose_name = "Operador"
+        verbose_name_plural = "Operadores"
 
+class Contato(models.Model):
+    nome = models.CharField(max_length=100)
+    email = models.EmailField(blank=True, null=True)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    empresa = models.CharField(max_length=100, blank=True, null=True)
+    cargo = models.CharField(max_length=50, blank=True, null=True)
+    endereco = models.TextField(blank=True, null=True)
+    cidade = models.CharField(max_length=50, blank=True, null=True)
+    estado = models.CharField(max_length=2, blank=True, null=True)
+    cep = models.CharField(max_length=10, blank=True, null=True)
+    data_nascimento = models.DateField(blank=True, null=True)
+    observacoes = models.TextField(blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.nome
+    
+    class Meta:
+        verbose_name = "Contato"
+        verbose_name_plural = "Contatos"
+        ordering = ['nome']
 
 class Conversa(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
-    
     STATUS_CHOICES = [
         ('entrada', 'Entrada'),
         ('atendimento', 'Em Atendimento'),
-        ('resolvida', 'Resolvida'),
+        ('pendente', 'Pendente'),
+        ('finalizada', 'Finalizada'),
+        ('perdida', 'Perdida'),
     ]
-
-    contato = models.ForeignKey(Contato, related_name='conversas', on_delete=models.CASCADE)
-    operador = models.ForeignKey(Operador, related_name='conversas', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    ORIGEM_CHOICES = [
+        ('whatsapp', 'WhatsApp'),
+        ('email', 'E-mail'),
+        ('telefone', 'Telefone'),
+        ('site', 'Site'),
+        ('presencial', 'Presencial'),
+        ('redes_sociais', 'Redes Sociais'),
+    ]
+    
+    PRIORIDADE_CHOICES = [
+        ('baixa', 'Baixa'),
+        ('media', 'Média'),
+        ('alta', 'Alta'),
+        ('critica', 'Crítica'),
+    ]
+    
+    contato = models.ForeignKey(Contato, on_delete=models.CASCADE, related_name='conversas')
+    operador = models.ForeignKey(Operador, on_delete=models.SET_NULL, null=True, blank=True, related_name='conversas')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='entrada')
+    assunto = models.CharField(max_length=200, blank=True, null=True)
+    origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default='whatsapp')
+    prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-
+    finalizada_em = models.DateTimeField(null=True, blank=True)
+    
     def __str__(self):
-        return f"Conversa com {self.contato.nome or self.contato.telefone} - Status: {self.status}"
-
+        return f"Conversa com {self.contato.nome} - {self.get_status_display()}"
+    
+    @property
+    def total_mensagens(self):
+        return self.interacoes.count()
+    
+    @property
+    def ultima_interacao(self):
+        return self.interacoes.order_by('-criado_em').first()
+    
+    class Meta:
+        verbose_name = "Conversa"
+        verbose_name_plural = "Conversas"
+        ordering = ['-atualizado_em']
 
 class Interacao(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
-    
-    REMETENTE_CHOICES = (
+    REMETENTE_CHOICES = [
         ('cliente', 'Cliente'),
         ('operador', 'Operador'),
-    )
-    conversa = models.ForeignKey(Conversa, related_name='interacoes', on_delete=models.CASCADE)
+        ('sistema', 'Sistema'),
+    ]
+    
+    TIPO_CHOICES = [
+        ('texto', 'Texto'),
+        ('arquivo', 'Arquivo'),
+        ('audio', 'Áudio'),
+        ('video', 'Vídeo'),
+        ('imagem', 'Imagem'),
+        ('localizacao', 'Localização'),
+        ('contato', 'Contato'),
+    ]
+    
+    conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name='interacoes')
     mensagem = models.TextField()
     remetente = models.CharField(max_length=10, choices=REMETENTE_CHOICES)
+    tipo = models.CharField(max_length=15, choices=TIPO_CHOICES, default='texto')
+    operador = models.ForeignKey(Operador, on_delete=models.SET_NULL, null=True, blank=True)
+    lida = models.BooleanField(default=False)
+    respondida = models.BooleanField(default=False)
+    anexo = models.FileField(upload_to='anexos_interacao/', null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     
-    # Campo que estava sendo usado no serializer
-    timestamp = models.DateTimeField(auto_now_add=True)  # ADICIONAR ESTA LINHA
-    anexo = models.FileField(upload_to='anexos/', null=True, blank=True)  # ADICIONAR ESTA LINHA
-
     def __str__(self):
-        return f"Mensagem de {self.remetente} em {self.criado_em.strftime('%d/%m/%Y %H:%M')}"
-
+        return f"{self.get_remetente_display()}: {self.mensagem[:50]}..."
+    
+    class Meta:
+        verbose_name = "Interação"
+        verbose_name_plural = "Interações"
+        ordering = ['criado_em']
 
 class Estagio(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    nome = models.CharField(max_length=50)
+    descricao = models.TextField(blank=True, null=True)
+    ordem = models.PositiveIntegerField(default=0)
+    cor = models.CharField(max_length=7, default='#007bff')
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
     
-    nome = models.CharField(max_length=100)
-    ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem das colunas no Kanban", unique=True)
-
-    class Meta:
-        ordering = ['ordem']
-
     def __str__(self):
         return self.nome
-
+    
+    class Meta:
+        verbose_name = "Estágio"
+        verbose_name_plural = "Estágios"
+        ordering = ['ordem', 'nome']
 
 class Negocio(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
+    ORIGEM_CHOICES = [
+        ('inbound', 'Inbound'),
+        ('outbound', 'Outbound'),
+        ('indicacao', 'Indicação'),
+        ('evento', 'Evento'),
+        ('redes_sociais', 'Redes Sociais'),
+    ]
     
-    titulo = models.CharField(max_length=255)
-    valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    contato = models.ForeignKey(Contato, related_name='negocios', on_delete=models.CASCADE)
-    estagio = models.ForeignKey(Estagio, related_name='negocios', on_delete=models.PROTECT)
+    titulo = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True, null=True)
+    valor = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    contato = models.ForeignKey(Contato, on_delete=models.CASCADE, related_name='negocios')
+    estagio = models.ForeignKey(Estagio, on_delete=models.CASCADE, related_name='negocios')
+    operador = models.ForeignKey(Operador, on_delete=models.SET_NULL, null=True, blank=True, related_name='negocios')
+    origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default='inbound')
+    probabilidade = models.PositiveIntegerField(default=50, help_text="Probabilidade de fechamento (0-100%)")
+    data_prevista = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-
+    
     def __str__(self):
-        return self.titulo
-
+        return f"{self.titulo} - {self.contato.nome}"
+    
+    @property
+    def valor_formatado(self):
+        return f"R$ {self.valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    class Meta:
+        verbose_name = "Negócio"
+        verbose_name_plural = "Negócios"
+        ordering = ['-criado_em']
 
 class RespostasRapidas(models.Model):
-    id = models.AutoField(primary_key=True)  # ADICIONAR ESTA LINHA
-    
-    atalho = models.CharField(max_length=50, help_text="Ex: /saudacao")
+    atalho = models.CharField(max_length=20, unique=True)
+    titulo = models.CharField(max_length=100)
     texto = models.TextField()
-    operador = models.ForeignKey(Operador, related_name='respostas_rapidas', on_delete=models.CASCADE)
+    operador = models.ForeignKey(Operador, on_delete=models.CASCADE, related_name='respostas_rapidas')
+    ativo = models.BooleanField(default=True)
+    total_usos = models.PositiveIntegerField(default=0)
+    ultima_utilizacao = models.DateTimeField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-
+    
+    def __str__(self):
+        return f"{self.atalho} - {self.titulo}"
+    
     class Meta:
-        # Garante que um operador não pode ter dois atalhos com o mesmo nome
-        unique_together = ('operador', 'atalho')
+        verbose_name = "Resposta Rápida"
+        verbose_name_plural = "Respostas Rápidas"
         ordering = ['atalho']
 
+class NotaAtendimento(models.Model):
+    TIPO_CHOICES = [
+        ('info', 'Informação'),
+        ('importante', 'Importante'),
+        ('urgente', 'Urgente'),
+        ('followup', 'Follow-up'),
+        ('problema', 'Problema'),
+        ('solucao', 'Solução'),
+    ]
+    
+    titulo = models.CharField(max_length=200)
+    conteudo = models.TextField()
+    tipo = models.CharField(max_length=15, choices=TIPO_CHOICES, default='info')
+    privada = models.BooleanField(default=False)
+    tags = models.CharField(max_length=200, blank=True, null=True, help_text="Tags separadas por vírgula")
+    ativa = models.BooleanField(default=True)
+    operador = models.ForeignKey(Operador, on_delete=models.CASCADE, related_name='notas')
+    conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, null=True, blank=True, related_name='notas')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
     def __str__(self):
-        return f"{self.atalho} ({self.operador.user.username})"
+        return self.titulo
+    
+    @property
+    def tipo_display_classe(self):
+        classes = {
+            'info': 'info',
+            'importante': 'warning',
+            'urgente': 'danger',
+            'followup': 'primary',
+            'problema': 'danger',
+            'solucao': 'success',
+        }
+        return classes.get(self.tipo, 'info')
+    
+    class Meta:
+        verbose_name = "Nota de Atendimento"
+        verbose_name_plural = "Notas de Atendimento"
+        ordering = ['-criado_em']
+
+class AnexoNota(models.Model):
+    nota = models.ForeignKey(NotaAtendimento, on_delete=models.CASCADE, related_name='anexos')
+    arquivo = models.FileField(upload_to='anexos_notas/')
+    nome_original = models.CharField(max_length=255)
+    tamanho = models.PositiveIntegerField()
+    tipo_mime = models.CharField(max_length=100)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.nome_original
+    
+    class Meta:
+        verbose_name = "Anexo de Nota"
+        verbose_name_plural = "Anexos de Notas"
+
+class TarefaAtendimento(models.Model):
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('em_andamento', 'Em Andamento'),
+        ('concluida', 'Concluída'),
+        ('cancelada', 'Cancelada'),
+    ]
+    
+    PRIORIDADE_CHOICES = [
+        ('baixa', 'Baixa'),
+        ('media', 'Média'),
+        ('alta', 'Alta'),
+        ('critica', 'Crítica'),
+    ]
+    
+    titulo = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pendente')
+    prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
+    criado_por = models.ForeignKey(Operador, on_delete=models.CASCADE, related_name='tarefas_criadas')
+    responsavel = models.ForeignKey(Operador, on_delete=models.CASCADE, related_name='tarefas_responsavel')
+    conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, null=True, blank=True, related_name='tarefas')
+    contato = models.ForeignKey(Contato, on_delete=models.CASCADE, null=True, blank=True, related_name='tarefas')
+    data_vencimento = models.DateTimeField(null=True, blank=True)
+    data_conclusao = models.DateTimeField(null=True, blank=True)
+    data_inicio = models.DateTimeField(null=True, blank=True)
+    tempo_estimado = models.PositiveIntegerField(null=True, blank=True, help_text="Tempo estimado em minutos")
+    tempo_gasto = models.PositiveIntegerField(null=True, blank=True, help_text="Tempo gasto em minutos")
+    lembrete_enviado = models.BooleanField(default=False)
+    tags = models.CharField(max_length=200, blank=True, null=True)
+    observacoes = models.TextField(blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.titulo
+    
+    @property
+    def esta_vencida(self):
+        if self.data_vencimento and self.status not in ['concluida', 'cancelada']:
+            return timezone.now() > self.data_vencimento
+        return False
+    
+    @property
+    def vence_hoje(self):
+        if self.data_vencimento and self.status not in ['concluida', 'cancelada']:
+            return self.data_vencimento.date() == timezone.now().date()
+        return False
+    
+    @property
+    def prazo_status(self):
+        if self.esta_vencida:
+            return 'vencida'
+        elif self.vence_hoje:
+            return 'vence_hoje'
+        return 'no_prazo'
+    
+    @property
+    def progresso_percentual(self):
+        if self.status == 'concluida':
+            return 100
+        elif self.status == 'em_andamento':
+            if self.tempo_estimado and self.tempo_gasto:
+                return min(int((self.tempo_gasto / self.tempo_estimado) * 100), 95)
+            return 50
+        return 0
+    
+    class Meta:
+        verbose_name = "Tarefa de Atendimento"
+        verbose_name_plural = "Tarefas de Atendimento"
+        ordering = ['data_vencimento', '-prioridade', '-criado_em']
+
+class LogAtividade(models.Model):
+    ACAO_CHOICES = [
+        ('criar', 'Criar'),
+        ('editar', 'Editar'),
+        ('excluir', 'Excluir'),
+        ('visualizar', 'Visualizar'),
+        ('responder', 'Responder'),
+        ('finalizar', 'Finalizar'),
+        ('transferir', 'Transferir'),
+    ]
+    
+    operador = models.ForeignKey(Operador, on_delete=models.CASCADE, related_name='logs')
+    acao = models.CharField(max_length=20, choices=ACAO_CHOICES)
+    modelo = models.CharField(max_length=50)
+    objeto_id = models.PositiveIntegerField()
+    detalhes = models.TextField(blank=True, null=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.operador} - {self.get_acao_display()} {self.modelo}"
+    
+    class Meta:
+        verbose_name = "Log de Atividade"
+        verbose_name_plural = "Logs de Atividade"
+        ordering = ['-criado_em']
