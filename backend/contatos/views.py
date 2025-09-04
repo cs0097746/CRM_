@@ -19,7 +19,7 @@ from .serializers import (
     ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer,
     EstagioSerializer, NegocioSerializer, RespostasRapidasSerializer,
     NotaAtendimentoSerializer, TarefaAtendimentoSerializer, 
-    TarefaCreateSerializer, AnexoNotaSerializer
+    TarefaCreateSerializer, AnexoNotaSerializer, ConversaCreateSerializer
 )
 
 # ===== FUNÇÃO AUXILIAR =====
@@ -171,14 +171,32 @@ def dashboard_stats(request):
 
 # ===== CONVERSAS E INTERAÇÕES =====
 
-class ConversaListView(generics.ListAPIView):
-    """API: Lista conversas"""
+# views.py - Substitua a ConversaListView por esta:
+class ConversaListView(generics.ListCreateAPIView):
+    """API: Lista e cria conversas"""
     queryset = Conversa.objects.all().select_related('contato', 'operador').prefetch_related('interacoes')
-    serializer_class = ConversaListSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['contato__nome', 'contato__telefone']
     ordering = ['-atualizado_em']
+    
+    def get_serializer_class(self):
+        """Usar serializers diferentes para GET e POST"""
+        if self.request.method == 'POST':
+            return ConversaCreateSerializer  # ✅ Para criar
+        return ConversaListSerializer       # ✅ Para listar
+    
+    def perform_create(self, serializer):
+        """Auto-atribuir operador se não informado"""
+        if not serializer.validated_data.get('operador'):
+            try:
+                operador = Operador.objects.get(user=self.request.user)
+                serializer.save(operador=operador)
+            except Operador.DoesNotExist:
+                # Se não tiver operador, salva sem operador
+                serializer.save()
+        else:
+            serializer.save()
 
 class ConversaDetailView(generics.RetrieveUpdateAPIView):
     """API: Detalha e atualiza conversa"""
