@@ -1,11 +1,11 @@
-from django.urls import path
+from django.urls import path, re_path
 from .views import (
     # Views de Template (Django)
-    dashboard,
-    lista_contatos,
-    detalhe_contato,
-    lista_conversas,
-    detalhe_conversa,
+    # dashboard,
+    # lista_contatos,
+    # detalhe_contato,
+    # lista_conversas,
+    # detalhe_conversa,
     
     # Views de API - Contatos
     ContatoListCreateView,
@@ -46,14 +46,15 @@ from .views import (
     # Webhook
     EvolutionWebhookView,
 )
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     # ===== VIEWS TRADICIONAIS (HTML) =====
-    path('', lista_contatos, name='lista-contatos'),
-    path('<int:contato_id>/', detalhe_contato, name='detalhe-contato'),
-    path('conversas/', lista_conversas, name='lista-conversas-html'),
-    path('conversas/<int:conversa_id>/', detalhe_conversa, name='detalhe-conversa-html'),
-    path('dashboard/', dashboard, name='dashboard'),
+    # path('', lista_contatos, name='lista-contatos'),
+    # path('<int:contato_id>/', detalhe_contato, name='detalhe-contato'),
+    # path('conversas/', lista_conversas, name='lista-conversas-html'),
+    # path('conversas/<int:conversa_id>/', detalhe_conversa, name='detalhe-conversa-html'),
+    # path('dashboard/', dashboard, name='dashboard'),
     
     # ===== APIS BÁSICAS =====
     path('api/contatos/', ContatoListCreateView.as_view(), name='api-lista-contatos'),
@@ -95,4 +96,7 @@ urlpatterns = [
     
     # ===== WEBHOOKS =====
     path('webhook/evolution/', EvolutionWebhookView.as_view(), name='webhook-evolution'),
+
+    path('api/schema', SpectacularAPIView.as_view(), name='schema'),
+    path('api/swagger', SpectacularSwaggerView.as_view(), name='swagger'),
 ]

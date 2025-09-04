@@ -30,87 +30,87 @@ def get_user_operador(user):
     return None
 
 # ===== VIEWS ORIGINAIS (HTML) =====
-
-def lista_contatos(request):
-    """Lista contatos com paginação e busca"""
-    contatos = Contato.objects.all().order_by('nome')
-    
-    search = request.GET.get('search')
-    if search:
-        contatos = contatos.filter(
-            Q(nome__icontains=search) |
-            Q(email__icontains=search) |
-            Q(telefone__icontains=search)
-        )
-    
-    paginator = Paginator(contatos, 10)
-    page = request.GET.get('page')
-    contatos_page = paginator.get_page(page)
-    
-    return render(request, 'contatos/lista.html', {
-        'contatos': contatos_page,
-        'search': search
-    })
-
-def detalhe_contato(request, contato_id):
-    """Detalhe do contato com conversas relacionadas"""
-    contato = get_object_or_404(Contato, id=contato_id)
-    conversas = Conversa.objects.filter(contato=contato).order_by('-criado_em')
-    
-    return render(request, 'contatos/detalhe.html', {
-        'contato': contato,
-        'conversas': conversas
-    })
-
-def lista_conversas(request):
-    """Lista conversas com filtros"""
-    conversas = Conversa.objects.select_related('contato', 'operador').order_by('-criado_em')
-    
-    status_filter = request.GET.get('status')
-    if status_filter:
-        conversas = conversas.filter(status=status_filter)
-    
-    paginator = Paginator(conversas, 15)
-    page = request.GET.get('page')
-    conversas_page = paginator.get_page(page)
-    
-    return render(request, 'contatos/conversas.html', {
-        'conversas': conversas_page,
-        'status_filter': status_filter
-    })
-
-def detalhe_conversa(request, conversa_id):
-    """Detalhe da conversa com interações"""
-    conversa = get_object_or_404(Conversa, id=conversa_id)
-    interacoes = Interacao.objects.filter(conversa=conversa).order_by('criado_em')
-    
-    return render(request, 'contatos/conversa_detalhe.html', {
-        'conversa': conversa,
-        'interacoes': interacoes
-    })
-
-def dashboard(request):
-    """Dashboard principal com estatísticas"""
-    hoje = timezone.now().date()
-    
-    total_contatos = Contato.objects.count()
-    conversas_ativas = Conversa.objects.filter(status__in=['entrada', 'atendimento']).count()
-    conversas_hoje = Conversa.objects.filter(criado_em__date=hoje).count()
-    
-    conversas_stats = Conversa.objects.values('status').annotate(total=Count('id'))
-    ultimas_conversas = Conversa.objects.select_related('contato', 'operador').order_by('-criado_em')[:5]
-    tarefas_pendentes = TarefaAtendimento.objects.filter(status__in=['pendente', 'em_andamento']).count()
-    
-    context = {
-        'total_contatos': total_contatos,
-        'conversas_ativas': conversas_ativas,
-        'conversas_hoje': conversas_hoje,
-        'conversas_stats': conversas_stats,
-        'ultimas_conversas': ultimas_conversas,
-        'tarefas_pendentes': tarefas_pendentes,
-    }
-    
-    return render(request, 'contatos/dashboard.html', context)
+#
+# def lista_contatos(request):
+#     """Lista contatos com paginação e busca"""
+#     contatos = Contato.objects.all().order_by('nome')
+#
+#     search = request.GET.get('search')
+#     if search:
+#         contatos = contatos.filter(
+#             Q(nome__icontains=search) |
+#             Q(email__icontains=search) |
+#             Q(telefone__icontains=search)
+#         )
+#
+#     paginator = Paginator(contatos, 10)
+#     page = request.GET.get('page')
+#     contatos_page = paginator.get_page(page)
+#
+#     return render(request, 'contatos/lista.html', {
+#         'contatos': contatos_page,
+#         'search': search
+#     })
+#
+# def detalhe_contato(request, contato_id):
+#     """Detalhe do contato com conversas relacionadas"""
+#     contato = get_object_or_404(Contato, id=contato_id)
+#     conversas = Conversa.objects.filter(contato=contato).order_by('-criado_em')
+#
+#     return render(request, 'contatos/detalhe.html', {
+#         'contato': contato,
+#         'conversas': conversas
+#     })
+#
+# def lista_conversas(request):
+#     """Lista conversas com filtros"""
+#     conversas = Conversa.objects.select_related('contato', 'operador').order_by('-criado_em')
+#
+#     status_filter = request.GET.get('status')
+#     if status_filter:
+#         conversas = conversas.filter(status=status_filter)
+#
+#     paginator = Paginator(conversas, 15)
+#     page = request.GET.get('page')
+#     conversas_page = paginator.get_page(page)
+#
+#     return render(request, 'contatos/conversas.html', {
+#         'conversas': conversas_page,
+#         'status_filter': status_filter
+#     })
+#
+# def detalhe_conversa(request, conversa_id):
+#     """Detalhe da conversa com interações"""
+#     conversa = get_object_or_404(Conversa, id=conversa_id)
+#     interacoes = Interacao.objects.filter(conversa=conversa).order_by('criado_em')
+#
+#     return render(request, 'contatos/conversa_detalhe.html', {
+#         'conversa': conversa,
+#         'interacoes': interacoes
+#     })
+#
+# def dashboard(request):
+#     """Dashboard principal com estatísticas"""
+#     hoje = timezone.now().date()
+#
+#     total_contatos = Contato.objects.count()
+#     conversas_ativas = Conversa.objects.filter(status__in=['entrada', 'atendimento']).count()
+#     conversas_hoje = Conversa.objects.filter(criado_em__date=hoje).count()
+#
+#     conversas_stats = Conversa.objects.values('status').annotate(total=Count('id'))
+#     ultimas_conversas = Conversa.objects.select_related('contato', 'operador').order_by('-criado_em')[:5]
+#     tarefas_pendentes = TarefaAtendimento.objects.filter(status__in=['pendente', 'em_andamento']).count()
+#
+#     context = {
+#         'total_contatos': total_contatos,
+#         'conversas_ativas': conversas_ativas,
+#         'conversas_hoje': conversas_hoje,
+#         'conversas_stats': conversas_stats,
+#         'ultimas_conversas': ultimas_conversas,
+#         'tarefas_pendentes': tarefas_pendentes,
+#     }
+#
+#     return render(request, 'contatos/dashboard.html', context)
 
 # ===== VIEWS DE API =====
 
