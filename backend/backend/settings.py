@@ -203,3 +203,13 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Loomie API',
+    'DESCRIPTION': 'API para gestão de contatos, conversas, negócios e tarefas.',
+    'VERSION': '1.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api',
+}
