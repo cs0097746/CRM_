@@ -10,16 +10,52 @@ export default function Kanban() {
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [negocios, setNegocios] = useState<Negocio[]>([]);
 
+   const USERNAME = "admin";
+    const PASSWORD = "admin";
+    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+
+    const getToken = async () => {
+      const params = new URLSearchParams();
+      params.append("grant_type", "password");
+      params.append("username", USERNAME);
+      params.append("password", PASSWORD);
+      params.append("client_id", CLIENT_ID);
+      params.append("client_secret", CLIENT_SECRET);
+
+      try {
+        const res = await axios.post("http://localhost:8000/o/token/", params);
+        return res.data.access_token;
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
   const api = axios.create({ baseURL: "http://localhost:8000" });
 
   const fetchData = async () => {
     try {
+
+        const token = await getToken();
       const [estagiosRes, negociosRes] = await Promise.all([
-        api.get<Estagio[]>("/api/estagios/"),
-        api.get<Negocio[]>("/api/negocios/"),
+        api.get<Estagio[]>("/api/estagios/", {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        ),
+        api.get<Negocio[]>("/api/negocios/", {
+            headers: {
+                Authorization: `Bearer ${token}`
+                }
+            }
+        ),
       ]);
-      setEstagios(estagiosRes.data);
-      setNegocios(negociosRes.data);
+      // @ts-ignore
+      setEstagios(estagiosRes.data.results);
+
+      // @ts-ignore
+      setNegocios(negociosRes.data.results);
     } catch (error) {
       console.error("Erro ao buscar dados do Kanban:", error);
     }
@@ -53,9 +89,16 @@ export default function Kanban() {
       console.log("Negócio id", negocioId);
         console.log("Estágio final ", novoEstagioId);
 
+      const token = await getToken();
+
       try {
         await api.patch(`/api/negocios/${negocioId}/`, {
           estagio_id: novoEstagioId,
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
       } catch (error) {
         console.error("Erro ao atualizar estágio no backend:", error);
@@ -69,6 +112,8 @@ export default function Kanban() {
         );
       }
     };
+
+    console.log("Estagios ", estagios);
 
   return (
     <div

@@ -2,6 +2,7 @@ import type { Negocio } from "../types/Negocio.ts";
 import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
 import { Modal, Button, Form, Badge } from "react-bootstrap";
+import axios from "axios";
 
 interface KanbanCardProps {
   negocio: Negocio;
@@ -15,6 +16,27 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [contato, setContato] = useState(negocio.contato.nome);
   const [estagio, setEstagio] = useState(negocio.estagio.nome);
 
+     const USERNAME = "admin";
+    const PASSWORD = "admin";
+    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+
+    const getToken = async () => {
+      const params = new URLSearchParams();
+      params.append("grant_type", "password");
+      params.append("username", USERNAME);
+      params.append("password", PASSWORD);
+      params.append("client_id", CLIENT_ID);
+      params.append("client_secret", CLIENT_SECRET);
+
+      try {
+        const res = await axios.post("http://localhost:8000/o/token/", params);
+        return res.data.access_token;
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
   const handleSave = async () => {
       const payload = {
         titulo,
@@ -23,11 +45,14 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         estagio,
       };
 
+      const token = await getToken();
+
       try {
         const response = await fetch(`http://localhost:8000/api/negocios/${negocio.id}/`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`
           },
           body: JSON.stringify(payload),
         });
