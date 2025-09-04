@@ -1,11 +1,11 @@
 from django.urls import path
 from .views import (
     # Views de Template (Django)
-    dashboard,
-    lista_contatos,
-    detalhe_contato,
-    lista_conversas,
-    detalhe_conversa,
+    # dashboard,
+    # lista_contatos,
+    # detalhe_contato,
+    # lista_conversas,
+    # detalhe_conversa,
     
     # Views de API - Contatos
     ContatoListCreateView,
@@ -49,11 +49,11 @@ from .views import (
 
 urlpatterns = [
     # ===== VIEWS TRADICIONAIS (HTML) =====
-    path('', lista_contatos, name='lista-contatos'),
-    path('<int:contato_id>/', detalhe_contato, name='detalhe-contato'),
-    path('conversas/', lista_conversas, name='lista-conversas-html'),
-    path('conversas/<int:conversa_id>/', detalhe_conversa, name='detalhe-conversa-html'),
-    path('dashboard/', dashboard, name='dashboard'),
+    # path('', lista_contatos, name='lista-contatos'),
+    # path('<int:contato_id>/', detalhe_contato, name='detalhe-contato'),
+    # path('conversas/', lista_conversas, name='lista-conversas-html'),
+    # path('conversas/<int:conversa_id>/', detalhe_conversa, name='detalhe-conversa-html'),
+    # path('dashboard/', dashboard, name='dashboard'),
     
     # ===== APIS BÁSICAS =====
     path('api/contatos/', ContatoListCreateView.as_view(), name='api-lista-contatos'),
