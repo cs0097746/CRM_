@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Card, Badge, Alert } from 'react-bootstrap';
 import axios from 'axios';
+import type {Conversa} from "../types/Conversa.ts";
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
@@ -12,17 +13,46 @@ const Home = () => {
 
   const api = axios.create({ baseURL: "http://localhost:8000" });
 
+    const USERNAME = "admin";
+    const PASSWORD = "admin";
+    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+
+    const getToken = async () => {
+      const params = new URLSearchParams();
+      params.append("grant_type", "password");
+      params.append("username", USERNAME);
+      params.append("password", PASSWORD);
+      params.append("client_id", CLIENT_ID);
+      params.append("client_secret", CLIENT_SECRET);
+
+      try {
+        const res = await axios.post("http://localhost:8000/o/token/", params);
+        return res.data.access_token;
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
   useEffect(() => {
     const fetchResumoRapido = async () => {
       try {
         // Buscar apenas dados essenciais para a home
-        const response = await api.get('/api/conversas/');
+        const token = await getToken();
+
+        const response = await api.get<Conversa[]>('/api/conversas/', {
+              headers: {
+                Authorization: `Bearer ${token}`
+              },
+            }
+          );
+
         const conversas = response.data;
-        
-        const aguardando = conversas.filter((c: any) => c.status === 'entrada' && !c.operador).length;
-        const emAndamento = conversas.filter((c: any) => c.status === 'atendimento').length;
-        const operadoresUnicos = new Set(conversas.filter((c: any) => c.operador).map((c: any) => c.operador.id));
-        
+        const aguardando = conversas.filter((c: Conversa) => c.status === 'entrada' && !c.operador).length;
+        const emAndamento = conversas.filter((c: Conversa) => c.status === 'atendimento').length;
+        const operadoresUnicos = new Set(
+          conversas.filter((c: Conversa) => c.operador).map((c: Conversa) => c.operador!.id)
+        );
         setResumoAtendimento({
           aguardando,
           emAndamento,

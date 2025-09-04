@@ -3,6 +3,12 @@ import type { Contato } from "./Contato.ts";
 import type { Operador } from "./Operador.ts";
 import type { Interacao } from "./Interacao.ts";
 
+interface Mensagem {
+  criado_em: string;
+  mensagem: string;
+  remetente: string;
+}
+
 export interface Conversa {
   id: number;
   contato: Contato;
@@ -12,6 +18,6 @@ export interface Conversa {
   atualizado_em: string;
   interacoes?: Interacao[];
   // Campo adicionado para a lista da caixa de entrada
-  ultima_mensagem: string | null;
+  ultima_mensagem: Mensagem | null;
 }
 

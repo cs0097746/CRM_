@@ -504,7 +504,7 @@ export default function Atendimento() {
       conversa.contato?.nome?.toLowerCase().includes(searchLower) ||
       conversa.contato?.telefone?.includes(searchTerm) ||
       conversa.contato?.email?.toLowerCase().includes(searchLower) ||
-      conversa.ultima_mensagem?.toLowerCase().includes(searchLower);
+      conversa.ultima_mensagem?.mensagem?.toLowerCase().includes(searchLower);
       
     return matchStatus && matchSearch;
   });
@@ -690,7 +690,7 @@ export default function Atendimento() {
                                 whiteSpace: 'nowrap',
                                 maxWidth: '200px'
                               }}>
-                                {conversa.ultima_mensagem}
+                                {conversa.ultima_mensagem.mensagem}
                               </div>
                             )}
                             {conversa.operador && (
@@ -713,10 +713,12 @@ export default function Atendimento() {
                               color: '#8a8d91',
                               marginTop: '4px'
                             }}>
-                              {new Date(conversa.atualizado_em).toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
+                              {conversa.atualizado_em
+                                ? new Date(conversa.atualizado_em).toLocaleTimeString('pt-BR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })
+                                : '-'}
                             </div>
                           </div>
                         </div>
