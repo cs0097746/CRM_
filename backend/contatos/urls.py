@@ -46,6 +46,7 @@ from .views import (
     # Webhook
     EvolutionWebhookView,
 )
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     # ===== VIEWS TRADICIONAIS (HTML) =====
@@ -95,4 +96,7 @@ urlpatterns = [
     
     # ===== WEBHOOKS =====
     path('webhook/evolution/', EvolutionWebhookView.as_view(), name='webhook-evolution'),
+
+    path('api/schema', SpectacularAPIView.as_view(), name='schema'),
+    path('api/swagger', SpectacularSwaggerView.as_view(), name='swagger'),
 ]
