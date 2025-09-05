@@ -12,8 +12,6 @@ const Home = () => {
     operadoresOnline: 0
   });
 
-  console.log("BACKEND URL", backend_url);
-
   const api = axios.create({ baseURL: `${backend_url}` });
 
     const USERNAME = "admin";
@@ -43,14 +41,15 @@ const Home = () => {
         // Buscar apenas dados essenciais para a home
         const token = await getToken();
 
-        const response = await api.get<Conversa[]>('/api/conversas/', {
+        const response = await api.get<Conversa[]>('conversas/', {
               headers: {
                 Authorization: `Bearer ${token}`
               },
             }
           );
 
-        const conversas = response.data;
+        // @ts-ignore
+        const conversas = response.data.results;
         const aguardando = conversas.filter((c: Conversa) => c.status === 'entrada' && !c.operador).length;
         const emAndamento = conversas.filter((c: Conversa) => c.status === 'atendimento').length;
         const operadoresUnicos = new Set(

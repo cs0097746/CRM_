@@ -49,7 +49,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       const token = await getToken();
 
       try {
-        const response = await fetch(`${backend_url}/api/negocios/${negocio.id}/`, {
+        const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

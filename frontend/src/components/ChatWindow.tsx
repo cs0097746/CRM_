@@ -66,7 +66,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     const token = await getToken();
     try {
       await api.post(
-        `/api/conversas/${conversa.id}/mensagens/`,
+        `conversas/${conversa.id}/interacoes/`,
         {
           mensagem: novaMensagem,
           remetente: 'operador'

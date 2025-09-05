@@ -39,13 +39,13 @@ export default function Kanban() {
 
         const token = await getToken();
       const [estagiosRes, negociosRes] = await Promise.all([
-        api.get<Estagio[]>("/api/estagios/", {
+        api.get<Estagio[]>("estagios/", {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             }
         ),
-        api.get<Negocio[]>("/api/negocios/", {
+        api.get<Negocio[]>("negocios/", {
             headers: {
                 Authorization: `Bearer ${token}`
                 }
@@ -93,7 +93,7 @@ export default function Kanban() {
       const token = await getToken();
 
       try {
-        await api.patch(`/api/negocios/${negocioId}/`, {
+        await api.patch(`negocios/${negocioId}/`, {
           estagio_id: novoEstagioId,
         },
         {

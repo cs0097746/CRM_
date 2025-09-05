@@ -286,7 +286,7 @@ export default function Atendimento() {
           return;
         }
 
-        const response = await api.get<Conversa[]>('/api/conversas/', {
+        const response = await api.get<Conversa[]>('conversas/', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -309,7 +309,7 @@ export default function Atendimento() {
       const token = await getToken();
       if (!token) throw new Error("Não foi possível autenticar.");
 
-      await api.patch('/api/conversas/1/', {
+      await api.patch('conversas/1/', {
         operador_id: null,
         status: 'entrada'
       }, {
@@ -346,7 +346,7 @@ export default function Atendimento() {
       const token = await getToken();
       if (!token) throw new Error("Não foi possível autenticar.");
 
-      const response = await api.patch(`/api/conversas/${chamadoMaisAntigo.id}/`, {
+      const response = await api.patch(`conversas/${chamadoMaisAntigo.id}/`, {
         status: 'atendimento',
         operador_id: 1
       }, {
@@ -374,7 +374,7 @@ export default function Atendimento() {
       const token = await getToken();
       if (!token) throw new Error("Não foi possível autenticar.");
 
-      const response = await api.get<Conversa>(`/api/conversas/${conversa.id}/`, {
+      const response = await api.get<Conversa>(`conversas/${conversa.id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -397,12 +397,13 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
-        api.get<Conversa[]>('/api/conversas/', { headers: { Authorization: `Bearer ${token}` } })
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       setConversaAtiva(conversaResponse.data);
-      setConversas(listResponse.data);
+      // @ts-ignore
+      setConversas(listResponse.data.results);
     } catch (error) {
       console.error('Erro ao atualizar após envio de mensagem:', error);
     }
@@ -416,13 +417,13 @@ export default function Atendimento() {
       const token = await getToken();
       if (!token) throw new Error("Não foi possível autenticar.");
 
-      await api.patch(`/api/conversas/${conversaAtiva.id}/`, { status: novoStatus }, {
+      await api.patch(`conversas/${conversaAtiva.id}/`, { status: novoStatus }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
-        api.get<Conversa[]>('/api/conversas/', { headers: { Authorization: `Bearer ${token}` } })
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       setConversaAtiva(conversaResponse.data);
@@ -468,8 +469,10 @@ export default function Atendimento() {
         const token = await getToken();
         if (!token) return;
 
-        const response = await api.get<Conversa[]>('/api/conversas/', { headers: { Authorization: `Bearer ${token}` } });
-        const novasConversas = response.data;
+        const response = await api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } });
+
+        // @ts-ignore
+        const novasConversas = response.data.results;
 
         const conversasAnteriores = conversas;
         const novasMensagens = novasConversas.some(nova => {
@@ -481,7 +484,7 @@ export default function Atendimento() {
         setConversas(novasConversas);
 
         if (conversaAtiva) {
-          const updatedConversa = await api.get<Conversa>(`/api/conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+          const updatedConversa = await api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } });
           setConversaAtiva(updatedConversa.data);
         }
       } catch (error) {
