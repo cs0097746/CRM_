@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'contatos',
     'oauth2_integration',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -179,6 +180,7 @@ OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth2_provider.RefreshToken'
 # =========================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',  # ✅ ADICIONE ISSO!
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
@@ -213,3 +215,8 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': r'/api',
 }
+
+
+EVOLUTION_API_URL = "https://evo.loomiecrm.com"
+API_KEY = "095B7FC5F286-4E22-A2E9-3A8C54545870" 
+INSTANCE_NAME = "nate"

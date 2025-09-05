@@ -273,3 +273,24 @@ class TarefaCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"responsavel_id": "Operador não encontrado."})
         
         return super().create(validated_data)
+
+class ConversaCreateSerializer(serializers.ModelSerializer):
+    """Serializer para criar conversas (POST)"""
+    
+    class Meta:
+        model = Conversa
+        fields = [
+            'contato', 'operador', 'status', 'assunto', 
+            'origem', 'prioridade'
+        ]
+        extra_kwargs = {
+            'operador': {'required': False},  # Será auto-atribuído
+            'prioridade': {'default': 'media'},
+            'status': {'default': 'entrada'}
+        }
+    
+    def validate_contato(self, value):
+        """Validar se o contato existe"""
+        if not value:
+            raise serializers.ValidationError("Contato é obrigatório")
+        return value

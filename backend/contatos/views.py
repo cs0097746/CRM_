@@ -9,6 +9,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+import requests
+import json
+
+# ✅ IMPORTS DE TIPOS PARA PYLANCE
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 from .models import (
     Contato, Conversa, Interacao, Operador, Estagio, Negocio,
@@ -19,7 +29,7 @@ from .serializers import (
     ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer,
     EstagioSerializer, NegocioSerializer, RespostasRapidasSerializer,
     NotaAtendimentoSerializer, TarefaAtendimentoSerializer, 
-    TarefaCreateSerializer, AnexoNotaSerializer
+    TarefaCreateSerializer, AnexoNotaSerializer, ConversaCreateSerializer
 )
 
 # ===== FUNÇÃO AUXILIAR =====
@@ -29,88 +39,109 @@ def get_user_operador(user):
         return user.operador
     return None
 
-# ===== VIEWS ORIGINAIS (HTML) =====
-#
-# def lista_contatos(request):
-#     """Lista contatos com paginação e busca"""
-#     contatos = Contato.objects.all().order_by('nome')
-#
-#     search = request.GET.get('search')
-#     if search:
-#         contatos = contatos.filter(
-#             Q(nome__icontains=search) |
-#             Q(email__icontains=search) |
-#             Q(telefone__icontains=search)
-#         )
-#
-#     paginator = Paginator(contatos, 10)
-#     page = request.GET.get('page')
-#     contatos_page = paginator.get_page(page)
-#
-#     return render(request, 'contatos/lista.html', {
-#         'contatos': contatos_page,
-#         'search': search
-#     })
-#
-# def detalhe_contato(request, contato_id):
-#     """Detalhe do contato com conversas relacionadas"""
-#     contato = get_object_or_404(Contato, id=contato_id)
-#     conversas = Conversa.objects.filter(contato=contato).order_by('-criado_em')
-#
-#     return render(request, 'contatos/detalhe.html', {
-#         'contato': contato,
-#         'conversas': conversas
-#     })
-#
-# def lista_conversas(request):
-#     """Lista conversas com filtros"""
-#     conversas = Conversa.objects.select_related('contato', 'operador').order_by('-criado_em')
-#
-#     status_filter = request.GET.get('status')
-#     if status_filter:
-#         conversas = conversas.filter(status=status_filter)
-#
-#     paginator = Paginator(conversas, 15)
-#     page = request.GET.get('page')
-#     conversas_page = paginator.get_page(page)
-#
-#     return render(request, 'contatos/conversas.html', {
-#         'conversas': conversas_page,
-#         'status_filter': status_filter
-#     })
-#
-# def detalhe_conversa(request, conversa_id):
-#     """Detalhe da conversa com interações"""
-#     conversa = get_object_or_404(Conversa, id=conversa_id)
-#     interacoes = Interacao.objects.filter(conversa=conversa).order_by('criado_em')
-#
-#     return render(request, 'contatos/conversa_detalhe.html', {
-#         'conversa': conversa,
-#         'interacoes': interacoes
-#     })
-#
-# def dashboard(request):
-#     """Dashboard principal com estatísticas"""
-#     hoje = timezone.now().date()
-#
-#     total_contatos = Contato.objects.count()
-#     conversas_ativas = Conversa.objects.filter(status__in=['entrada', 'atendimento']).count()
-#     conversas_hoje = Conversa.objects.filter(criado_em__date=hoje).count()
-#
-#     conversas_stats = Conversa.objects.values('status').annotate(total=Count('id'))
-#     ultimas_conversas = Conversa.objects.select_related('contato', 'operador').order_by('-criado_em')[:5]
-#     tarefas_pendentes = TarefaAtendimento.objects.filter(status__in=['pendente', 'em_andamento']).count()
-#
-#     context = {
-#         'total_contatos': total_contatos,
-#         'conversas_ativas': conversas_ativas,
-#         'conversas_hoje': conversas_hoje,
-#         'conversas_stats': conversas_stats,
-#         'ultimas_conversas': ultimas_conversas,
-#         'tarefas_pendentes': tarefas_pendentes,
-#     }
-#
-#     return render(request, 'contatos/dashboard.html', context)
+# ===== INTEGRAÇÃO EVOLUTION API =====
+
+def enviar_mensagem_whatsapp(numero, mensagem, instance_name="nate", evolution_api_url="https://evo.loomiecrm.com", api_key="095B7FC5F286-4E22-A2E9-3A8C54545870"):
+    """Envia mensagem via Evolution API - VERSÃO OTIMIZADA"""
+    try:
+        url = f"{evolution_api_url}/message/sendText/{instance_name}"
+        
+        payload = {
+            "number": numero,
+            "text": mensagem
+        }
+        
+        # ✅ USAR APENAS O HEADER QUE FUNCIONA
+        headers = {
+            'apikey': api_key,
+            'Content-Type': 'application/json'
+        }
+        
+        print(f"📨 Enviando para: {url}")
+        print(f"📦 Payload: {payload}")
+        
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        
+        print(f"📡 Status: {response.status_code}")
+        print(f"📄 Response: {response.text}")
+        
+        if response.status_code in [200, 201]:
+            print("✅ MENSAGEM ENVIADA COM SUCESSO!")
+            return {
+                "success": True, 
+                "data": response.json(), 
+                "header_usado": "apikey"
+            }
+        elif response.status_code == 400:
+            response_data = response.json()
+            if "exists" in response.text and "false" in response.text:
+                return {
+                    "success": False, 
+                    "error": "Número de WhatsApp não existe ou inválido", 
+                    "details": response_data,
+                    "numero_testado": numero
+                }
+            else:
+                return {
+                    "success": False, 
+                    "error": f"Erro 400: {response_data.get('error', 'Bad Request')}", 
+                    "details": response_data
+                }
+        else:
+            return {
+                "success": False, 
+                "error": f"Status: {response.status_code}", 
+                "details": response.text
+            }
+            
+    except Exception as e:
+        print(f"💥 Erro: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+def enviar_presenca_whatsapp(numero, presence="composing", instance_name="nate", evolution_api_url="https://evo.loomiecrm.com", api_key="095B7FC5F286-4E22-A2E9-3A8C54545870"):
+    """Envia presença (digitando...) via Evolution API"""
+    try:
+        url = f"{evolution_api_url}/chat/sendPresence/{instance_name}"
+        
+        payload = {
+            "number": numero,
+            "presence": presence
+        }
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'evolution': api_key
+        }
+        
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code in [200, 201]:
+            return {"success": True, "data": response.json()}
+        else:
+            return {"success": False, "error": f"Status: {response.status_code}", "details": response.text}
+            
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def obter_qr_code(instance_name="nate", evolution_api_url="https://evo.loomiecrm.com", api_key="095B7FC5F286-4E22-A2E9-3A8C54545870"):
+    """Obtém QR Code para conectar instância"""
+    try:
+        url = f"{evolution_api_url}/instance/connect/{instance_name}"
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'evolution': api_key
+        }
+        
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code in [200, 201]:
+            return {"success": True, "data": response.json()}
+        else:
+            return {"success": False, "error": f"Status: {response.status_code}", "details": response.text}
+            
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 # ===== VIEWS DE API =====
 
@@ -171,14 +202,30 @@ def dashboard_stats(request):
 
 # ===== CONVERSAS E INTERAÇÕES =====
 
-class ConversaListView(generics.ListAPIView):
-    """API: Lista conversas"""
+class ConversaListView(generics.ListCreateAPIView):
+    """API: Lista e cria conversas"""
     queryset = Conversa.objects.all().select_related('contato', 'operador').prefetch_related('interacoes')
-    serializer_class = ConversaListSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['contato__nome', 'contato__telefone']
     ordering = ['-atualizado_em']
+    
+    def get_serializer_class(self):
+        """Usar serializers diferentes para GET e POST"""
+        if self.request.method == 'POST':
+            return ConversaCreateSerializer
+        return ConversaListSerializer
+    
+    def perform_create(self, serializer):
+        """Auto-atribuir operador se não informado"""
+        if not serializer.validated_data.get('operador'):
+            try:
+                operador = Operador.objects.get(user=self.request.user)
+                serializer.save(operador=operador)
+            except Operador.DoesNotExist:
+                serializer.save()
+        else:
+            serializer.save()
 
 class ConversaDetailView(generics.RetrieveUpdateAPIView):
     """API: Detalha e atualiza conversa"""
@@ -558,6 +605,144 @@ def update_task_status(request, task_id):
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# ===== VIEWS DE INTEGRAÇÃO WHATSAPP =====
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def enviar_mensagem_view(request):
+    """API para enviar mensagem via WhatsApp"""
+    print(f"🔍 DEBUG: Dados recebidos: {request.data}")
+    print(f"🔍 DEBUG: Usuário: {request.user}")
+    
+    try:
+        numero = request.data.get('numero')
+        mensagem = request.data.get('mensagem')
+        conversa_id = request.data.get('conversa_id')
+        enviar_presenca = request.data.get('enviar_presenca', False)
+        
+        print(f"🔍 DEBUG: numero={numero}, mensagem={mensagem}")
+        
+        if not numero or not mensagem:
+            print("❌ DEBUG: Campos obrigatórios faltando")
+            return Response({
+                'error': 'Campos obrigatórios: numero, mensagem'
+            }, status=400)
+        
+        # Enviar "digitando..." se solicitado
+        if enviar_presenca:
+            print("📱 DEBUG: Enviando presença...")
+            presenca_result = enviar_presenca_whatsapp(numero, "composing")
+            print(f"📱 DEBUG: Resultado presença: {presenca_result}")
+        
+        # Enviar mensagem via Evolution API
+        print("📨 DEBUG: Enviando mensagem...")
+        resultado = enviar_mensagem_whatsapp(numero, mensagem)
+        print(f"📨 DEBUG: Resultado mensagem: {resultado}")
+        
+        if resultado['success']:
+            # Salvar mensagem no CRM se tiver conversa_id
+            if conversa_id:
+                try:
+                    conversa = Conversa.objects.get(id=conversa_id)
+                    operador = get_user_operador(request.user)
+                    
+                    Interacao.objects.create(
+                        conversa=conversa,
+                        mensagem=mensagem,
+                        remetente='operador',
+                        tipo='texto',
+                        operador=operador
+                    )
+                    print("💾 DEBUG: Interação salva no CRM")
+                except (Conversa.DoesNotExist, Operador.DoesNotExist) as e:
+                    print(f"⚠️ DEBUG: Erro ao salvar no CRM: {e}")
+            
+            return Response({
+                'success': True,
+                'message': 'Mensagem enviada com sucesso',
+                'data': resultado['data'],
+                'debug': {
+                    'numero': numero,
+                    'mensagem': mensagem,
+                    'presenca_enviada': enviar_presenca,
+                    'header_usado': resultado.get('header_usado'),
+                    'tentativa': resultado.get('tentativa')
+                }
+            }, status=200)
+        else:
+            print(f"❌ DEBUG: Erro na Evolution API: {resultado}")
+            return Response({
+                'success': False,
+                'error': resultado['error'],
+                'details': resultado.get('details'),
+                'debug_info': resultado
+            }, status=400)
+            
+    except Exception as e:
+        print(f"💥 DEBUG: Exceção: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def obter_qr_code_view(request):
+    """API para obter QR Code da instância WhatsApp"""
+    try:
+        resultado = obter_qr_code()
+        
+        if resultado['success']:
+            return Response({
+                'success': True,
+                'qr_code': resultado['data'].get('qrcode', ''),
+                'status': resultado['data'].get('status', ''),
+                'message': 'QR Code obtido com sucesso'
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': resultado['error']
+            }, status=400)
+            
+    except Exception as e:
+        return Response({
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def enviar_presenca_view(request):
+    """API para enviar presença (digitando...)"""
+    try:
+        numero = request.data.get('numero')
+        presence = request.data.get('presence', 'composing')
+        
+        if not numero:
+            return Response({
+                'error': 'Campo obrigatório: numero'
+            }, status=400)
+        
+        resultado = enviar_presenca_whatsapp(numero, presence)
+        
+        if resultado['success']:
+            return Response({
+                'success': True,
+                'message': 'Presença enviada com sucesso',
+                'data': resultado['data']
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': resultado['error']
+            }, status=400)
+            
+    except Exception as e:
+        return Response({
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)
+
 # ===== ESTATÍSTICAS =====
 
 class FunilStatsView(APIView):
@@ -565,7 +750,6 @@ class FunilStatsView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Correção: usar dict() corretamente
         leads_por_estagio = {}
         for item in Negocio.objects.values('estagio__nome').annotate(count=Count('id')):
             leads_por_estagio[item['estagio__nome']] = item['count']
@@ -591,3 +775,85 @@ class EvolutionWebhookView(APIView):
     
     def post(self, request):
         return Response({'status': 'received'})
+
+# ===== AUTENTICAÇÃO =====
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def obter_token_auth(request):
+    """Obter token de autenticação"""
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response({
+                'error': 'Username e password são obrigatórios'
+            }, status=400)
+        
+        # Autenticar usuário
+        user = authenticate(username=username, password=password)
+        
+        if user:
+            # Criar ou obter token
+            token, created = Token.objects.get_or_create(user=user)
+            
+            return Response({
+                'success': True,
+                'token': token.key,
+                'user_id': user.pk,
+                'username': user.username,
+                'message': 'Token gerado com sucesso'
+            })
+        else:
+            return Response({
+                'error': 'Credenciais inválidas'
+            }, status=400)
+            
+    except Exception as e:
+        return Response({
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def criar_usuario_teste(request):
+    """Criar usuário para teste - APENAS DESENVOLVIMENTO"""
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email', f'{username}@teste.com')
+        
+        if not username or not password:
+            return Response({
+                'error': 'Username e password são obrigatórios'
+            }, status=400)
+        
+        # Verificar se usuário já existe
+        if User.objects.filter(username=username).exists():
+            return Response({
+                'error': 'Usuário já existe'
+            }, status=400)
+        
+        # Criar usuário
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            email=email
+        )
+        
+        # Criar token
+        token, created = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            'success': True,
+            'message': 'Usuário criado com sucesso',
+            'user_id': user.pk,
+            'username': user.username,
+            'token': token.key
+        })
+        
+    except Exception as e:
+        return Response({
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)

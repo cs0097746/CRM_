@@ -45,6 +45,13 @@ from .views import (
     
     # Webhook
     EvolutionWebhookView,
+
+    # Integração WhatsApp
+    enviar_mensagem_view,
+    obter_qr_code_view,
+    enviar_presenca_view,
+    obter_token_auth,
+    criar_usuario_teste,
 )
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -97,6 +104,14 @@ urlpatterns = [
     # ===== WEBHOOKS =====
     path('webhook/evolution/', EvolutionWebhookView.as_view(), name='webhook-evolution'),
 
+    # ===== INTEGRAÇÃO WHATSAPP =====
+    path('api/enviar-mensagem/', enviar_mensagem_view, name='enviar-mensagem'),
+    path('api/whatsapp/qr-code/', obter_qr_code_view, name='whatsapp-qr-code'),
+    path('api/whatsapp/presenca/', enviar_presenca_view, name='whatsapp-presenca'),
+
     path('api/schema', SpectacularAPIView.as_view(), name='schema'),
     path('api/swagger', SpectacularSwaggerView.as_view(), name='swagger'),
+
+    path('api/auth/token/', obter_token_auth, name='obter-token'),
+    path('api/auth/criar-usuario/', criar_usuario_teste, name='criar-usuario-teste'),
 ]
