@@ -10,3 +10,4 @@ tzdata==2025.2
 django-cors-headers==4.7.0
 django-oauth-toolkit==3.0.1
 drf-spectacular==0.28.0
+python-decouple==3.8
