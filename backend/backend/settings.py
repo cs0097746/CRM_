@@ -30,8 +30,8 @@ ALLOWED_HOSTS = []
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://crm.backend.localhost",
-    "https://crm.backend.loomiecrm.com",
+    "https://backend.localhost",
+    "https://backend.loomiecrm.com",
     "https://crm.localhost",
     "https://crm.loomiecrm.com",
 ]
