@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Card, Badge, Alert } from 'react-bootstrap';
 import axios from 'axios';
 import type {Conversa} from "../types/Conversa.ts";
+import backend_url from "../config/env.ts";
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
@@ -11,7 +12,9 @@ const Home = () => {
     operadoresOnline: 0
   });
 
-  const api = axios.create({ baseURL: "http://localhost:8000" });
+  console.log("BACKEND URL", backend_url);
+
+  const api = axios.create({ baseURL: `${backend_url}` });
 
     const USERNAME = "admin";
     const PASSWORD = "admin";
@@ -27,7 +30,7 @@ const Home = () => {
       params.append("client_secret", CLIENT_SECRET);
 
       try {
-        const res = await axios.post("http://localhost:8000/o/token/", params);
+        const res = await axios.post(`${backend_url}o/token/`, params);
         return res.data.access_token;
       } catch (err) {
         console.error(err);

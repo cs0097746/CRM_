@@ -3,6 +3,7 @@ import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
 import { Modal, Button, Form, Badge } from "react-bootstrap";
 import axios from "axios";
+import backend_url from "../config/env.ts";
 
 interface KanbanCardProps {
   negocio: Negocio;
@@ -30,7 +31,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       params.append("client_secret", CLIENT_SECRET);
 
       try {
-        const res = await axios.post("http://localhost:8000/o/token/", params);
+        const res = await axios.post(`${backend_url}/o/token/`, params);
         return res.data.access_token;
       } catch (err) {
         console.error(err);
@@ -48,7 +49,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       const token = await getToken();
 
       try {
-        const response = await fetch(`http://localhost:8000/api/negocios/${negocio.id}/`, {
+        const response = await fetch(`${backend_url}/api/negocios/${negocio.id}/`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

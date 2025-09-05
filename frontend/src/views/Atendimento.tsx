@@ -4,8 +4,9 @@ import axios from 'axios';
 import type { Conversa, StatusConversa } from '../types/Conversa';
 import ChatWindow from '../components/ChatWindow';
 import { useNotificationSound } from '../hooks/useNotificationSound';
+import backend_url from "../config/env.ts";
 
-const api = axios.create({ baseURL: "http://localhost:8000" });
+const api = axios.create({ baseURL:`${backend_url}` });
 
 export default function Atendimento() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
@@ -268,7 +269,7 @@ export default function Atendimento() {
       params.append("client_secret", CLIENT_SECRET);
 
       try {
-        const res = await axios.post("http://localhost:8000/o/token/", params);
+        const res = await axios.post(`${backend_url}o/token/`, params);
         return res.data.access_token;
       } catch (err) {
         console.error(err);

@@ -7,6 +7,7 @@ import type { Conversa } from '../types/Conversa';
 import type { Interacao } from '../types/Interacao';
 import type { ChatMensagem } from '../types/Chat';
 import { useNotificationSound } from '../hooks/useNotificationSound';
+import backend_url from "../config/env.ts";
 
 interface ChatWindowProps {
   mensagens?: Interacao[];
@@ -25,7 +26,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { playSound } = useNotificationSound();
 
-  const api = axios.create({ baseURL: "http://localhost:8000" });
+  const api = axios.create({ baseURL: `${backend_url}` });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,7 +50,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     params.append("client_secret", CLIENT_SECRET);
 
     try {
-      const res = await axios.post("http://localhost:8000/o/token/", params);
+      const res = await axios.post(`${backend_url}o/token/`, params);
       return res.data.access_token;
     } catch (err) {
       console.error(err);

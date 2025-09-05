@@ -27,36 +27,20 @@ SECRET_KEY = 'django-insecure-23t11r+=&w@q7-34j&@&x!y2*6w28cq4ipirg9atxire(dn23q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-<<<<<<< HEAD
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    'crm.loomiecrm.com',
-    'backend.loomiecrm.com',
-=======
-print("Debug, ", DEBUG)
-
 ALLOWED_HOSTS = [
     "backend.loomiecrm.com",
     "crm.loomiecrm.com",
     "localhost",
     "127.0.0.1",
->>>>>>> c3ad40639ea75bb1a41ea0733bcd1828add92c40
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-<<<<<<< HEAD
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://crm.backend.localhost",
-    "https://crm.backend.loomiecrm.com",
-=======
     "https://backend.localhost",
     "https://backend.loomiecrm.com",
->>>>>>> c3ad40639ea75bb1a41ea0733bcd1828add92c40
     "https://crm.localhost",
     "https://crm.loomiecrm.com",
 ]
