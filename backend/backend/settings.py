@@ -10,14 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# =========================
+# SEGURANÇA
+# =========================
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-23t11r+=&w@q7-34j&@&x!y2*6w28cq4ipirg9atxire(dn23q'
@@ -25,38 +26,60 @@ SECRET_KEY = 'django-insecure-23t11r+=&w@q7-34j&@&x!y2*6w28cq4ipirg9atxire(dn23q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    'crm.loomiecrm.com',
+    'backend.loomiecrm.com',
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "https://crm.backend.localhost",
     "https://crm.backend.loomiecrm.com",
     "https://crm.localhost",
     "https://crm.loomiecrm.com",
 ]
 
-# Application definition
+# =========================
+# APLICAÇÕES
+# =========================
 
-INSTALLED_APPS = [
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'oauth2_provider',
-    'drf_spectacular',
-    'rest_framework',
-    'corsheaders',
-    'contatos',
-    'oauth2_integration',
-    'rest_framework.authtoken',
 ]
 
+THIRD_PARTY_APPS = [
+    'rest_framework',
+    'rest_framework.authtoken',
+    'oauth2_provider',
+    'corsheaders',
+    'drf_spectacular',
+]
+
+LOCAL_APPS = [
+    'contatos',
+    'oauth2_integration',
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# =========================
+# MIDDLEWARE
+# =========================
+
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  
-    'oauth2_provider.middleware.OAuth2TokenMiddleware', 
+    'corsheaders.middleware.CorsMiddleware',
+    'oauth2_provider.middleware.OAuth2TokenMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -68,13 +91,18 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backend.urls'
 
+# =========================
+# TEMPLATES
+# =========================
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -85,9 +113,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# =========================
+# BANCO DE DADOS
+# =========================
 
 DATABASES = {
     'default': {
@@ -96,9 +124,9 @@ DATABASES = {
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# =========================
+# VALIDAÇÃO DE SENHAS
+# =========================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -115,37 +143,42 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# =========================
+# INTERNACIONALIZAÇÃO
+# =========================
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
-
 USE_TZ = True
 
+# =========================
+# ARQUIVOS ESTÁTICOS E MÍDIA
+# =========================
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
-STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# =========================
+# CONFIGURAÇÃO DEFAULT
+# =========================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# =========================
+# OAUTH2 PROVIDER
+# =========================
 
 OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.Application'
 OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = 'oauth2_provider.AccessToken'
 OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth2_provider.RefreshToken'
 
-# =========================
-# CONFIGURAÇÕES OAUTH2
-# =========================
 OAUTH2_PROVIDER = {
     'SCOPES': {
         'contacts.read': 'Ler contatos',
@@ -163,28 +196,18 @@ OAUTH2_PROVIDER = {
     'REFRESH_TOKEN_EXPIRE_SECONDS': 3600 * 24 * 7,
     'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,
     'ROTATE_REFRESH_TOKEN': True,
-    
-    # Configurações para desenvolvimento
-    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
-    'ALLOWED_ORIGINS': ['*'],  # Permitir todas para desenvolvimento
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https', 'localhost'],
     'RESOURCE_SERVER_INTROSPECTION_URL': None,
     'RESOURCE_SERVER_AUTH_TOKEN': None,
-    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https', 'localhost'],
 }
 
-# ADICIONAR também esta configuração:
-OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.Application'
-OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = 'oauth2_provider.AccessToken'
-OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = 'oauth2_provider.RefreshToken'
-
-
-
 # =========================
-# REST FRAMEWORK COM OAUTH2
+# DJANGO REST FRAMEWORK
 # =========================
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # ✅ ADICIONE ISSO!
+        'rest_framework.authentication.TokenAuthentication',
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
@@ -194,33 +217,184 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 50
+    'PAGE_SIZE': 50,
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
 # =========================
-# CONFIGURAÇÕES CORS
+# CORS (Cross-Origin Resource Sharing)
 # =========================
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://localhost:5173",  
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://crm.loomiecrm.com",
+    "https://backend.loomiecrm.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOWED_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# =========================
+# DRF SPECTACULAR (DOCUMENTAÇÃO API)
+# =========================
+
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Loomie API',
-    'DESCRIPTION': 'API para gestão de contatos, conversas, negócios e tarefas.',
+    'TITLE': 'Loomie CRM API',
+    'DESCRIPTION': 'API completa para gestão de contatos, conversas, negócios e tarefas.',
     'VERSION': '1.0.1',
     'SERVE_INCLUDE_SCHEMA': False,
-
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': r'/api',
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+    },
+    'SWAGGER_UI_FAVICON_HREF': STATIC_URL + 'favicon.ico',
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': False,
+    },
 }
 
+# =========================
+# CONFIGURAÇÕES WHATSAPP (EVOLUTION API)
+# =========================
 
 EVOLUTION_API_URL = "https://evo.loomiecrm.com"
-API_KEY = "095B7FC5F286-4E22-A2E9-3A8C54545870" 
+API_KEY = "095B7FC5F286-4E22-A2E9-3A8C54545870"
 INSTANCE_NAME = "nate"
+
+# =========================
+# LOGGING
+# =========================
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'contatos': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'oauth2_integration': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# =========================
+# CACHE (REDIS PARA PRODUÇÃO)
+# =========================
+
+if DEBUG:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': 'redis://127.0.0.1:6379/1',
+        }
+    }
+
+# =========================
+# CONFIGURAÇÕES DE SEGURANÇA PARA PRODUÇÃO
+# =========================
+
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_REDIRECT_EXEMPT = []
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    X_FRAME_OPTIONS = 'DENY'
+
+# =========================
+# CONFIGURAÇÕES DE DESENVOLVIMENTO
+# =========================
+
+if DEBUG:
+    # Criar diretório de logs se não existir
+    LOGS_DIR = BASE_DIR / 'logs'
+    LOGS_DIR.mkdir(exist_ok=True)
+    
+    # Configurações para desenvolvimento
+    INTERNAL_IPS = [
+        '127.0.0.1',
+        'localhost',
+    ]

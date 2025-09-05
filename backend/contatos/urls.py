@@ -1,117 +1,81 @@
-from django.urls import path, re_path
-from .views import (
-    # Views de Template (Django)
-    # dashboard,
-    # lista_contatos,
-    # detalhe_contato,
-    # lista_conversas,
-    # detalhe_conversa,
-    
-    # Views de API - Contatos
-    ContatoListCreateView,
-    ContatoDetailView,
-    api_operadores_list,
-    dashboard_stats,
-    
-    # Views de API - Conversas e Interações
-    ConversaListView,
-    ConversaDetailView,
-    InteracaoCreateView,
-    
-    # Views de API - CRM/Kanban
-    EstagioListView,
-    NegocioListCreateView,
-    NegocioDetailView,
-    
-    # Views de API - Respostas Rápidas
-    RespostasRapidasListView,
-    
-    # Views de API - Notas e Tarefas
-    NotaAtendimentoListCreateView,
-    NotaAtendimentoDetailView,
-    TarefaAtendimentoListCreateView,
-    TarefaAtendimentoDetailView,
-    MinhasTarefasView,
-    TarefasStatsView,
-    
-    # Quick Actions
-    quick_note_create,
-    quick_task_create,
-    update_task_status,
-    
-    # Views de Estatísticas
-    FunilStatsView,
-    TempoRespostaStatsView,
-    
-    # Webhook
-    EvolutionWebhookView,
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from rest_framework.authtoken.views import obtain_auth_token
+from . import views
 
-    # Integração WhatsApp
-    enviar_mensagem_view,
-    obter_qr_code_view,
-    enviar_presenca_view,
-    obter_token_auth,
-    criar_usuario_teste,
-)
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+# ===== CONFIGURAÇÃO DO ROUTER =====
+router = DefaultRouter()
 
+# ===== URLS PRINCIPAIS =====
 urlpatterns = [
-    # ===== VIEWS TRADICIONAIS (HTML) =====
-    # path('', lista_contatos, name='lista-contatos'),
-    # path('<int:contato_id>/', detalhe_contato, name='detalhe-contato'),
-    # path('conversas/', lista_conversas, name='lista-conversas-html'),
-    # path('conversas/<int:conversa_id>/', detalhe_conversa, name='detalhe-conversa-html'),
-    # path('dashboard/', dashboard, name='dashboard'),
+    # ===== AUTENTICAÇÃO =====
+    path('auth/token/', views.obter_token_auth, name='obter_token'),
+    path('auth/register/', views.criar_usuario_teste, name='criar_usuario'),
+    path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     
-    # ===== APIS BÁSICAS =====
-    path('api/contatos/', ContatoListCreateView.as_view(), name='api-lista-contatos'),
-    path('api/contatos/<int:pk>/', ContatoDetailView.as_view(), name='api-detalhe-contato'),
-    path('api/operadores/', api_operadores_list, name='api-operadores'),
-    path('api/dashboard-stats/', dashboard_stats, name='api-dashboard-stats'),
+    # ===== DASHBOARD & STATS =====
+    path('dashboard/stats/', views.dashboard_stats, name='dashboard_stats'),
+    path('health/', views.health_check, name='health_check'),
     
-    # ===== CONVERSAS E INTERAÇÕES =====
-    path('api/conversas/', ConversaListView.as_view(), name='lista-conversas'),
-    path('api/conversas/<int:pk>/', ConversaDetailView.as_view(), name='detalhe-conversa'),
-    path('api/conversas/<int:conversa_pk>/mensagens/', InteracaoCreateView.as_view(), name='criar-interacao'),
+    # ===== CONTATOS =====
+    path('contatos/', views.ContatoListCreateView.as_view(), name='contato_list_create'),
+    path('contatos/<int:pk>/', views.ContatoDetailView.as_view(), name='contato_detail'),
+    path('contatos/telefone/', views.api_contato_por_telefone, name='contato_por_telefone'),
+    
+    # ===== OPERADORES =====
+    path('operadores/', views.api_operadores_list, name='operadores_list'),
+    
+    # ===== CONVERSAS =====
+    path('conversas/', views.ConversaListView.as_view(), name='conversa_list'),
+    path('conversas/<int:pk>/', views.ConversaDetailView.as_view(), name='conversa_detail'),
+    
+    # ===== INTERAÇÕES/MENSAGENS =====
+    path('conversas/<int:conversa_pk>/interacoes/', views.InteracaoCreateView.as_view(), name='interacao_create'),
     
     # ===== CRM/KANBAN =====
-    path('api/estagios/', EstagioListView.as_view(), name='lista-estagios'),
-    path('api/negocios/', NegocioListCreateView.as_view(), name='lista-cria-negocio'),
-    path('api/negocios/<int:pk>/', NegocioDetailView.as_view(), name='detalhe-negocio'),
+    path('estagios/', views.EstagioListView.as_view(), name='estagio_list'),
+    path('negocios/', views.NegocioListCreateView.as_view(), name='negocio_list_create'),
+    path('negocios/<int:pk>/', views.NegocioDetailView.as_view(), name='negocio_detail'),
+    path('funil/stats/', views.FunilStatsView.as_view(), name='funil_stats'),
     
     # ===== RESPOSTAS RÁPIDAS =====
-    path('api/respostas-rapidas/', RespostasRapidasListView.as_view(), name='lista-respostas-rapidas'),
+    path('respostas-rapidas/', views.RespostasRapidasListView.as_view(), name='respostas_rapidas_list'),
     
-    # ===== NOTAS E TAREFAS =====
-    path('api/notas/', NotaAtendimentoListCreateView.as_view(), name='lista-cria-notas'),
-    path('api/notas/<int:pk>/', NotaAtendimentoDetailView.as_view(), name='detalhe-nota'),
-    path('api/conversas/<int:conversa_pk>/notas/', NotaAtendimentoListCreateView.as_view(), name='notas-conversa'),
+    # ===== NOTAS DE ATENDIMENTO =====
+    path('notas/', views.NotaAtendimentoListCreateView.as_view(), name='nota_list_create'),
+    path('notas/<int:pk>/', views.NotaAtendimentoDetailView.as_view(), name='nota_detail'),
+    path('conversas/<int:conversa_pk>/notas/', views.NotaAtendimentoListCreateView.as_view(), name='conversa_notas'),
     
-    path('api/tarefas/', TarefaAtendimentoListCreateView.as_view(), name='lista-cria-tarefas'),
-    path('api/tarefas/<int:pk>/', TarefaAtendimentoDetailView.as_view(), name='detalhe-tarefa'),
-    path('api/minhas-tarefas/', MinhasTarefasView.as_view(), name='minhas-tarefas'),
-    path('api/tarefas/stats/', TarefasStatsView.as_view(), name='stats-tarefas'),
-    path('api/tarefas/<int:task_id>/status/', update_task_status, name='update-task-status'),
+    # ===== TAREFAS =====
+    path('tarefas/', views.TarefaAtendimentoListCreateView.as_view(), name='tarefa_list_create'),
+    path('tarefas/<int:pk>/', views.TarefaAtendimentoDetailView.as_view(), name='tarefa_detail'),
+    path('tarefas/minhas/', views.MinhasTarefasView.as_view(), name='minhas_tarefas'),
+    path('tarefas/stats/', views.TarefasStatsView.as_view(), name='tarefas_stats'),
+    path('tarefas/<int:task_id>/status/', views.update_task_status, name='update_task_status'),
     
     # ===== QUICK ACTIONS =====
-    path('api/quick-note/', quick_note_create, name='quick-note'),
-    path('api/quick-task/', quick_task_create, name='quick-task'),
+    path('quick/nota/', views.quick_note_create, name='quick_note_create'),
+    path('quick/tarefa/', views.quick_task_create, name='quick_task_create'),
     
-    # ===== ESTATÍSTICAS =====
-    path('api/stats/funil/', FunilStatsView.as_view(), name='stats-funil'),
-    path('api/stats/tempo-resposta/', TempoRespostaStatsView.as_view(), name='stats-tempo-resposta'),
+    # ===== WHATSAPP INTEGRATION =====
+    path('whatsapp/dashboard/', views.whatsapp_dashboard, name='whatsapp_dashboard'),
+    path('whatsapp/status/', views.whatsapp_status, name='whatsapp_status'),
+    path('whatsapp/qr-code/', views.whatsapp_qr_code, name='whatsapp_qr_code'),
+    path('whatsapp/restart/', views.whatsapp_restart, name='whatsapp_restart'),
+    path('whatsapp/disconnect/', views.whatsapp_disconnect, name='whatsapp_disconnect'),
+    path('whatsapp/enviar/', views.enviar_mensagem_view, name='enviar_mensagem'),
+    path('whatsapp/presenca/', views.enviar_presenca_view, name='enviar_presenca'),
     
     # ===== WEBHOOKS =====
-    path('webhook/evolution/', EvolutionWebhookView.as_view(), name='webhook-evolution'),
-
-    # ===== INTEGRAÇÃO WHATSAPP =====
-    path('api/enviar-mensagem/', enviar_mensagem_view, name='enviar-mensagem'),
-    path('api/whatsapp/qr-code/', obter_qr_code_view, name='whatsapp-qr-code'),
-    path('api/whatsapp/presenca/', enviar_presenca_view, name='whatsapp-presenca'),
-
-    path('api/schema', SpectacularAPIView.as_view(), name='schema'),
-    path('api/swagger', SpectacularSwaggerView.as_view(), name='swagger'),
-
-    path('api/auth/token/', obter_token_auth, name='obter-token'),
-    path('api/auth/criar-usuario/', criar_usuario_teste, name='criar-usuario-teste'),
+    path('webhook/evolution/', views.evolution_webhook, name='evolution_webhook'),
+    path('webhook/n8n/lead/', views.webhook_n8n_lead, name='webhook_n8n_lead'),
+    
+    # ===== ESTATÍSTICAS AVANÇADAS =====
+    path('stats/tempo-resposta/', views.TempoRespostaStatsView.as_view(), name='tempo_resposta_stats'),
+    
+    # ===== ROUTER URLS =====
+    path('', include(router.urls)),
 ]
+
+# ===== URL PATTERNS COM NAMESPACING =====
+app_name = 'contatos'

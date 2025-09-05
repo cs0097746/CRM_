@@ -2,15 +2,26 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
+    # ===== ADMIN =====
     path('admin/', admin.site.urls),
+    
+    # ===== API DOCUMENTATION =====
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    
+    # ===== OAUTH2 =====
     path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
-    path('', include('contatos.urls')),  # ✅ SEM prefixo
     path('api/oauth/', include('oauth2_integration.urls')),
+    
+    # ===== MAIN API =====
+    path('', include('contatos.urls')),  # Mantém sem prefixo como estava
 ]
 
-# Servir arquivos de mídia em desenvolvimento
+# ===== STATIC/MEDIA FILES =====
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
