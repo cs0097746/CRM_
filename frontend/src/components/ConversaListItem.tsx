@@ -27,7 +27,7 @@ export default function ConversaListItem({ conversa, isActive, onSelect }: Conve
       <div className="ms-2 me-auto">
         <div className="fw-bold">{conversa.contato.nome}</div>
         <div className="text-muted text-truncate" style={{ fontSize: '0.9rem' }}>
-          {conversa.ultima_mensagem || 'Nenhuma mensagem'}
+          {conversa.ultima_mensagem?.mensagem || 'Nenhuma mensagem'}
         </div>
       </div>
       <div className="d-flex flex-column align-items-end">
