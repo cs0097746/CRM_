@@ -122,6 +122,9 @@ class Interacao(models.Model):
     anexo = models.FileField(upload_to='anexos_interacao/', null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     
+    # ✅ ADICIONAR ESTA LINHA:
+    whatsapp_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID da mensagem no WhatsApp")
+    
     def __str__(self):
         return f"{self.get_remetente_display()}: {self.mensagem[:50]}..."
     

@@ -62,9 +62,7 @@ def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api
     
     payload = {
         "number": numero,
-        "textMessage": {
-            "text": mensagem
-        }
+        "text": mensagem
     }
     
     headers = {
@@ -77,7 +75,7 @@ def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api
         
         if response.status_code in [200, 201]:
             response_data = response.json()
-            logger.info("✅ MENSAGEM ENVIADA COM SUCESSO!")
+            logger.info("MENSAGEM ENVIADA COM SUCESSO!")
             return {
                 "success": True, 
                 "data": response_data,
@@ -107,7 +105,7 @@ def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api
             }
             
     except Exception as e:
-        logger.error(f"💥 Erro ao enviar mensagem: {str(e)}")
+        logger.error(f"Erro ao enviar mensagem: {str(e)}")
         return {"success": False, "error": str(e)}
 
 def enviar_presenca_whatsapp(numero, presence="composing", instance_name=None, evolution_api_url=None, api_key=None):
@@ -1008,7 +1006,6 @@ def evolution_webhook(request):
                     telefone=numero_remetente,
                     defaults={
                         'nome': f'WhatsApp {numero_remetente[-4:]}',
-                        'origem': 'whatsapp',
                         'observacoes': 'Criado automaticamente via webhook'
                     }
                 )
@@ -1022,7 +1019,7 @@ def evolution_webhook(request):
                     status__in=['entrada', 'atendimento'],
                     defaults={
                         'status': 'entrada',
-                        'canal': 'whatsapp',
+                        'origem': 'whatsapp',
                         'assunto': 'Conversa WhatsApp'
                     }
                 )
