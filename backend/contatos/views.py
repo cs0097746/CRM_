@@ -75,7 +75,7 @@ def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api
         
         if response.status_code in [200, 201]:
             response_data = response.json()
-            logger.info("MENSAGEM ENVIADA COM SUCESSO!")
+            logger.info("✅ MENSAGEM ENVIADA COM SUCESSO!")
             return {
                 "success": True, 
                 "data": response_data,
@@ -105,7 +105,7 @@ def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api
             }
             
     except Exception as e:
-        logger.error(f"Erro ao enviar mensagem: {str(e)}")
+        logger.error(f"💥 Erro ao enviar mensagem: {str(e)}")
         return {"success": False, "error": str(e)}
 
 def enviar_presenca_whatsapp(numero, presence="composing", instance_name=None, evolution_api_url=None, api_key=None):
@@ -234,7 +234,7 @@ def obter_qr_code(instance_name=None, evolution_api_url=None, api_key=None):
         }
 
 def reiniciar_instancia(instance_name=None, evolution_api_url=None, api_key=None):
-    """Reinicia instância WhatsApp"""
+    """Reinicia instância WhatsApp - VERSÃO CORRIGIDA"""
     config = get_instance_config()
     
     url = f"{evolution_api_url or config['url']}/instance/restart/{instance_name or config['instance_name']}"
@@ -245,13 +245,53 @@ def reiniciar_instancia(instance_name=None, evolution_api_url=None, api_key=None
     }
     
     try:
-        response = requests.put(url, headers=headers, timeout=15)
+        logger.info(f"🔄 Tentando reiniciar: {url}")
+        response = requests.put(url, headers=headers, timeout=30)
         
-        if response.status_code in [200, 201]:
-            return {"success": True, "data": response.json()}
-        else:
-            return {"success": False, "error": f"Status: {response.status_code}"}
+        logger.info(f"📊 Status: {response.status_code}")
+        logger.info(f"📦 Content: {response.content}")
+        
+        # Verificar se resposta está vazia
+        if not response.content:
+            if response.status_code in [200, 201, 204]:
+                # Algumas APIs retornam 204 (No Content) para sucesso
+                return {
+                    "success": True, 
+                    "message": "Restart executado (resposta vazia)",
+                    "status_code": response.status_code
+                }
+            else:
+                return {
+                    "success": False, 
+                    "error": f"Status {response.status_code} com resposta vazia"
+                }
+        
+        # Tentar parse JSON
+        try:
+            response_data = response.json()
+            if response.status_code in [200, 201]:
+                return {"success": True, "data": response_data}
+            else:
+                return {"success": False, "error": f"Status: {response.status_code}", "data": response_data}
+        except json.JSONDecodeError:
+            # Se não é JSON, mas status é sucesso
+            if response.status_code in [200, 201, 204]:
+                return {
+                    "success": True, 
+                    "message": "Restart executado (resposta não-JSON)",
+                    "raw_response": response.text
+                }
+            else:
+                return {
+                    "success": False, 
+                    "error": f"Status: {response.status_code}",
+                    "raw_response": response.text
+                }
             
+    except requests.exceptions.Timeout:
+        return {"success": False, "error": "Timeout na requisição"}
+    except requests.exceptions.ConnectionError:
+        return {"success": False, "error": "Erro de conexão"}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -908,8 +948,7 @@ def enviar_mensagem_view(request):
                         mensagem=mensagem,
                         remetente='operador',
                         tipo='texto',
-                        operador=operador,
-                        whatsapp_id=resultado.get('whatsapp_id')
+                        operador=operador
                     )
                     logger.info("💾 Interação salva no CRM")
                 except Exception as e:
@@ -1033,8 +1072,7 @@ def evolution_webhook(request):
                         conversa=conversa,
                         mensagem=texto_mensagem,
                         remetente='cliente',
-                        tipo='texto',
-                        whatsapp_id=whatsapp_id
+                        tipo='texto'
                     )
                     
                     logger.info(f"💾 Mensagem salva: ID {interacao.pk}")
@@ -1086,7 +1124,6 @@ def webhook_n8n_lead(request):
             telefone=numero,
             defaults={
                 'nome': nome,
-                'origem': origem,
                 'observacoes': f'Interesse: {tipo_interesse}'
             }
         )
@@ -1097,7 +1134,7 @@ def webhook_n8n_lead(request):
             status__in=['entrada', 'atendimento'],
             defaults={
                 'status': 'entrada',
-                'canal': origem
+                'origem': origem
             }
         )
         
@@ -1375,3 +1412,92 @@ def dashboard(request):
     }
     
     return render(request, 'contatos/dashboard.html', context)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def whatsapp_restart_debug(request):
+    """Debug completo da função restart"""
+    try:
+        logger.info("🔄 RESTART DEBUG: Iniciando...")
+        
+        # Pegar configuração
+        config = get_instance_config()
+        logger.info(f"📋 Config: {config}")
+        
+        base_url = config['url']
+        instance_name = config['instance_name']
+        api_key = config['api_key']
+        
+        # URL que está sendo usada
+        restart_url = f"{base_url}/instance/restart/{instance_name}"
+        logger.info(f"🌐 URL Restart: {restart_url}")
+        
+        headers = {
+            'apikey': api_key,
+            'Content-Type': 'application/json'
+        }
+        
+        try:
+            logger.info("📡 Fazendo requisição PUT...")
+            response = requests.put(restart_url, headers=headers, timeout=30)
+            
+            logger.info(f"📊 Status Code: {response.status_code}")
+            logger.info(f"📦 Headers Response: {dict(response.headers)}")
+            logger.info(f"📄 Content Type: {response.headers.get('content-type', 'N/A')}")
+            logger.info(f"📏 Content Length: {len(response.content)}")
+            logger.info(f"🔤 Raw Content: {response.content}")
+            
+            # Verificar se tem conteúdo
+            if not response.content:
+                return Response({
+                    'success': False,
+                    'error': 'API retornou resposta vazia',
+                    'status_code': response.status_code,
+                    'headers': dict(response.headers),
+                    'url_testada': restart_url
+                })
+            
+            # Tentar fazer parse do JSON
+            try:
+                response_data = response.json()
+                logger.info(f"✅ JSON válido: {response_data}")
+                
+                return Response({
+                    'success': True,
+                    'message': 'Restart executado com sucesso',
+                    'data': response_data,
+                    'status_code': response.status_code,
+                    'url_usada': restart_url
+                })
+                
+            except json.JSONDecodeError as json_error:
+                logger.error(f"💥 Erro JSON: {json_error}")
+                return Response({
+                    'success': False,
+                    'error': 'Resposta não é JSON válido',
+                    'raw_content': response.text,
+                    'status_code': response.status_code,
+                    'json_error': str(json_error)
+                })
+                
+        except requests.exceptions.Timeout:
+            return Response({
+                'success': False,
+                'error': 'Timeout na requisição (30s)',
+                'url': restart_url
+            })
+            
+        except requests.exceptions.ConnectionError:
+            return Response({
+                'success': False,
+                'error': 'Erro de conexão com a Evolution API',
+                'url': restart_url
+            })
+            
+    except Exception as e:
+        logger.error(f"💥 Erro geral no debug: {e}")
+        return Response({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)

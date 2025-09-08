@@ -2327,3 +2327,445 @@ INFO 2025-09-08 10:02:00,587 basehttp 18528 15960 "GET /admin/contatos/conversa/
 INFO 2025-09-08 10:02:00,615 basehttp 18528 15960 "GET /admin/jsi18n/ HTTP/1.1" 200 8158
 INFO 2025-09-08 10:02:07,064 basehttp 18528 15960 "GET /admin/contatos/contato/ HTTP/1.1" 200 19797
 INFO 2025-09-08 10:02:07,090 basehttp 18528 15960 "GET /admin/jsi18n/ HTTP/1.1" 200 8158
+INFO 2025-09-08 10:19:20,450 autoreload 22076 17424 Watching for file changes with StatReloader
+INFO 2025-09-08 10:19:31,033 basehttp 22076 14392 "GET /admin HTTP/1.1" 301 0
+INFO 2025-09-08 10:19:31,331 basehttp 22076 13956 "GET /admin/ HTTP/1.1" 200 23584
+INFO 2025-09-08 10:19:35,285 basehttp 22076 20808 - Broken pipe from ('127.0.0.1', 54839)
+INFO 2025-09-08 10:19:36,050 basehttp 22076 15920 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:19:36,081 basehttp 22076 16872 - Broken pipe from ('127.0.0.1', 54844)
+INFO 2025-09-08 10:19:50,099 basehttp 22076 13956 "GET /admin/ HTTP/1.1" 200 23584
+INFO 2025-09-08 10:44:38,775 basehttp 22076 5072 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:44:38,796 basehttp 22076 5072 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:44:38,808 basehttp 22076 21052 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:44:38,822 basehttp 22076 21052 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:44:54,740 autoreload 19912 22420 Watching for file changes with StatReloader
+INFO 2025-09-08 10:45:00,304 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:45:00,314 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:45:00,321 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:45:00,332 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:45:30,231 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:45:30,245 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:45:45,875 basehttp 19912 22412 "OPTIONS /auth/token/ HTTP/1.1" 200 0
+INFO 2025-09-08 10:45:46,217 basehttp 19912 22412 "POST /auth/token/ HTTP/1.1" 200 135
+INFO 2025-09-08 10:45:48,232 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:45:48,243 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:45:48,256 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:45:48,269 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:46:59,754 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:46:59,764 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:46:59,778 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:46:59,787 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:05,468 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:05,480 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:11,167 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:11,179 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:14,206 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:14,214 basehttp 19912 7636 "OPTIONS /conversas/3/ HTTP/1.1" 200 0
+INFO 2025-09-08 10:47:14,221 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:19,959 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:19,973 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:19,986 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:25,707 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:25,720 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:25,730 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:31,438 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:31,450 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:31,459 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:37,141 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:37,153 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:37,163 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:42,838 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:42,851 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:42,862 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:48,551 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:48,563 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:48,574 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:54,246 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:54,259 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:54,271 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:47:59,964 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:47:59,978 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:47:59,992 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:05,679 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:05,691 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:05,705 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:11,388 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:11,400 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:11,410 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:17,100 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:17,112 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:17,123 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:22,812 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:22,830 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:22,842 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:28,551 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:28,564 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:28,574 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:34,251 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:34,263 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:34,276 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:39,945 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:39,959 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:39,973 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:45,663 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:45,674 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:45,684 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:51,359 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:51,371 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:51,382 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:48:57,067 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:48:57,080 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:48:57,091 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:49:02,770 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:02,783 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:49:02,796 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:49:08,479 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:08,492 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:49:08,507 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:49:14,190 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:14,203 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:49:14,214 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:49:19,892 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:19,904 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:49:19,915 basehttp 19912 7636 "GET /conversas/3/ HTTP/1.1" 200 781
+INFO 2025-09-08 10:49:21,857 basehttp 19912 7636 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:21,886 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:21,900 basehttp 19912 7636 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:49:21,907 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:49:46,433 basehttp 19912 22412 "OPTIONS /whatsapp/status/ HTTP/1.1" 200 0
+INFO 2025-09-08 10:49:46,840 basehttp 19912 22412 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 10:49:46,849 basehttp 19912 22412 "OPTIONS /whatsapp/restart/ HTTP/1.1" 200 0
+WARNING 2025-09-08 10:49:47,188 log 19912 22412 Bad Request: /whatsapp/restart/
+WARNING 2025-09-08 10:49:47,189 basehttp 19912 22412 "POST /whatsapp/restart/ HTTP/1.1" 400 39
+INFO 2025-09-08 10:49:51,860 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:49:51,873 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:50:21,877 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:50:21,890 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+ERROR 2025-09-08 10:50:21,926 log 3388 22208 Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+Traceback (most recent call last):
+  File "C:\Users\Christian\Documents\GitHub\CRM_\backend\venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+  File "C:\Users\Christian\Documents\GitHub\CRM_\backend\venv\Lib\site-packages\django\utils\deprecation.py", line 119, in __call__
+    response = self.process_request(request)
+  File "C:\Users\Christian\Documents\GitHub\CRM_\backend\venv\Lib\site-packages\django\middleware\common.py", line 48, in process_request
+    host = request.get_host()
+  File "C:\Users\Christian\Documents\GitHub\CRM_\backend\venv\Lib\site-packages\django\http\request.py", line 202, in get_host
+    raise DisallowedHost(msg)
+django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'testserver'. You may need to add 'testserver' to ALLOWED_HOSTS.
+INFO 2025-09-08 10:50:51,881 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:50:51,895 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:51:21,877 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:51:21,890 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:51:51,872 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:51:51,884 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+WARNING 2025-09-08 10:52:13,103 log 19912 22412 Bad Request: /whatsapp/restart/
+WARNING 2025-09-08 10:52:13,103 basehttp 19912 22412 "POST /whatsapp/restart/ HTTP/1.1" 400 39
+INFO 2025-09-08 10:52:21,865 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:52:21,877 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:52:51,876 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:52:51,891 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:53:21,874 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:53:21,887 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:53:51,874 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:53:51,888 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:54:21,876 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:54:21,889 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:54:51,897 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:54:51,911 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:55:21,874 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:55:21,887 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:55:51,899 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:55:51,913 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:56:21,872 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:56:21,886 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:56:51,884 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:56:51,899 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:57:21,880 basehttp 19912 21480 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:57:21,896 basehttp 19912 21480 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:57:28,988 autoreload 19912 22420 C:\Users\Christian\Documents\GitHub\CRM_\backend\contatos\views.py changed, reloading.
+INFO 2025-09-08 10:57:29,518 autoreload 19564 20180 Watching for file changes with StatReloader
+INFO 2025-09-08 10:57:51,883 basehttp 19564 9832 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:57:51,900 basehttp 19564 9832 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:58:03,092 basehttp 19564 21276 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:58:03,106 basehttp 19564 21276 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:58:03,114 basehttp 19564 9832 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:58:03,128 basehttp 19564 9832 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:58:38,209 autoreload 18848 14032 Watching for file changes with StatReloader
+INFO 2025-09-08 10:58:50,239 autoreload 15648 4428 Watching for file changes with StatReloader
+INFO 2025-09-08 10:59:15,182 basehttp 15648 6836 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:59:15,198 basehttp 15648 6836 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 10:59:15,204 basehttp 15648 12240 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 10:59:15,219 basehttp 15648 12240 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 11:01:11,474 autoreload 15648 4428 C:\Users\Christian\Documents\GitHub\CRM_\backend\contatos\views.py changed, reloading.
+INFO 2025-09-08 11:01:11,985 autoreload 5744 15776 Watching for file changes with StatReloader
+INFO 2025-09-08 11:01:27,007 autoreload 5744 15776 C:\Users\Christian\Documents\GitHub\CRM_\backend\contatos\views.py changed, reloading.
+INFO 2025-09-08 11:01:27,561 autoreload 4808 4312 Watching for file changes with StatReloader
+INFO 2025-09-08 11:04:38,503 autoreload 4808 4312 C:\Users\Christian\Documents\GitHub\CRM_\backend\contatos\urls.py changed, reloading.
+INFO 2025-09-08 11:04:38,949 autoreload 21444 1780 Watching for file changes with StatReloader
+INFO 2025-09-08 11:06:41,387 autoreload 8412 17188 Watching for file changes with StatReloader
+INFO 2025-09-08 11:09:48,223 basehttp 8412 5200 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 11:09:48,231 basehttp 8412 5200 "OPTIONS /conversas/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:09:48,247 basehttp 8412 5200 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 11:09:48,297 basehttp 8412 21760 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 11:09:48,313 basehttp 8412 21760 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 11:09:49,914 basehttp 8412 14204 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:09:50,301 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:10:19,465 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:10:30,925 basehttp 8412 2856 "OPTIONS /whatsapp/disconnect/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:10:31,397 basehttp 8412 2856 "POST /whatsapp/disconnect/ HTTP/1.1" 200 149
+INFO 2025-09-08 11:10:32,807 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:10:34,627 basehttp 8412 2856 "OPTIONS /whatsapp/restart-debug/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:10:35,813 basehttp 8412 2856 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 11:10:37,277 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:10:39,744 basehttp 8412 2856 "OPTIONS /whatsapp/qr-code/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:10:42,848 basehttp 8412 2856 "GET /whatsapp/qr-code/ HTTP/1.1" 200 13489
+INFO 2025-09-08 11:10:49,494 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:11:19,453 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:11:49,461 basehttp 8412 2856 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:11:56,896 basehttp 8412 2856 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 11:12:04,244 basehttp 8412 14204 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:12:04,594 basehttp 8412 14204 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:12:08,365 basehttp 8412 2856 - Broken pipe from ('127.0.0.1', 56826)
+INFO 2025-09-08 11:12:20,978 basehttp 8412 14204 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 11:12:23,139 basehttp 8412 14204 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:28,232 basehttp 8412 14204 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 11:12:30,197 basehttp 8412 14204 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:31,615 basehttp 8412 14204 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:31,966 basehttp 8412 5024 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:45,146 autoreload 20736 18844 Watching for file changes with StatReloader
+INFO 2025-09-08 11:12:49,044 basehttp 20736 10924 - Broken pipe from ('127.0.0.1', 56921)
+INFO 2025-09-08 11:12:49,338 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:50,465 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:51,235 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:51,573 basehttp 20736 20140 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:12:52,537 basehttp 20736 20140 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 11:12:54,678 basehttp 20736 20140 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:13:00,223 basehttp 20736 22068 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 11:13:00,250 basehttp 20736 19028 "POST /o/token/ HTTP/1.1" 200 318
+INFO 2025-09-08 11:13:00,270 basehttp 20736 22068 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 11:13:00,280 basehttp 20736 19028 "GET /conversas/ HTTP/1.1" 200 2588
+INFO 2025-09-08 11:13:01,238 basehttp 20736 20140 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:13:01,585 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:13:05,124 basehttp 20736 15760 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 11:13:06,704 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:13:11,745 basehttp 20736 15760 "GET /whatsapp/qr-code/ HTTP/1.1" 200 13489
+INFO 2025-09-08 11:13:31,212 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:14:01,221 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 100
+INFO 2025-09-08 11:14:27,723 basehttp 20736 22732 "OPTIONS /auth/token/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:14:28,049 basehttp 20736 22732 "POST /auth/token/ HTTP/1.1" 200 135
+INFO 2025-09-08 11:14:29,068 basehttp 20736 9184 "OPTIONS /whatsapp/status/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:14:29,068 basehttp 20736 22732 "OPTIONS /whatsapp/status/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:14:29,406 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:14:29,741 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:14:31,677 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 110
+INFO 2025-09-08 11:14:33,048 basehttp 20736 9184 "OPTIONS /whatsapp/qr-code/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:14:34,591 basehttp 20736 9184 "GET /whatsapp/qr-code/ HTTP/1.1" 200 13309
+INFO 2025-09-08 11:15:01,994 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:15:02,002 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:15:29,426 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:15:31,696 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:15:59,450 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:16:29,445 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:16:32,677 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:16:59,459 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:17:07,825 basehttp 20736 9184 "OPTIONS /whatsapp/enviar-mensagem/ HTTP/1.1" 200 0
+WARNING 2025-09-08 11:17:07,834 log 20736 9184 Not Found: /whatsapp/enviar-mensagem/
+WARNING 2025-09-08 11:17:07,835 basehttp 20736 9184 "POST /whatsapp/enviar-mensagem/ HTTP/1.1" 404 14564
+WARNING 2025-09-08 11:17:14,354 log 20736 9184 Not Found: /whatsapp/enviar-mensagem/
+WARNING 2025-09-08 11:17:14,354 basehttp 20736 9184 "POST /whatsapp/enviar-mensagem/ HTTP/1.1" 404 14564
+INFO 2025-09-08 11:17:29,413 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:17:33,696 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+WARNING 2025-09-08 11:17:34,850 log 20736 9184 Not Found: /whatsapp/enviar-mensagem/
+WARNING 2025-09-08 11:17:34,850 basehttp 20736 9184 "POST /whatsapp/enviar-mensagem/ HTTP/1.1" 404 14564
+INFO 2025-09-08 11:17:59,415 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:18:06,892 basehttp 20736 9184 "OPTIONS /whatsapp/dashboard/ HTTP/1.1" 200 0
+INFO 2025-09-08 11:18:07,247 basehttp 20736 9184 "GET /whatsapp/dashboard/ HTTP/1.1" 200 257
+INFO 2025-09-08 11:18:29,462 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:18:34,677 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:18:59,412 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:19:29,490 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:19:35,719 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:19:59,454 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:20:29,427 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:20:36,694 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:20:59,459 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:21:29,462 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:21:37,723 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:21:59,445 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:22:12,100 basehttp 20736 9184 "OPTIONS /whatsapp/enviar/ HTTP/1.1" 200 0
+WARNING 2025-09-08 11:22:12,451 log 20736 9184 Bad Request: /whatsapp/enviar/
+WARNING 2025-09-08 11:22:12,451 basehttp 20736 9184 "POST /whatsapp/enviar/ HTTP/1.1" 400 160
+INFO 2025-09-08 11:22:12,832 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:22:13,990 basehttp 20736 9184 "GET /whatsapp/dashboard/ HTTP/1.1" 200 257
+INFO 2025-09-08 11:22:13,992 basehttp 20736 9184 "OPTIONS /whatsapp/restart/ HTTP/1.1" 200 0
+WARNING 2025-09-08 11:22:15,155 log 20736 9184 Bad Request: /whatsapp/restart/
+WARNING 2025-09-08 11:22:15,155 basehttp 20736 9184 "POST /whatsapp/restart/ HTTP/1.1" 400 39
+INFO 2025-09-08 11:22:15,558 basehttp 20736 9184 "GET /whatsapp/qr-code/ HTTP/1.1" 200 90
+INFO 2025-09-08 11:22:29,416 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:22:37,677 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+WARNING 2025-09-08 11:22:58,523 log 20736 9184 Bad Request: /whatsapp/enviar/
+WARNING 2025-09-08 11:22:58,523 basehttp 20736 9184 "POST /whatsapp/enviar/ HTTP/1.1" 400 160
+INFO 2025-09-08 11:22:58,904 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:22:59,252 basehttp 20736 9184 "GET /whatsapp/dashboard/ HTTP/1.1" 200 257
+WARNING 2025-09-08 11:22:59,787 log 20736 22376 Bad Request: /whatsapp/restart/
+WARNING 2025-09-08 11:22:59,788 basehttp 20736 22376 "POST /whatsapp/restart/ HTTP/1.1" 400 39
+INFO 2025-09-08 11:23:00,073 basehttp 20736 9184 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:23:00,123 basehttp 20736 22376 "GET /whatsapp/qr-code/ HTTP/1.1" 200 90
+INFO 2025-09-08 11:23:30,180 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:23:37,710 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:23:59,476 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+WARNING 2025-09-08 11:24:01,496 log 20736 22376 Bad Request: /whatsapp/enviar/
+WARNING 2025-09-08 11:24:01,496 basehttp 20736 22376 "POST /whatsapp/enviar/ HTTP/1.1" 400 160
+INFO 2025-09-08 11:24:30,198 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:24:37,740 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+WARNING 2025-09-08 11:24:41,319 log 20736 22376 Bad Request: /whatsapp/enviar/
+WARNING 2025-09-08 11:24:41,320 basehttp 20736 22376 "POST /whatsapp/enviar/ HTTP/1.1" 400 160
+INFO 2025-09-08 11:25:00,211 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:25:29,858 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:25:38,448 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+WARNING 2025-09-08 11:25:40,051 log 20736 22376 Bad Request: /whatsapp/enviar/
+WARNING 2025-09-08 11:25:40,051 basehttp 20736 22376 "POST /whatsapp/enviar/ HTTP/1.1" 400 160
+INFO 2025-09-08 11:25:59,467 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:26:29,445 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:26:37,753 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:26:59,476 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:27:29,441 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:27:38,503 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:28:00,199 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:28:29,476 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:28:37,722 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:28:59,457 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:29:30,219 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:29:38,119 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:29:59,469 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:30:29,424 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:30:37,707 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:31:00,233 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:31:29,426 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:31:37,680 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:31:59,435 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:32:29,471 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:32:37,676 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:32:59,435 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:33:29,443 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:33:37,709 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:33:59,446 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:34:29,462 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:34:37,704 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:34:59,546 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:35:29,434 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:35:37,711 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:36:00,199 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:36:29,403 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:36:37,745 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:36:59,487 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:37:29,459 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:37:37,665 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:37:59,466 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:38:30,513 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:38:38,850 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:39:00,545 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:39:30,622 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:39:38,911 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:40:01,167 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:40:32,656 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:40:38,394 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:41:00,113 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:41:31,345 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:41:38,353 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:41:59,502 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:42:30,563 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:42:38,436 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:43:03,088 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:43:30,427 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:43:38,280 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:44:03,649 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:44:30,003 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:44:41,706 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:45:00,936 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:45:31,556 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:45:47,702 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:46:05,747 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+ERROR 2025-09-08 11:46:35,899 views 20736 22376 Erro ao verificar status: ('Connection aborted.', ConnectionResetError(10054, 'Foi forçado o cancelamento de uma conexão existente pelo host remoto', None, 10054, None))
+INFO 2025-09-08 11:46:35,900 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 101
+INFO 2025-09-08 11:46:42,041 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:47:00,065 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:47:30,141 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:47:43,782 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:48:01,740 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:48:30,188 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:48:44,722 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:49:08,659 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:49:40,037 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+ERROR 2025-09-08 11:49:40,325 views 20736 22376 Erro ao verificar status: HTTPSConnectionPool(host='evo.loomiecrm.com', port=443): Read timed out. (read timeout=10)
+INFO 2025-09-08 11:49:40,325 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 101
+INFO 2025-09-08 11:50:03,971 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:50:30,180 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:50:39,726 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:51:06,641 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:51:30,963 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:51:39,325 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:52:00,203 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:52:31,960 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:52:44,796 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:53:00,210 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:53:30,017 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:53:39,680 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:54:00,243 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:54:29,426 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:54:37,699 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:55:01,453 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:55:32,398 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:55:37,698 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:56:00,663 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:56:31,349 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:56:38,969 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:57:01,317 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:57:29,445 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:57:38,931 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:58:00,187 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:58:30,296 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:58:39,560 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:59:03,771 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:59:30,071 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 11:59:41,136 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+ERROR 2025-09-08 12:00:10,241 views 20736 22376 Erro ao verificar status: HTTPSConnectionPool(host='evo.loomiecrm.com', port=443): Read timed out. (read timeout=10)
+INFO 2025-09-08 12:00:10,242 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 101
+INFO 2025-09-08 12:00:39,039 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+ERROR 2025-09-08 12:00:42,611 views 20736 22376 Erro ao verificar status: HTTPSConnectionPool(host='evo.loomiecrm.com', port=443): Read timed out. (read timeout=10)
+INFO 2025-09-08 12:00:42,612 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 101
+INFO 2025-09-08 12:01:06,628 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:01:38,946 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+ERROR 2025-09-08 12:01:45,614 views 20736 22376 Erro ao verificar status: ('Connection aborted.', ConnectionResetError(10054, 'Foi forçado o cancelamento de uma conexão existente pelo host remoto', None, 10054, None))
+INFO 2025-09-08 12:01:45,615 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 101
+INFO 2025-09-08 12:02:01,233 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:02:30,712 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:02:46,294 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:03:01,356 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:03:33,366 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:03:39,201 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:04:00,893 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:04:32,453 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:04:38,458 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:05:06,114 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:05:42,730 basehttp 20736 15760 "GET /whatsapp/status/ HTTP/1.1" 200 97
+ERROR 2025-09-08 12:05:42,885 views 20736 22376 Erro ao verificar status: HTTPSConnectionPool(host='evo.loomiecrm.com', port=443): Read timed out. (read timeout=10)
+INFO 2025-09-08 12:05:42,886 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 101
+INFO 2025-09-08 12:06:01,497 basehttp 20736 22376 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:06:15,048 autoreload 20736 18844 C:\Users\Christian\Documents\GitHub\CRM_\backend\contatos\views.py changed, reloading.
+INFO 2025-09-08 12:06:15,600 autoreload 22532 7588 Watching for file changes with StatReloader
+INFO 2025-09-08 12:06:32,099 autoreload 24068 23616 Watching for file changes with StatReloader
+INFO 2025-09-08 12:06:40,758 basehttp 24068 16408 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:06:54,528 basehttp 24068 13108 "OPTIONS /whatsapp/restart-debug/ HTTP/1.1" 200 0
+INFO 2025-09-08 12:07:00,670 basehttp 24068 25272 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:07:03,357 basehttp 24068 13108 "POST /whatsapp/restart-debug/ HTTP/1.1" 200 241
+INFO 2025-09-08 12:07:08,096 basehttp 24068 13108 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:07:11,340 basehttp 24068 13108 "POST /whatsapp/enviar/ HTTP/1.1" 200 516
+INFO 2025-09-08 12:07:30,181 basehttp 24068 13108 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:07:38,955 basehttp 24068 16408 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:07:39,814 basehttp 24068 13108 "POST /whatsapp/enviar/ HTTP/1.1" 200 516
+INFO 2025-09-08 12:08:01,399 basehttp 24068 13108 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:08:30,127 basehttp 24068 13108 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:08:39,970 basehttp 24068 16408 "GET /whatsapp/status/ HTTP/1.1" 200 97
+INFO 2025-09-08 12:08:44,653 basehttp 24068 13108 "POST /whatsapp/enviar/ HTTP/1.1" 200 504
+INFO 2025-09-08 12:09:01,360 basehttp 24068 13108 "GET /whatsapp/status/ HTTP/1.1" 200 97

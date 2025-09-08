@@ -1,9 +1,10 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
 import AtendimentoDashboard from './views/AtendimentoDashboard';
+import { LoginForm } from './components/LoginForm'; // ✅ ADICIONAR IMPORT
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -16,17 +17,67 @@ const MenuIcon = () => (
   </svg>
 );
 
-// Componente interno para gerenciar a visibilidade do botão
+// ✅ COMPONENTE PRINCIPAL COM LOGIN
 const AppContent = () => {
   const [showNav, setShowNav] = useState(false);
-  const location = useLocation(); // Hook para saber a URL atual
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+
+  // ✅ VERIFICAR LOGIN AO CARREGAR
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+      console.log('✅ Usuário já logado');
+      setIsLoggedIn(true);
+    } else {
+      console.log('❌ Usuário não logado');
+      setIsLoggedIn(false);
+    }
+    
+    setLoading(false);
+  }, []);
 
   const handleCloseNav = () => setShowNav(false);
   const handleShowNav = () => setShowNav(true);
 
-  // O botão fica escondido se a URL for /atendimento
+  // ✅ FUNÇÃO DE LOGIN
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
+
+  // ✅ FUNÇÃO DE LOGOUT
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setShowNav(false);
+  };
+
   const isFabHidden = location.pathname === '/atendimento';
 
+  // ✅ LOADING INICIAL
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+          <p>Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ TELA DE LOGIN
+  if (!isLoggedIn) {
+    return <LoginForm onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // ✅ APP NORMAL (quando logado)
   return (
     <>
       <div className="content-area">
@@ -36,7 +87,7 @@ const AppContent = () => {
             <Route path="/kanban" element={<Kanban />} />
             <Route path="/atendimento" element={<Atendimento />} />
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
-          <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </div>
@@ -46,7 +97,6 @@ const AppContent = () => {
       </Button>
 
       <Modal show={showNav} onHide={handleCloseNav} centered dialogClassName="nav-modal">
-        {/* ... (conteúdo do modal como estava antes) ... */}
         <Modal.Header closeButton className="nav-modal-header">
           <Modal.Title>Loomie CRM</Modal.Title>
         </Modal.Header>
@@ -55,6 +105,17 @@ const AppContent = () => {
             <NavLink to="/" className="nav-link" onClick={handleCloseNav}>Dashboard</NavLink>
             <NavLink to="/kanban" className="nav-link" onClick={handleCloseNav}>Kanban</NavLink>
             <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
+            
+            {/* ✅ BOTÃO DE LOGOUT */}
+            <hr />
+            <Button 
+              variant="outline-danger" 
+              size="sm" 
+              onClick={handleLogout}
+              className="mt-2"
+            >
+              🚪 Sair
+            </Button>
           </Nav>
         </Modal.Body>
       </Modal>
@@ -71,4 +132,3 @@ function App() {
 }
 
 export default App;
-

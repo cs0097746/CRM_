@@ -3,14 +3,13 @@ import { Container, Row, Col, Button, ButtonGroup, Table, Badge, Alert, Card } f
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { AtendimentoStats } from '../types/AtendimentoDashboard';
 import AtendimentoCard from '../components/AtendimentoCard';
+import WhatsAppWidget from '../components/WhatsAppWidget';
 
 const AtendimentoDashboard = () => {
   const [data, setData] = useState<AtendimentoStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState('hoje');
-
-  // Removendo a variável api não utilizada por enquanto
 
   useEffect(() => {
     const fetchData = async () => {
@@ -141,6 +140,22 @@ const AtendimentoDashboard = () => {
           </Button>
         </ButtonGroup>
       </header>
+
+      {/* ✅ WIDGET WHATSAPP */}
+      <Container fluid className="p-0 mb-4">
+        <Row>
+          <Col lg={8}>
+            <WhatsAppWidget />
+          </Col>
+          <Col lg={4} className="d-flex align-items-center">
+            <div className="text-end w-100">
+              <small style={{ color: "#6c757d", fontSize: "0.85rem" }}>
+                📱 Status da integração WhatsApp em tempo real
+              </small>
+            </div>
+          </Col>
+        </Row>
+      </Container>
 
       {loading && <p style={{ color: "#316dbd", fontSize: "1.2rem", textAlign: "center" }}>⏳ Carregando dados do atendimento...</p>}
       {error && <Alert variant="danger">{error}</Alert>}

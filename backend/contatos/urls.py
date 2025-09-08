@@ -65,7 +65,7 @@ urlpatterns = [
     path('whatsapp/disconnect/', views.whatsapp_disconnect, name='whatsapp_disconnect'),
     path('whatsapp/enviar/', views.enviar_mensagem_view, name='enviar_mensagem'),
     path('whatsapp/presenca/', views.enviar_presenca_view, name='enviar_presenca'),
-    
+    path('whatsapp/restart-debug/', views.whatsapp_restart_debug, name='whatsapp_restart_debug'),  # ✅ ADICIONAR
     # ===== WEBHOOKS =====
     path('webhook/evolution/', views.evolution_webhook, name='evolution_webhook'),
     path('webhook/n8n/lead/', views.webhook_n8n_lead, name='webhook_n8n_lead'),
