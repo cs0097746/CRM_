@@ -22,6 +22,8 @@ class Negocio(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    atributos_personalizados = models.ManyToManyField('atributo.AtributoPersonalizavel', related_name='negocios')
+
     def __str__(self):
         return f"{self.titulo} - {self.contato.nome}"
 

@@ -71,6 +71,7 @@ LOCAL_APPS = [
     'atendimento',
     'kanban',
     'negocio',
+    'atributo',
     'oauth2_integration',
 ]
 
