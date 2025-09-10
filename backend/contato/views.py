@@ -29,12 +29,15 @@ from atendimento.models import Conversa, Interacao, RespostasRapidas, NotaAtendi
 from negocio.models import Negocio
 from kanban.models import Kanban, Estagio
 from .serializers import (
-    ContatoSerializer, OperadorSerializer,
+    ContatoSerializer, OperadorSerializer
+)
+from atendimento.serializers import (
     ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer,
-    EstagioSerializer, NegocioSerializer, RespostasRapidasSerializer,
-    NotaAtendimentoSerializer, TarefaAtendimentoSerializer, 
+    RespostasRapidasSerializer, NotaAtendimentoSerializer, TarefaAtendimentoSerializer,
     TarefaCreateSerializer, AnexoNotaSerializer, ConversaCreateSerializer
 )
+from kanban.serializers import EstagioSerializer
+from negocio.serializers import NegocioSerializer
 
 # ===== FUNÇÃO AUXILIAR =====
 def get_user_operador(user):
