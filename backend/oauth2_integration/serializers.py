@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from contatos.models import Contato, Conversa, Interacao
+from contato.models import Contato
+from atendimento.models import Conversa, Interacao
 
 class ContatoOAuthSerializer(serializers.ModelSerializer):
     """Serializer otimizado para OAuth2/n8n"""

@@ -67,7 +67,10 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'contatos',
+    'contato',
+    'atendimento',
+    'kanban',
+    'negocio',
     'oauth2_integration',
 ]
 

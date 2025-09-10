@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.db import models
 from django.conf import settings
-from contatos.models import Contato, Conversa, Interacao, Operador
+from contato.models import Contato, Operador
+from atendimento.models import Conversa, Interacao
 from .models import CrmApplication, ApiUsageLog
 from .serializers import ContatoOAuthSerializer, ConversaOAuthSerializer, InteracaoOAuthSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated

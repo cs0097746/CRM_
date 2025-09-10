@@ -24,10 +24,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from rest_framework.request import Request
 
-from .models import (
-    Contato, Conversa, Interacao, Operador, Estagio, Negocio,
-    RespostasRapidas, NotaAtendimento, TarefaAtendimento, AnexoNota
-)
+from .models import Contato, Operador
+from atendimento.models import Conversa, Interacao, RespostasRapidas, NotaAtendimento, AnexoNota, TarefaAtendimento, LogAtividade
+from negocio.models import Negocio
+from kanban.models import Kanban, Estagio
 from .serializers import (
     ContatoSerializer, OperadorSerializer,
     ConversaListSerializer, ConversaDetailSerializer, InteracaoSerializer,

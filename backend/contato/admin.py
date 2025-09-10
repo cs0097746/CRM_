@@ -1,8 +1,12 @@
 from django.contrib import admin
-from .models import Contato, Estagio, Negocio, Conversa, Operador, Interacao, RespostasRapidas, NotaAtendimento, TarefaAtendimento, AnexoNota
+from .models import Contato, Operador
+from atendimento.models import Conversa, Interacao, RespostasRapidas, NotaAtendimento, AnexoNota, TarefaAtendimento, LogAtividade
+from negocio.models import Negocio
+from kanban.models import Kanban, Estagio
 
 admin.site.register(Contato)
 admin.site.register(Estagio)
+admin.site.register(Kanban)
 admin.site.register(Negocio)
 admin.site.register(Conversa)
 admin.site.register(Operador)

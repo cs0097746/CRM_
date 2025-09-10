@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import (
-    Contato, Conversa, Interacao, Operador, Estagio, Negocio,
-    RespostasRapidas, NotaAtendimento, TarefaAtendimento, AnexoNota
-)
+from .models import Contato, Operador
+from atendimento.models import Conversa, Interacao, RespostasRapidas, NotaAtendimento, AnexoNota, TarefaAtendimento, LogAtividade
+from negocio.models import Negocio
+from kanban.models import Kanban, Estagio
 
 # ===== SERIALIZERS BÁSICOS =====
 
