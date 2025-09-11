@@ -433,7 +433,7 @@ class EstagioListView(generics.ListAPIView):
         kanban_id = self.kwargs.get("kanban_id")
         return Estagio.objects.filter(kanban_id=kanban_id)
 
-class KanbanListView(generics.ListAPIView):
+class KanbanListView(generics.ListCreateAPIView):
     """API: Lista kanban"""
     queryset = Kanban.objects.all()
     serializer_class = KanbanSerializer
