@@ -95,7 +95,7 @@ const Home = () => {
     {
       titulo: '🎯 Kanban CRM',
       descricao: 'Gestão de leads e negócios',
-      url: '/kanban',
+      url: '/kanbans/',
       cor: '#8c52ff',
       icone: '🎯',
       externo: true

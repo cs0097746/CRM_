@@ -36,7 +36,7 @@ from atendimento.serializers import (
     RespostasRapidasSerializer, NotaAtendimentoSerializer, TarefaAtendimentoSerializer,
     TarefaCreateSerializer, AnexoNotaSerializer, ConversaCreateSerializer
 )
-from kanban.serializers import EstagioSerializer
+from kanban.serializers import EstagioSerializer, KanbanSerializer
 from negocio.serializers import NegocioSerializer
 
 # ===== FUNÇÃO AUXILIAR =====
@@ -429,11 +429,25 @@ class EstagioListView(generics.ListAPIView):
     serializer_class = EstagioSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        kanban_id = self.kwargs.get("kanban_id")
+        return Estagio.objects.filter(kanban_id=kanban_id)
+
+class KanbanListView(generics.ListAPIView):
+    """API: Lista kanban"""
+    queryset = Kanban.objects.all()
+    serializer_class = KanbanSerializer
+    permission_classes = [IsAuthenticated]
+
 class NegocioListCreateView(generics.ListCreateAPIView):
     """API: Lista e cria negócios"""
     queryset = Negocio.objects.all()
     serializer_class = NegocioSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        kanban_id = self.kwargs.get("kanban_id")
+        return Negocio.objects.filter(estagio__kanban_id=kanban_id)
 
 class NegocioDetailView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalha, atualiza e deleta negócio"""

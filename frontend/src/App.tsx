@@ -10,6 +10,7 @@ const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
 const Atendimento = lazy(() => import("./views/Atendimento"));
 const NotFound = lazy(() => import('./views/NotFound'));
+const Kanbans = lazy(() => import('./views/Kanbans'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -84,7 +85,8 @@ const AppContent = () => {
         <Suspense fallback={<div className="loading-screen">Carregando...</div>}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/kanban" element={<Kanban />} />
+            <Route path="/kanban/:id" element={<Kanban />} />
+            <Route path="/kanbans" element={<Kanbans />} />
             <Route path="/atendimento" element={<Atendimento />} />
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
             <Route path="*" element={<NotFound />} />
@@ -103,7 +105,7 @@ const AppContent = () => {
         <Modal.Body>
           <Nav className="flex-column nav-modal-links">
             <NavLink to="/" className="nav-link" onClick={handleCloseNav}>Dashboard</NavLink>
-            <NavLink to="/kanban" className="nav-link" onClick={handleCloseNav}>Kanban</NavLink>
+            <NavLink to="/kanbans" className="nav-link" onClick={handleCloseNav}>Kanbans</NavLink>
             <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
             
             {/* ✅ BOTÃO DE LOGOUT */}

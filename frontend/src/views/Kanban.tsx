@@ -6,8 +6,10 @@ import KanbanColumn from "../components/KanbanColumn.tsx";
 import { DragDropContext } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
 import backend_url from "../config/env.ts";
+import { useParams } from "react-router-dom";
 
 export default function Kanban() {
+  const { id } = useParams<{ id: string }>();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [negocios, setNegocios] = useState<Negocio[]>([]);
 
@@ -39,13 +41,13 @@ export default function Kanban() {
 
         const token = await getToken();
       const [estagiosRes, negociosRes] = await Promise.all([
-        api.get<Estagio[]>("estagios/", {
+        api.get<Estagio[]>(`estagios/${id}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             }
         ),
-        api.get<Negocio[]>("negocios/", {
+        api.get<Negocio[]>(`kanbans/${id}/negocios`, {
             headers: {
                 Authorization: `Bearer ${token}`
                 }
@@ -115,6 +117,7 @@ export default function Kanban() {
     };
 
     console.log("Estagios ", estagios);
+    console.log("ID DO KANBAN: ", id);
 
   return (
     <div

@@ -33,8 +33,10 @@ urlpatterns = [
     path('conversas/<int:conversa_pk>/interacoes/', views.InteracaoCreateView.as_view(), name='interacao_create'),
     
     # ===== CRM/KANBAN =====
-    path('estagios/', views.EstagioListView.as_view(), name='estagio_list'),
+    path('estagios/<int:kanban_id>/', views.EstagioListView.as_view(), name='estagio_list'),
+    path('kanbans/', views.KanbanListView.as_view(), name='kanban_list'),
     path('negocios/', views.NegocioListCreateView.as_view(), name='negocio_list_create'),
+    path('kanbans/<int:kanban_id>/negocios/', views.NegocioListCreateView.as_view(), name='negocio_list_create'),
     path('negocios/<int:pk>/', views.NegocioDetailView.as_view(), name='negocio_detail'),
     path('funil/stats/', views.FunilStatsView.as_view(), name='funil_stats'),
     

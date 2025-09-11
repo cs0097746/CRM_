@@ -18,7 +18,7 @@ class Estagio(models.Model):
     kanban = models.ForeignKey(Kanban, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.nome
+        return f"{self.nome} - {self.kanban}"
 
     class Meta:
         verbose_name = "Estágio"
