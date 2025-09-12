@@ -1,8 +1,18 @@
 from rest_framework import serializers
-from .models import Negocio
+from .models import Negocio, Comentario
 from contato.serializers import ContatoSerializer, OperadorSerializer
 from kanban.serializers import EstagioSerializer
 from atributo.models import AtributoPersonalizavel
+
+class ComentarioSerializer(serializers.ModelSerializer):
+    criado_por = serializers.SerializerMethodField()
+
+    def get_criado_por(self, obj):
+        return obj.criado_por.first_name if obj.criado_por else None
+
+    class Meta:
+        model = Comentario
+        fields = ['criado_por', 'mensagem', 'criado_em']
 
 class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     valor_formatado = serializers.SerializerMethodField()
@@ -23,6 +33,7 @@ class NegocioSerializer(serializers.ModelSerializer):
     valor_formatado = serializers.ReadOnlyField()
 
     atributos_personalizados = AtributoPersonalizavelSerializer(many=True, read_only=True)
+    comentarios = ComentarioSerializer(many=True, read_only=True)
 
     contato_id = serializers.IntegerField(write_only=True)
     estagio_id = serializers.IntegerField(write_only=True)
@@ -35,5 +46,5 @@ class NegocioSerializer(serializers.ModelSerializer):
             'contato', 'contato_id', 'estagio', 'estagio_id',
             'operador', 'operador_id', 'origem', 'probabilidade',
             'data_prevista', 'criado_em', 'atualizado_em',
-            'atributos_personalizados'
+            'atributos_personalizados', 'comentarios',
         ]

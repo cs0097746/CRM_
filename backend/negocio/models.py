@@ -1,5 +1,17 @@
+from django.contrib.auth.models import User
 from django.db import models
 from decimal import Decimal
+
+class Comentario(models.Model):
+    criado_por = models.ForeignKey(User, on_delete=models.CASCADE)
+    mensagem = models.TextField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.mensagem
+
+    class Meta:
+        ordering = ['-criado_em']
 
 class Negocio(models.Model):
     ORIGEM_CHOICES = [
@@ -21,6 +33,7 @@ class Negocio(models.Model):
     data_prevista = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    comentarios = models.ManyToManyField(Comentario, blank=True)
 
     atributos_personalizados = models.ManyToManyField('atributo.AtributoPersonalizavel', related_name='negocios', blank=True)
 

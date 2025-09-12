@@ -1,4 +1,5 @@
 import type { Negocio } from "../types/Negocio.ts";
+import type {Comentario} from "../types/Comentario.ts";
 import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
 import { Modal, Button, Form, Badge } from "react-bootstrap";
@@ -16,61 +17,66 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [valor, setValor] = useState(negocio.valor ?? 0);
   const [contato, setContato] = useState(negocio.contato.nome);
   const [estagio, setEstagio] = useState(negocio.estagio.nome);
+  const [comentarios, setComentarios] = useState<Comentario[]>(negocio.comentarios ?? []);
+  const [novoComentario, setNovoComentario] = useState("");
 
-     const USERNAME = "admin";
-    const PASSWORD = "admin";
-    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+  const USERNAME = "admin";
+  const PASSWORD = "admin";
+  const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+  const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
-    const getToken = async () => {
-      const params = new URLSearchParams();
-      params.append("grant_type", "password");
-      params.append("username", USERNAME);
-      params.append("password", PASSWORD);
-      params.append("client_id", CLIENT_ID);
-      params.append("client_secret", CLIENT_SECRET);
+  const getToken = async () => {
+    const params = new URLSearchParams();
+    params.append("grant_type", "password");
+    params.append("username", USERNAME);
+    params.append("password", PASSWORD);
+    params.append("client_id", CLIENT_ID);
+    params.append("client_secret", CLIENT_SECRET);
 
-      try {
-        const res = await axios.post(`${backend_url}/o/token/`, params);
-        return res.data.access_token;
-      } catch (err) {
-        console.error(err);
-      }
-    };
+    try {
+      const res = await axios.post(`${backend_url}/o/token/`, params);
+      return res.data.access_token;
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSave = async () => {
-      const payload = {
-        titulo,
-        valor,
-        contato,
-        estagio,
-      };
+    const payload = { titulo, valor, contato, estagio };
+    const token = await getToken();
 
-      const token = await getToken();
+    try {
+      const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-      try {
-        const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(payload),
-        });
+      if (!response.ok) throw new Error("Erro ao atualizar negócio");
 
-        if (!response.ok) throw new Error("Erro ao atualizar negócio");
+      const data = await response.json();
+      console.log("Atualizado com sucesso:", data);
+      setShow(false);
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+      alert("Falha ao salvar os dados.");
+    }
+  };
 
-        const data = await response.json();
-        console.log("Atualizado com sucesso:", data);
-
-        setShow(false);
-      } catch (error) {
-        console.error("Erro ao salvar:", error);
-        alert("Falha ao salvar os dados.");
-      }
+  const handleAddComentario = () => {
+    if (!novoComentario.trim()) return;
+    const comentario: Comentario = {
+      id: Date.now(),
+      criado_por: "Você",
+      mensagem: novoComentario,
+      criado_em: new Date().toISOString(),
     };
-
-    console.log("Atributos ", negocio.atributos_personalizados);
+    setComentarios((prev) => [comentario, ...prev]);
+    setNovoComentario("");
+  };
 
   return (
     <>
@@ -130,7 +136,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 👤 Contato: {negocio.contato.nome}
               </p>
               <p style={{ fontSize: "0.8rem", color: "#6c757d", margin: "4px 0" }}>
-                📅 Criado em: {new Date(negocio.criado_em).toLocaleDateString()}
+                📅 Criado em: {new Date(negocio.criado_em).toLocaleDateString("pt-BR")}
               </p>
               <p style={{ fontSize: "0.85rem", color: "#8c52ff", margin: "4px 0" }}>
                 🏷 Estágio: {negocio.estagio.nome}
@@ -140,7 +146,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         )}
       </Draggable>
 
-      <Modal show={show} onHide={() => setShow(false)} centered>
+      <Modal show={show} onHide={() => setShow(false)} size="xl" centered dialogClassName="modal-xxl">
         <Modal.Header
           closeButton
           style={{
@@ -154,170 +160,215 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           <Modal.Title>Editar Negócio</Modal.Title>
         </Modal.Header>
 
-        <Modal.Body style={{ backgroundColor: "#f9fafe", padding: "1.5rem" }}>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
-              <Form.Control
-                type="text"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-              />
-            </Form.Group>
+        <Modal.Body
+          style={{
+            backgroundColor: "#f9fafe",
+            padding: "2rem",
+            maxHeight: "90vh",
+            overflowY: "auto",
+          }}
+        >
+          <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}>
 
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Valor</Form.Label>
-              <Form.Control
-                type="number"
-                value={valor}
-                onChange={(e) => setValor(Number(e.target.value))}
-                style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-              />
-            </Form.Group>
+            <div style={{ flex: 2 }}>
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={titulo}
+                    onChange={(e) => setTitulo(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                  />
+                </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Contato</Form.Label>
-              <Form.Control
-                type="text"
-                value={contato}
-                onChange={(e) => setContato(e.target.value)}
-                style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-              />
-            </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Valor</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={valor}
+                    onChange={(e) => setValor(Number(e.target.value))}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                  />
+                </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Estágio</Form.Label>
-              <Form.Control
-                type="text"
-                value={estagio}
-                onChange={(e) => setEstagio(e.target.value)}
-                style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-              />
-            </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Contato</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={contato}
+                    onChange={(e) => setContato(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                  />
+                </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Criado em</Form.Label>
-              <Form.Control
-                type="text"
-                value={new Date(negocio.criado_em).toLocaleString()}
-                disabled
-                style={{
-                  borderRadius: "0.6rem",
-                  backgroundColor: "#e9ecef",
-                  padding: "0.5rem",
-                }}
-              />
-            </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Estágio</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={estagio}
+                    onChange={(e) => setEstagio(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                  />
+                </Form.Group>
 
-         <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
-              {negocio.atributos_personalizados?.map((atributo, idx) => {
-                const { label, valor, type, valor_formatado } = atributo;
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Criado em</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={new Date(negocio.criado_em).toLocaleString("pt-BR")}
+                    disabled
+                    style={{
+                      borderRadius: "0.6rem",
+                      backgroundColor: "#e9ecef",
+                      padding: "0.5rem",
+                    }}
+                  />
+                </Form.Group>
 
-                if (type === "boolean") {
-                  const isTrue = valor_formatado == "true" || valor_formatado == "1";
-                  return (
-                    <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                      <strong>{label}</strong>
-                      <div className="d-flex gap-3 mt-1">
-                        <Form.Check
-                          type="checkbox"
-                          id={`sim-${idx}`}
-                          label="Sim"
-                          checked={isTrue}
-                          readOnly
-                        />
-                        <Form.Check
-                          type="checkbox"
-                          id={`nao-${idx}`}
-                          label="Não"
-                          checked={!isTrue}
-                          readOnly
-                        />
-                      </div>
-                    </div>
-                  );
-                }
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
+                  <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
+                    {negocio.atributos_personalizados?.map((atributo, idx) => {
+                      const { label, valor, type, valor_formatado } = atributo;
 
-                const renderInput = () => {
-                  switch (type) {
-                    case "integer":
-                    case "float":
-                      return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
-                    case "date":
+                      if (type === "boolean") {
+                        const isTrue = valor_formatado == "true" || valor_formatado == "1";
+                        return (
+                          <div key={idx} style={{ marginBottom: "0.5rem" }}>
+                            <strong>{label}</strong>
+                            <div className="d-flex gap-3 mt-1">
+                              <Form.Check type="checkbox" id={`sim-${idx}`} label="Sim" checked={isTrue} readOnly />
+                              <Form.Check type="checkbox" id={`nao-${idx}`} label="Não" checked={!isTrue} readOnly />
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const renderInput = () => {
+                        switch (type) {
+                          case "integer":
+                          case "float":
+                            return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
+                          case "date":
+                            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+                          case "datetime":
+                            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+                          case "time":
+                            return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+                          case "text":
+                          case "string":
+                          default:
+                            return <Form.Control type="text" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
+                        }
+                      };
+
                       return (
-                        <Form.Control
-                          type="text"
-                          value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""}
-                          readOnly
-                          style={{ marginBottom: "0.5rem" }}
-                        />
+                        <div key={idx} style={{ marginBottom: "0.5rem" }}>
+                          <strong>{label}</strong>
+                          {renderInput()}
+                        </div>
                       );
-                    case "datetime":
-                      return (
-                        <Form.Control
-                          type="text"
-                          value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""}
-                          readOnly
-                          style={{ marginBottom: "0.5rem" }}
-                        />
-                      );
-                    case "time":
-                      return (
-                        <Form.Control
-                          type="text"
-                          value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false }) : ""}
-                          readOnly
-                          style={{ marginBottom: "0.5rem" }}
-                        />
-                      );
-                    case "text":
-                    case "string":
-                    default:
-                      return <Form.Control type="text" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
-                  }
-                };
-
-                return (
-                  <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                    <strong>{label}</strong>
-                    {renderInput()}
+                    })}
                   </div>
-                );
-              })}
-            </Form.Group>
-          </Form>
+                </Form.Group>
+              </Form>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                backgroundColor: "#ffffff",
+                borderRadius: "0.8rem",
+                padding: "1rem",
+                height: "100%",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <h6 style={{ color: "#316dbd", fontWeight: 700 }}>Comentários</h6>
+              <div style={{ flex: 1, overflowY: "auto", marginTop: "1rem" }}>
+                {comentarios.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      marginBottom: "1rem",
+                      padding: "0.5rem",
+                      backgroundColor: "#f1f5ff",
+                      borderRadius: "0.5rem",
+                      wordWrap: "break-word",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    <strong>{c.criado_por}:</strong> {c.mensagem}
+                    <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
+                      {new Date(c.criado_em).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Form.Control
+                as="textarea"
+                rows={3}
+                placeholder="Adicionar comentário..."
+                style={{ marginTop: "0.5rem", borderRadius: "0.5rem" }}
+                value={novoComentario}
+                onChange={(e) => setNovoComentario(e.target.value)}
+              />
+              <Button
+                style={{ marginTop: "0.5rem", backgroundColor: "#316dbd", borderColor: "#316dbd" }}
+                onClick={handleAddComentario}
+              >
+                Adicionar
+              </Button>
+            </div>
+          </div>
         </Modal.Body>
 
-        <Modal.Footer style={{ borderTop: "none" }}>
+      <Modal.Footer style={{ borderTop: "none", justifyContent: "space-between" }}>
           <Button
-            variant="secondary"
-            onClick={() => setShow(false)}
             style={{
               borderRadius: "0.5rem",
               fontWeight: 500,
-              backgroundColor: "#e0e0e0",
+              backgroundColor: "#29fc00",
               border: "none",
-              color: "#333",
+              color: "#fff",
             }}
+            onClick={() => alert("Criar novo campo personalizável")}
           >
-            Fechar
+            Criar Campo Personalizável
           </Button>
-          <Button
-            onClick={handleSave}
-            style={{
-              backgroundColor: "#316dbd",
-              borderColor: "#316dbd",
-              borderRadius: "0.5rem",
-              fontWeight: 600,
-              padding: "0.45rem 1.2rem",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#245a9b")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#316dbd")}
-          >
-            Salvar
-          </Button>
+
+          <div>
+            <Button
+              variant="danger"
+              onClick={() => setShow(false)}
+              style={{
+                borderRadius: "0.5rem",
+                fontWeight: 500,
+                marginRight: "0.5rem",
+              }}
+            >
+              Excluir
+            </Button>
+
+            <Button
+              onClick={handleSave}
+              style={{
+                backgroundColor: "#316dbd",
+                borderColor: "#316dbd",
+                borderRadius: "0.5rem",
+                fontWeight: 600,
+                padding: "0.45rem 1.2rem",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#245a9b")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#316dbd")}
+            >
+              Salvar
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
     </>
