@@ -7,11 +7,13 @@ import { DragDropContext } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
 import backend_url from "../config/env.ts";
 import { useParams } from "react-router-dom";
+import {CriarEstagioModal} from "../components/modal/CriarEstagio.tsx";
 
 export default function Kanban() {
   const { id } = useParams<{ id: string }>();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [token, setToken] = useState<string | null>();
 
    const USERNAME = "admin";
     const PASSWORD = "admin";
@@ -63,6 +65,16 @@ export default function Kanban() {
       console.error("Erro ao buscar dados do Kanban:", error);
     }
   };
+
+  useEffect(() => {
+    (async () => {
+      const t = await getToken();
+      if (t) {
+        setToken(t);
+        fetchData();
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -119,7 +131,8 @@ export default function Kanban() {
     console.log("Estagios ", estagios);
     console.log("ID DO KANBAN: ", id);
 
-  return (
+  // @ts-ignore
+    return (
     <div
       className="kanban-container d-flex flex-column"
       style={{
@@ -166,6 +179,13 @@ export default function Kanban() {
         </div>
       </header>
 
+        {token && (
+          <div className="mb-3 text-center">
+            <CriarEstagioModal kanbanId={Number(id)} token={token} onCreated={() => fetchData()} />
+          </div>
+        )}
+
+
       <DragDropContext onDragEnd={onDragEnd}>
         <div
           className="d-flex flex-row overflow-auto"
@@ -185,7 +205,9 @@ export default function Kanban() {
               <KanbanColumn
                 key={estagio.id}
                 estagio={estagio}
+                token={token!}
                 negocios={negociosDoEstagio}
+                onNegocioCreated={fetchData}
               />
             );
           })}

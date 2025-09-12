@@ -423,7 +423,7 @@ class InteracaoCreateView(generics.CreateAPIView):
 
 # ===== CRM/KANBAN =====
 
-class EstagioListView(generics.ListAPIView):
+class EstagioListView(generics.ListCreateAPIView):
     """API: Lista estágios"""
     queryset = Estagio.objects.all()
     serializer_class = EstagioSerializer
@@ -432,6 +432,22 @@ class EstagioListView(generics.ListAPIView):
     def get_queryset(self):
         kanban_id = self.kwargs.get("kanban_id")
         return Estagio.objects.filter(kanban_id=kanban_id)
+
+    def post(self, request, *args, **kwargs):
+        kanban_id = self.kwargs.get("kanban_id")
+        kanban = get_object_or_404(Kanban, id=kanban_id)
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(kanban=kanban)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class EstagioDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """API: Detalhe, update e delete de estágio"""
+    queryset = Estagio.objects.all()
+    serializer_class = EstagioSerializer
+    permission_classes = [IsAuthenticated]
 
 class KanbanListView(generics.ListCreateAPIView):
     """API: Lista kanban"""
@@ -454,6 +470,19 @@ class NegocioListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         kanban_id = self.kwargs.get("kanban_id")
         return Negocio.objects.filter(estagio__kanban_id=kanban_id)
+
+    def post(self, request, *args, **kwargs):
+        kanban_id = self.kwargs.get("kanban_id")
+        kanban = get_object_or_404(Kanban, id=kanban_id)
+
+        serializer = self.get_serializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save(kanban=kanban)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class NegocioDetailView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalha, atualiza e deleta negócio"""

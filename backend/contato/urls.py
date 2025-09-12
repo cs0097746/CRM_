@@ -34,6 +34,7 @@ urlpatterns = [
     
     # ===== CRM/KANBAN =====
     path('estagios/<int:kanban_id>/', views.EstagioListView.as_view(), name='estagio_list'),
+    path('estagios/<int:pk>/', views.EstagioDetailView.as_view(), name='estagio_detail'),
     path('kanbans/', views.KanbanListView.as_view(), name='kanban_list'),
     path('kanbans/<int:pk>/', views.KanbanUpdateDeleteView.as_view(), name='kanban_detail'),
     path('negocios/', views.NegocioListCreateView.as_view(), name='negocio_list_create'),

@@ -3,14 +3,18 @@ import type { Negocio } from "../types/Negocio.ts";
 import KanbanTask from "./KanbanTask.tsx";
 import { Droppable } from "@hello-pangea/dnd";
 import { Badge } from "react-bootstrap";
+import { CriarNegocioModal} from "./modal/CriarNegocio.tsx";
 
 interface KanbanColumnProps {
   estagio: Estagio;
   negocios: Negocio[];
+  token: string;
+  onNegocioCreated: () => void;
 }
 
-export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
-  return (
+export default function KanbanColumn({ estagio, negocios, token, onNegocioCreated }: KanbanColumnProps) {
+    console.log("Kanban", estagio.kanban);
+    return (
     <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
       <div
         className="card h-100 border-0"
@@ -35,7 +39,14 @@ export default function KanbanColumn({ estagio, negocios }: KanbanColumnProps) {
             boxShadow: "inset 0 -2px 4px rgba(0,0,0,0.15)",
           }}
         >
-          <span>{estagio.nome}</span>
+          <div className="d-flex align-items-center gap-2">
+              <span>{estagio.nome}</span>
+                {token && (
+                    <div className="text-center mt-3">
+                        <CriarNegocioModal estagioId={estagio.id} kanban={estagio.kanban} token={token} onCreated={onNegocioCreated}/>
+                    </div>
+                  )}
+          </div>
           <Badge
             pill
             style={{
