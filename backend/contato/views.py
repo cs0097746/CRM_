@@ -439,6 +439,12 @@ class KanbanListView(generics.ListCreateAPIView):
     serializer_class = KanbanSerializer
     permission_classes = [IsAuthenticated]
 
+class KanbanUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    """API: Detalha e atualiza kanban"""
+    queryset = Kanban.objects.all()
+    serializer_class = KanbanSerializer
+    permission_classes = [IsAuthenticated]
+
 class NegocioListCreateView(generics.ListCreateAPIView):
     """API: Lista e cria negócios"""
     queryset = Negocio.objects.all()
