@@ -70,6 +70,8 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       }
     };
 
+    console.log("Atributos ", negocio.atributos_personalizados);
+
   return (
     <>
       <Draggable draggableId={String(negocio.id)} index={index}>
@@ -206,6 +208,84 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                   padding: "0.5rem",
                 }}
               />
+            </Form.Group>
+
+         <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
+              {negocio.atributos_personalizados?.map((atributo, idx) => {
+                const { label, valor, type, valor_formatado } = atributo;
+
+                if (type === "boolean") {
+                  const isTrue = valor_formatado == "true" || valor_formatado == "1";
+                  return (
+                    <div key={idx} style={{ marginBottom: "0.5rem" }}>
+                      <strong>{label}</strong>
+                      <div className="d-flex gap-3 mt-1">
+                        <Form.Check
+                          type="checkbox"
+                          id={`sim-${idx}`}
+                          label="Sim"
+                          checked={isTrue}
+                          readOnly
+                        />
+                        <Form.Check
+                          type="checkbox"
+                          id={`nao-${idx}`}
+                          label="Não"
+                          checked={!isTrue}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+
+                const renderInput = () => {
+                  switch (type) {
+                    case "integer":
+                    case "float":
+                      return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
+                    case "date":
+                      return (
+                        <Form.Control
+                          type="text"
+                          value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""}
+                          readOnly
+                          style={{ marginBottom: "0.5rem" }}
+                        />
+                      );
+                    case "datetime":
+                      return (
+                        <Form.Control
+                          type="text"
+                          value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""}
+                          readOnly
+                          style={{ marginBottom: "0.5rem" }}
+                        />
+                      );
+                    case "time":
+                      return (
+                        <Form.Control
+                          type="text"
+                          value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false }) : ""}
+                          readOnly
+                          style={{ marginBottom: "0.5rem" }}
+                        />
+                      );
+                    case "text":
+                    case "string":
+                    default:
+                      return <Form.Control type="text" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
+                  }
+                };
+
+                return (
+                  <div key={idx} style={{ marginBottom: "0.5rem" }}>
+                    <strong>{label}</strong>
+                    {renderInput()}
+                  </div>
+                );
+              })}
             </Form.Group>
           </Form>
         </Modal.Body>

@@ -481,6 +481,8 @@ class NegocioListCreateView(generics.ListCreateAPIView):
             serializer.save(kanban=kanban)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+        print(serializer.errors)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
