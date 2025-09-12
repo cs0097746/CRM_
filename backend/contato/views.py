@@ -472,19 +472,23 @@ class NegocioListCreateView(generics.ListCreateAPIView):
         return Negocio.objects.filter(estagio__kanban_id=kanban_id)
 
     def post(self, request, *args, **kwargs):
-        kanban_id = self.kwargs.get("kanban_id")
-        kanban = get_object_or_404(Kanban, id=kanban_id)
+        data = request.data.copy()
 
-        serializer = self.get_serializer(data=request.data)
+        estagio_id = data.get("estagio_id")
+        contato_id = data.get("contato_id")
+
+        if estagio_id:
+            data["estagio"] = estagio_id
+        if contato_id:
+            data["contato"] = contato_id
+
+        serializer = self.get_serializer(data=data)
 
         if serializer.is_valid():
-            serializer.save(kanban=kanban)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        print(serializer.errors)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class NegocioDetailView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalha, atualiza e deleta negócio"""

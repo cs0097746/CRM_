@@ -25,9 +25,12 @@ export function CriarEstagioModal({ kanbanId, token, onCreated }: CriarEstagioMo
         { headers: { Authorization: `Bearer ${token}` } }
       );
       handleClose();
+      setNome("");
+      setOrdem(0);
       onCreated();
     } catch (err) {
       console.error("Erro ao criar estágio", err);
+      alert("Falha ao criar estágio. Verifique os dados e tente novamente.");
     }
   };
 
@@ -38,15 +41,18 @@ export function CriarEstagioModal({ kanbanId, token, onCreated }: CriarEstagioMo
       </button>
 
       {show && (
-        <div className="modal fade show d-block" tabIndex={-1} role="dialog">
+        <div className="modal fade show d-block" tabIndex={-1} role="dialog" style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
           <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content">
+            <div className="modal-content" style={{ borderRadius: "1rem", boxShadow: "0 8px 25px rgba(0,0,0,0.2)" }}>
               <form onSubmit={handleSubmit}>
-                <div className="modal-header">
+                <div
+                  className="modal-header"
+                  style={{ background: "linear-gradient(135deg, #316dbd, #8c52ff)", color: "#fff", borderBottom: "none", borderTopLeftRadius: "1rem", borderTopRightRadius: "1rem" }}
+                >
                   <h5 className="modal-title">Criar Estágio</h5>
-                  <button type="button" className="btn-close" onClick={handleClose}></button>
+                  <button type="button" className="btn-close btn-close-white" onClick={handleClose}></button>
                 </div>
-                <div className="modal-body">
+                <div className="modal-body" style={{ padding: "1.5rem" }}>
                   <div className="mb-3">
                     <label className="form-label">Nome</label>
                     <input
@@ -55,6 +61,7 @@ export function CriarEstagioModal({ kanbanId, token, onCreated }: CriarEstagioMo
                       value={nome}
                       onChange={(e) => setNome(e.target.value)}
                       required
+                      style={{ borderRadius: "0.6rem", padding: "0.5rem" }}
                     />
                   </div>
                   <div className="mb-3">
@@ -64,10 +71,11 @@ export function CriarEstagioModal({ kanbanId, token, onCreated }: CriarEstagioMo
                       className="form-control"
                       value={ordem}
                       onChange={(e) => setOrdem(Number(e.target.value))}
+                      style={{ borderRadius: "0.6rem", padding: "0.5rem" }}
                     />
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer" style={{ borderTop: "none", justifyContent: "flex-end" }}>
                   <button type="button" className="btn btn-secondary" onClick={handleClose}>
                     Cancelar
                   </button>

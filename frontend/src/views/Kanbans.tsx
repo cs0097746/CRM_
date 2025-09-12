@@ -21,7 +21,6 @@ export default function Kanbans() {
 
   const api = axios.create({ baseURL: `${backend_url}` });
 
-  // ===== Token =====
   const getToken = async () => {
     if (token) return token;
     const params = new URLSearchParams();
@@ -40,7 +39,6 @@ export default function Kanbans() {
     }
   };
 
-  // ===== Buscar Kanbans =====
   const fetchKanbans = async () => {
     try {
       const t = await getToken();
@@ -63,7 +61,6 @@ export default function Kanbans() {
     fetchKanbans();
   }, []);
 
-  // ===== Abrir modal =====
   const openModal = (kanban?: Kanban) => {
     if (kanban) {
       setEditingKanban(kanban);
@@ -77,7 +74,6 @@ export default function Kanbans() {
     setModalOpen(true);
   };
 
-  // ===== Salvar Kanban =====
   const saveKanban = async () => {
     const t = await getToken();
     if (!t) return;
@@ -103,7 +99,6 @@ export default function Kanbans() {
     }
   };
 
-  // ===== Excluir Kanban =====
   const deleteKanban = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este kanban?")) return;
     const t = await getToken();
@@ -122,40 +117,67 @@ export default function Kanbans() {
   if (loading) return <p>Carregando kanbans...</p>;
 
   return (
-    <div className="container py-4">
+    <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Kanbans</h1>
-        <button className="btn btn-success" onClick={() => openModal()}>
+        <h1 className="text-primary fw-bold">Kanbans</h1>
+        <button
+          className="btn btn-success"
+          onClick={() => openModal()}
+          style={{
+            borderRadius: "0.6rem",
+            padding: "0.5rem 1rem",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }}
+        >
           + Criar Kanban
         </button>
       </div>
 
       {kanbans.length === 0 && <p>Nenhum kanban encontrado.</p>}
 
-      <div className="row g-3">
+      <div className="row g-4">
         {kanbans.map((kanban) => (
           <div key={kanban.id} className="col-12 col-md-6 col-lg-4">
-            <div className="card shadow-sm h-100">
+            <div
+              className="card h-100"
+              style={{
+                borderRadius: "1rem",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 12px 25px rgba(0,0,0,0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.1)";
+              }}
+            >
               <div className="card-body d-flex flex-column">
-                <h5 className="card-title">{kanban.nome}</h5>
-                <p className="card-text text-muted flex-grow-1">
-                  {kanban.descricao}
-                </p>
+                <h5 className="card-title fw-bold">{kanban.nome}</h5>
+                <p className="card-text text-muted flex-grow-1">{kanban.descricao}</p>
                 <div className="d-flex gap-2 mt-auto">
                   <Link
                     to={`/kanban/${kanban.id}`}
                     className="btn btn-primary flex-grow-1"
+                    style={{
+                      background: "linear-gradient(135deg, #316dbd, #8c52ff)",
+                      border: "none",
+                    }}
                   >
                     Ir para o kanban
                   </Link>
                   <button
                     className="btn btn-warning flex-grow-1"
+                    style={{ borderRadius: "0.6rem" }}
                     onClick={() => openModal(kanban)}
                   >
                     Editar
                   </button>
                   <button
                     className="btn btn-danger flex-grow-1"
+                    style={{ borderRadius: "0.6rem" }}
                     onClick={() => deleteKanban(kanban.id)}
                   >
                     Excluir
@@ -167,26 +189,41 @@ export default function Kanbans() {
         ))}
       </div>
 
-      {/* Modal */}
       {modalOpen && (
         <div
           className="modal show d-block"
           tabIndex={-1}
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
         >
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
+          <div className="modal-dialog modal-dialog-centered">
+            <div
+              className="modal-content"
+              style={{
+                borderRadius: "1rem",
+                boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+              }}
+            >
+              <div
+                className="modal-header"
+                style={{
+                  background: "linear-gradient(135deg, #316dbd, #8c52ff)",
+                  color: "#fff",
+                  borderBottom: "none",
+                  borderTopLeftRadius: "1rem",
+                  borderTopRightRadius: "1rem",
+                }}
+              >
                 <h5 className="modal-title">
                   {editingKanban ? "Editar Kanban" : "Criar Kanban"}
                 </h5>
                 <button
                   type="button"
-                  className="btn-close"
+                  className="btn-close btn-close-white"
                   onClick={() => setModalOpen(false)}
                 />
               </div>
-              <div className="modal-body">
+
+              <div className="modal-body" style={{ padding: "1.5rem" }}>
                 <div className="mb-3">
                   <label className="form-label">Nome</label>
                   <input
@@ -194,6 +231,7 @@ export default function Kanbans() {
                     className="form-control"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
+                    style={{ borderRadius: "0.6rem", padding: "0.5rem" }}
                   />
                 </div>
                 <div className="mb-3">
@@ -202,17 +240,30 @@ export default function Kanbans() {
                     className="form-control"
                     value={descricao}
                     onChange={(e) => setDescricao(e.target.value)}
+                    style={{ borderRadius: "0.6rem", padding: "0.5rem" }}
                   />
                 </div>
               </div>
-              <div className="modal-footer">
+
+              <div
+                className="modal-footer"
+                style={{ borderTop: "none", justifyContent: "flex-end" }}
+              >
                 <button
                   className="btn btn-secondary"
                   onClick={() => setModalOpen(false)}
                 >
                   Cancelar
                 </button>
-                <button className="btn btn-primary" onClick={saveKanban}>
+                <button
+                  className="btn btn-primary"
+                  onClick={saveKanban}
+                  style={{
+                    backgroundColor: "#316dbd",
+                    borderColor: "#316dbd",
+                    borderRadius: "0.6rem",
+                  }}
+                >
                   Salvar
                 </button>
               </div>

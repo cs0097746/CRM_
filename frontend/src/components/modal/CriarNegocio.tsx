@@ -1,7 +1,10 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import { Modal, Button, Form } from "react-bootstrap";
+import Select from "react-select";
 import { FaPlus } from "react-icons/fa";
+import axios from "axios";
 import type { Kanban } from "../../types/Kanban.ts";
+import type { Contato } from "../../types/Contato.ts";
 import backend_url from "../../config/env.ts";
 
 interface CriarNegocioModalProps {
@@ -12,83 +15,115 @@ interface CriarNegocioModalProps {
 }
 
 export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: CriarNegocioModalProps) {
+  const [show, setShow] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [valor, setValor] = useState<number | undefined>();
-  const [show, setShow] = useState(false);
+  const [contatos, setContatos] = useState<Contato[]>([]);
+  const [contatoSelecionado, setContatoSelecionado] = useState<Contato | null>(null);
+
+  useEffect(() => {
+    if (show) {
+      axios
+        .get(`${backend_url}contatos/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((res) => setContatos(res.data.results))
+        .catch((err) => console.error("Erro ao buscar contatos:", err));
+    }
+  }, [show, token]);
 
   const handleSave = async () => {
+    if (!contatoSelecionado) {
+      alert("Selecione um contato antes de salvar.");
+      return;
+    }
+
     try {
       await axios.post(
         `${backend_url}kanbans/${kanban}/negocios/`,
-        { titulo, valor, estagio_id: estagioId },
+        { titulo, valor, estagio_id: estagioId, contato_id: contatoSelecionado.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       setTitulo("");
       setValor(undefined);
+      setContatoSelecionado(null);
       setShow(false);
       onCreated();
     } catch (err) {
       console.error("Erro ao criar negócio:", err);
-      console.log("Kanban", kanban);
     }
   };
 
   return (
-    <div className="d-inline-block ms-2">
-      <button
-        className="btn btn-sm btn-outline-light p-1 d-flex align-items-center justify-content-center"
+    <>
+      <Button
+        variant="outline-primary"
+        size="sm"
+        className="d-inline-flex align-items-center justify-content-center ms-2"
         onClick={() => setShow(true)}
         title="Novo negócio"
-        style={{ width: "28px", height: "28px", fontSize: "0.8rem" }}
       >
         <FaPlus />
-      </button>
+      </Button>
 
-      {show && (
-        <div
-          className="position-fixed top-50 start-50 translate-middle p-3"
-          style={{
-            zIndex: 2000,
-            width: "300px",
-            backgroundColor: "#fff",
-            borderRadius: "0.5rem",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-          }}
-        >
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <h6 className="m-0 text-primary">Novo Negócio TEM QUE TRATAR O CONTATO!!!!! TODO</h6>
-            <button
-              type="button"
-              className="btn-close btn-sm"
-              onClick={() => setShow(false)}
-            ></button>
-          </div>
-          <div className="mb-2">
-            <input
-              type="text"
-              className="form-control form-control-sm mb-1"
-              placeholder="Título do negócio"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-            />
-            <input
-              type="number"
-              className="form-control form-control-sm"
-              placeholder="Valor (opcional)"
-              value={valor ?? ""}
-              onChange={(e) => setValor(Number(e.target.value))}
-            />
-          </div>
-          <div className="d-flex justify-content-end gap-2">
-            <button className="btn btn-sm btn-secondary" onClick={() => setShow(false)}>
-              Cancelar
-            </button>
-            <button className="btn btn-sm btn-success" onClick={handleSave}>
+      <Modal show={show} onHide={() => setShow(false)} centered>
+        <Modal.Header closeButton style={{ background: "linear-gradient(135deg, #316dbd, #8c52ff)", color: "#fff" }}>
+          <Modal.Title>Novo Negócio</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Título</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Digite o título"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Valor (opcional)</Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="Valor"
+                value={valor ?? ""}
+                onChange={(e) => setValor(Number(e.target.value))}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Contato</Form.Label>
+              <Select
+                options={contatos.map((c) => ({ value: c.id, label: c.nome }))}
+                value={contatoSelecionado ? { value: contatoSelecionado.id, label: contatoSelecionado.nome } : null}
+                onChange={(option) => {
+                  const contato = contatos.find((c) => c.id === option?.value) ?? null;
+                  setContatoSelecionado(contato);
+                }}
+                placeholder="Selecione um contato..."
+                isClearable
+                isSearchable
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer className="d-flex justify-content-between">
+          <Button variant="success" onClick={() => alert("Criar novo campo personalizável")}>
+            Criar Campo Personalizável
+          </Button>
+
+          <div>
+            <Button variant="danger" className="me-2" onClick={() => setShow(false)}>
+              Excluir
+            </Button>
+            <Button variant="primary" onClick={handleSave}>
               Salvar
-            </button>
+            </Button>
           </div>
-        </div>
-      )}
-    </div>
+        </Modal.Footer>
+      </Modal>
+    </>
   );
 }
