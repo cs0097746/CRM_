@@ -2,9 +2,13 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from . import views
+from knowledge_base.views import *
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
+router.register(r"sets", KnowledgeBaseSetViewSet)
+router.register(r"fields", KnowledgeBaseFieldViewSet)
+router.register(r"entries", KnowledgeBaseEntryViewSet)
 
 # ===== URLS PRINCIPAIS =====
 urlpatterns = [
@@ -44,12 +48,12 @@ urlpatterns = [
     
     # ===== RESPOSTAS RÁPIDAS =====
     path('respostas-rapidas/', views.RespostasRapidasListView.as_view(), name='respostas_rapidas_list'),
-    
+
     # ===== NOTAS DE ATENDIMENTO =====
     path('notas/', views.NotaAtendimentoListCreateView.as_view(), name='nota_list_create'),
     path('notas/<int:pk>/', views.NotaAtendimentoDetailView.as_view(), name='nota_detail'),
     path('conversas/<int:conversa_pk>/notas/', views.NotaAtendimentoListCreateView.as_view(), name='conversa_notas'),
-    
+
     # ===== TAREFAS =====
     path('tarefas/', views.TarefaAtendimentoListCreateView.as_view(), name='tarefa_list_create'),
     path('tarefas/<int:pk>/', views.TarefaAtendimentoDetailView.as_view(), name='tarefa_detail'),
