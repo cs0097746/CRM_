@@ -6,12 +6,14 @@ export function AtributosNegocioModal({ negocioId, token, onSaved }: { negocioId
   const [atributos, setAtributos] = useState<AtributoPersonalizavel[]>([]);
   const [novoLabel, setNovoLabel] = useState("");
   const [novoValor, setNovoValor] = useState("");
+  const [novoType, setNovoType] = useState("");
 
   const adicionarAtributo = () => {
     if (!novoLabel.trim()) return;
-    setAtributos([...atributos, { label: novoLabel, valor: novoValor }]);
+    setAtributos([...atributos, { label: novoLabel, valor: novoValor, type: novoType }]);
     setNovoLabel("");
     setNovoValor("");
+    setNovoType("");
   };
 
   const salvar = async () => {
@@ -47,6 +49,7 @@ export function AtributosNegocioModal({ negocioId, token, onSaved }: { negocioId
 
               <input className="form-control mb-2" placeholder="Nome do campo" value={novoLabel} onChange={(e) => setNovoLabel(e.target.value)} />
               <input className="form-control mb-2" placeholder="Valor" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} />
+              <input className="form-control mb-2" placeholder="Tipo do Campo"  value={novoType} onChange={(e) => setNovoType(e.target.value)} />
               <button className="btn btn-sm btn-primary" onClick={adicionarAtributo}>Adicionar</button>
             </div>
             <div className="modal-footer">

@@ -475,7 +475,7 @@ export default function Atendimento() {
         const novasConversas = response.data.results;
 
         const conversasAnteriores = conversas;
-        const novasMensagens = novasConversas.some(nova => {
+        const novasMensagens = novasConversas.some((nova: Conversa) => {
           const anterior = conversasAnteriores.find(ant => ant.id === nova.id);
           return anterior && nova.atualizado_em !== anterior.atualizado_em;
         });
