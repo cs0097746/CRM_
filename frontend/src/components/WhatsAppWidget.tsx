@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Wifi, WifiOff, RefreshCw, QrCode, Phone } from 'lucide-react';
+import backend_url from "../config/env.ts";
 
 // ✅ CONFIGURAÇÃO CORRETA DA API
-const API_BASE_URL = 'http://localhost:8000';  // ✅ PORTA DO DJANGO
+const API_BASE_URL = backend_url;  // ✅ PORTA DO DJANGO
 
 interface WhatsAppStatus {
   connected: boolean;

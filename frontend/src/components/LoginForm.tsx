@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import backend_url from "../config/env.ts";
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -18,7 +19,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/auth/token/', {
+      const response = await fetch(backend_url + 'auth/token/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +60,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       setLoading(true);
       setError('');
       
-      const response = await fetch('http://localhost:8000/auth/register/', {
+      const response = await fetch(backend_url+'auth/register/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
