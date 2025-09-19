@@ -248,6 +248,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "https://crm.loomiecrm.com",
     "https://backend.loomiecrm.com",
+    "http://crm.loomiecrm.com",
+    "http://backend.loomiecrm.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
