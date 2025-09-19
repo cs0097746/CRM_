@@ -55,8 +55,8 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
 
   return (
     <>
-      <Button
-        variant="outline-primary"
+     <Button
+        variant="light"
         size="sm"
         className="d-inline-flex align-items-center justify-content-center ms-2"
         onClick={() => setShow(true)}
