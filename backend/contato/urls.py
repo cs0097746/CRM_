@@ -7,6 +7,7 @@ from negocio import views as negocio_views
 from atendimento import views as atendimento_views
 from kanban import views as kanban_views
 from knowledge_base.views import *
+from atributo import views as atributos_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -84,7 +85,12 @@ urlpatterns = [
     
     # ===== ESTATÍSTICAS AVANÇADAS =====
     path('stats/tempo-resposta/', contato_views.TempoRespostaStatsView.as_view(), name='tempo_resposta_stats'),
-    
+
+    # atrib person
+    path('atributos-personalizaveis/<int:negocio_id>', atributos_views.AtributoPersonalizavelCreateView.as_view(), name='atributo-personalizavel-create'),
+
+    # comentarios do negocio
+    path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),
     # ===== ROUTER URLS =====
     path('', include(router.urls)),
 ]

@@ -6,13 +6,15 @@ from atributo.models import AtributoPersonalizavel
 
 class ComentarioSerializer(serializers.ModelSerializer):
     criado_por = serializers.SerializerMethodField()
+    id = serializers.IntegerField(read_only=True)
 
     def get_criado_por(self, obj):
         return obj.criado_por.first_name if obj.criado_por else None
 
     class Meta:
         model = Comentario
-        fields = ['criado_por', 'mensagem', 'criado_em']
+        fields = ['id', 'criado_por', 'mensagem', 'criado_em']
+        read_only_fields = ['criado_por', 'criado_em']
 
 class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     valor_formatado = serializers.SerializerMethodField()

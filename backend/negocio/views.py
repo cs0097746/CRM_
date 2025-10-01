@@ -5,9 +5,10 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Count, Sum
+from django.shortcuts import get_object_or_404
 
 from .models import Negocio
-from .serializers import NegocioSerializer
+from .serializers import NegocioSerializer, ComentarioSerializer
 
 class NegocioListCreateView(generics.ListCreateAPIView):
     """API: Lista e cria negócios"""
@@ -61,3 +62,17 @@ class FunilStatsView(APIView):
             'valor_total': Negocio.objects.aggregate(total=Sum('valor'))['total'] or 0,
         }
         return Response(stats)
+
+class ComentarioCreateView(generics.CreateAPIView):
+    serializer_class = ComentarioSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        negocio_id = self.kwargs.get('negocio_id')
+        negocio = get_object_or_404(Negocio, pk=negocio_id)
+
+        comentario = serializer.save(criado_por=self.request.user)
+
+        negocio.comentarios.add(comentario)
+
+        negocio.save(update_fields=['atualizado_em'])

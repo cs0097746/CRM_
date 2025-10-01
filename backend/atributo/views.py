@@ -1,11 +1,27 @@
 from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
 from .models import AtributoPersonalizavel
 from .serializers import AtributoPersonalizavelSerializer
+from negocio.models import Negocio
 
-class AtributoPersonalizavelListView(generics.ListAPIView):
-    """
-    Esta view retorna uma lista de todos os atributos personalizáveis disponíveis.
-    """
+class AtributoPersonalizavelCreateView(generics.CreateAPIView):
     queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
-    # Se você tiver permissões, adicione aqui. Ex: permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        negocio_id = self.kwargs.get('negocio_id')
+
+        if not negocio_id:
+            raise NotFound("O ID do negócio deve ser fornecido na URL.")
+
+        try:
+            negocio = Negocio.objects.get(pk=negocio_id)
+        except Negocio.DoesNotExist:
+            raise NotFound(f"Negócio com ID {negocio_id} não encontrado.")
+
+        atributo = serializer.save()
+
+        negocio.atributos_personalizados.add(atributo)
+
+        negocio.save(update_fields=['atualizado_em'])

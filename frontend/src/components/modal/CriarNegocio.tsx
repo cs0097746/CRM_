@@ -110,10 +110,6 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
         </Modal.Body>
 
         <Modal.Footer className="d-flex justify-content-between">
-          <Button variant="success" onClick={() => alert("Criar novo campo personalizável")}>
-            Criar Campo Personalizável
-          </Button>
-
           <div>
             <Button variant="danger" className="me-2" onClick={() => setShow(false)}>
               Excluir

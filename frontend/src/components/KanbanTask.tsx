@@ -2,7 +2,7 @@ import type { Negocio } from "../types/Negocio.ts";
 import type {Comentario} from "../types/Comentario.ts";
 import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
-import { Modal, Button, Form, Badge } from "react-bootstrap";
+import { Modal, Button, Form, Badge, Spinner, Alert } from "react-bootstrap";
 import axios from "axios";
 import backend_url from "../config/env.ts";
 
@@ -10,6 +10,10 @@ interface KanbanCardProps {
   negocio: Negocio;
   index: number;
 }
+
+const TYPE_CHOICES = [
+    'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time'
+];
 
 export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [show, setShow] = useState(false);
@@ -19,6 +23,14 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [estagio, setEstagio] = useState(negocio.estagio.nome);
   const [comentarios, setComentarios] = useState<Comentario[]>(negocio.comentarios ?? []);
   const [novoComentario, setNovoComentario] = useState("");
+
+  // p criar campo person
+  const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
+  const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldValue, setNewFieldValue] = useState("");
+  const [newFieldType, setNewFieldType] = useState("string");
+  const [isSavingField, setIsSavingField] = useState(false);
+  const [fieldCreationError, setFieldCreationError] = useState<string | null>(null);
 
   const USERNAME = "admin";
   const PASSWORD = "admin";
@@ -66,16 +78,186 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     }
   };
 
-  const handleAddComentario = () => {
-    if (!novoComentario.trim()) return;
-    const comentario: Comentario = {
-      id: Date.now(),
-      criado_por: "Você",
-      mensagem: novoComentario,
-      criado_em: new Date().toISOString(),
+  const handleCreateCustomField = async () => {
+    if (!newFieldLabel.trim() || !newFieldType.trim()) {
+        setFieldCreationError("Por favor, preencha a etiqueta (Label) e o Tipo.");
+        return;
+    }
+
+    setIsSavingField(true);
+    setFieldCreationError(null);
+    const token = await getToken();
+
+    if (!token) {
+        setIsSavingField(false);
+        setFieldCreationError("Erro de autenticação. Tente novamente.");
+        return;
+    }
+
+    const payload = {
+        label: newFieldLabel.trim(),
+        valor: newFieldValue.trim(),
+        type: newFieldType,
     };
-    setComentarios((prev) => [comentario, ...prev]);
-    setNovoComentario("");
+
+    try {
+        const response = await fetch(`${backend_url}atributos-personalizaveis/${negocio.id}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.detail || JSON.stringify(errorData);
+            throw new Error(`Erro ao criar campo: ${errorMessage}`);
+        }
+
+        const data = await response.json();
+        console.log("Campo personalizável criado com sucesso:", data);
+
+        setNewFieldLabel("");
+        setNewFieldValue("");
+        setNewFieldType("string");
+        setShowCustomFieldModal(false);
+
+    } catch (error) {
+        console.error("Erro na criação do campo:", error);
+        setFieldCreationError(`Falha na criação do campo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    } finally {
+        setIsSavingField(false);
+    }
+  };
+
+
+  const renderValueInput = (currentType: string) => {
+    switch (currentType) {
+        case 'boolean':
+            return (
+                <Form.Select
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                >
+                    <option value="false">Não</option>
+                    <option value="true">Sim</option>
+                </Form.Select>
+            );
+        case 'integer':
+            return (
+                <Form.Control
+                    type="number"
+                    step="1"
+                    placeholder="Ex: 42"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'float':
+            return (
+                <Form.Control
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 3.14"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'date':
+            return (
+                <Form.Control
+                    type="date"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'datetime':
+            return (
+                <Form.Control
+                    type="datetime-local"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'time':
+            return (
+                <Form.Control
+                    type="time"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'text':
+            return (
+                <Form.Control
+                    as="textarea"
+                    rows={3}
+                    placeholder="Digite o valor do campo (texto longo)"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'string':
+        default:
+            return (
+                <Form.Control
+                    type="text"
+                    placeholder="Digite o valor do campo"
+                    value={newFieldValue}
+                    onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+    }
+  }
+
+  const handleAddComentario = async () => {
+    if (!novoComentario.trim()) return;
+
+    const token = await getToken();
+    if (!token) {
+      alert("Erro de autenticação. Tente novamente.");
+      return;
+    }
+
+    const payload = {
+        mensagem: novoComentario.trim(),
+    };
+
+    try {
+        const response = await fetch(`${backend_url}negocios/${negocio.id}/comentarios/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Erro ao adicionar comentário:", errorData);
+            throw new Error(errorData.detail || "Falha desconhecida ao adicionar comentário.");
+        }
+
+        const newCommentFromServer: Comentario = await response.json();
+
+        setComentarios((prev) => [newCommentFromServer, ...prev]);
+        setNovoComentario("");
+
+    } catch (error) {
+        console.error("Erro na criação do comentário:", error);
+        alert(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
   };
 
   return (
@@ -336,7 +518,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               border: "none",
               color: "#fff",
             }}
-            onClick={() => alert("Criar novo campo personalizável")}
+            onClick={() => setShowCustomFieldModal(true)}
           >
             Criar Campo Personalizável
           </Button>
@@ -369,6 +551,91 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               Salvar
             </Button>
           </div>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showCustomFieldModal}
+        onHide={() => {
+            setShowCustomFieldModal(false);
+            setFieldCreationError(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton style={{ backgroundColor: "#8c52ff", color: "#fff", borderTopLeftRadius: "0.5rem", borderTopRightRadius: "0.5rem" }}>
+            <Modal.Title>Novo Campo Personalizável</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+            <Form>
+                <Form.Group className="mb-3">
+                    <Form.Label style={{ fontWeight: 600 }}>Etiqueta (Label)</Form.Label>
+                    <Form.Control
+                        type="text"
+                        placeholder="Ex: Código do Projeto"
+                        value={newFieldLabel}
+                        onChange={(e) => setNewFieldLabel(e.target.value)}
+                        style={{ borderRadius: "0.5rem", borderColor: "#ccc" }}
+                    />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label style={{ fontWeight: 600 }}>Tipo de Dado</Form.Label>
+                    <Form.Select
+                        value={newFieldType}
+                        onChange={(e) => {
+                            setNewFieldType(e.target.value);
+                            setNewFieldValue(""); // Limpa o valor ao mudar o tipo
+                        }}
+                        style={{ borderRadius: "0.5rem", borderColor: "#ccc" }}
+                    >
+                        {TYPE_CHOICES.map(type => (
+                            <option key={type} value={type}>
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </option>
+                        ))}
+                    </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-4">
+                    <Form.Label style={{ fontWeight: 600 }}>Valor Inicial</Form.Label>
+                    {renderValueInput(newFieldType)}
+                    <Form.Text className="text-muted">
+                        O valor será armazenado como texto no banco de dados.
+                    </Form.Text>
+                </Form.Group>
+
+                {fieldCreationError && (
+                    <Alert variant="danger" onClose={() => setFieldCreationError(null)} dismissible>
+                        {fieldCreationError}
+                    </Alert>
+                )}
+            </Form>
+        </Modal.Body>
+        <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowCustomFieldModal(false)}>
+                Cancelar
+            </Button>
+            <Button
+                style={{ backgroundColor: "#8c52ff", borderColor: "#8c52ff" }}
+                onClick={handleCreateCustomField}
+                disabled={isSavingField}
+            >
+                {isSavingField ? (
+                    <>
+                        <Spinner
+                            as="span"
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            aria-hidden="true"
+                            className="me-2"
+                        />
+                        Criando...
+                    </>
+                ) : (
+                    "Criar Campo"
+                )}
+            </Button>
         </Modal.Footer>
       </Modal>
     </>
