@@ -12,6 +12,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.models import ConfiguracaoSistema
 from contato.models import Contato, Operador
 from .models import (
     Conversa,
@@ -39,12 +40,22 @@ logger = logging.getLogger(__name__)
 # ===== INTEGRAÇÃO EVOLUTION API COMPLETA =====
 
 def get_instance_config():
-    """Obtém configuração da instância via settings"""
-    from django.conf import settings
+    try:
+        config = ConfiguracaoSistema.objects.first()
+        if config:
+            return {
+                'url': config.evolution_api_url,
+                'api_key': config.evolution_api_key,
+                'instance_name': config.whatsapp_instance_name
+            }
+    except:
+        pass
+    
+    # Fallback para settings.py
     return {
-        'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evo.loomiecrm.com'),
-        'api_key': getattr(settings, 'API_KEY', '095B7FC5F286-4E22-A2E9-3A8C54545870'),
-        'instance_name': getattr(settings, 'INSTANCE_NAME', 'nate')
+        'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evolution-api.local'),
+        'api_key': getattr(settings, 'API_KEY', ''),
+        'instance_name': getattr(settings, 'INSTANCE_NAME', 'main')
     }
 
 

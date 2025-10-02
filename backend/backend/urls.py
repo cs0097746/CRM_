@@ -18,7 +18,8 @@ urlpatterns = [
     path('api/oauth/', include('oauth2_integration.urls')),
     
     # ===== MAIN API =====
-    path('', include('contato.urls')),  # Mantém sem prefixo como estava
+    path('', include('contato.urls')),
+    path('', include('core.urls')),  # Mantém sem prefixo como estava
 ]
 
 # ===== STATIC/MEDIA FILES =====

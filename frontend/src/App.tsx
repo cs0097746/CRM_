@@ -5,6 +5,7 @@ import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
 import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm'; // ✅ ADICIONAR IMPORT
+import ConfiguracaoSistema from './views/ConfiguracaoSistema';
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -90,6 +91,7 @@ const AppContent = () => {
             <Route path="/atendimento" element={<Atendimento />} />
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/configuracao" element={<ConfiguracaoSistema />} />
           </Routes>
         </Suspense>
       </div>
@@ -107,7 +109,7 @@ const AppContent = () => {
             <NavLink to="/" className="nav-link" onClick={handleCloseNav}>Dashboard</NavLink>
             <NavLink to="/kanbans" className="nav-link" onClick={handleCloseNav}>Kanbans</NavLink>
             <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
-            
+            <NavLink to="/configuracao" className="nav-link" onClick={handleCloseNav}>Configurações</NavLink>
             {/* ✅ BOTÃO DE LOGOUT */}
             <hr />
             <Button 

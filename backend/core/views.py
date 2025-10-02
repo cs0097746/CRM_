@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.shortcuts import render
 from django.utils import timezone
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import User
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -13,6 +14,7 @@ from atendimento.models import Conversa, Interacao, TarefaAtendimento
 from contato.models import Contato, Operador
 from contato.serializers import ContatoSerializer
 from atendimento.views import verificar_status_instancia
+from core.models import ConfiguracaoSistema
 
 
 @api_view(['GET'])
@@ -260,3 +262,55 @@ def criar_usuario_teste(request):
         return Response({
             'error': f'Erro interno: {str(e)}'
         }, status=500)
+    
+
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def configuracao_sistema(request):
+    """Gerenciar configurações do sistema"""
+    try:
+        config, created = ConfiguracaoSistema.objects.get_or_create(
+            defaults={
+                'nome_empresa': 'Minha Empresa',
+                'cor_primaria': '#1877f2',
+                'evolution_api_url': 'https://evolution-api.local',
+                'whatsapp_instance_name': 'main'
+            }
+        )
+        
+        if request.method == 'GET':
+            return Response({
+                'nome_empresa': config.nome_empresa,
+                'logo': config.logo.url if config.logo else None,
+                'cor_primaria': config.cor_primaria,
+                'cor_secundaria': config.cor_secundaria,
+                'evolution_api_url': config.evolution_api_url,
+                'evolution_api_key': config.evolution_api_key,
+                'whatsapp_instance_name': config.whatsapp_instance_name,
+                'openai_api_key': config.openai_api_key,
+                'elevenlabs_api_key': config.elevenlabs_api_key,
+            })
+        
+        elif request.method == 'PUT':
+            # Atualizar configurações
+            campos_permitidos = [
+                'nome_empresa', 'cor_primaria', 'cor_secundaria',
+                'evolution_api_url', 'evolution_api_key', 'whatsapp_instance_name',
+                'openai_api_key', 'elevenlabs_api_key'
+            ]
+            
+            for campo in campos_permitidos:
+                if campo in request.data:
+                    setattr(config, campo, request.data[campo])
+            
+            config.save()
+            
+            return Response({
+                'success': True, 
+                'message': 'Configurações salvas com sucesso!'
+            })
+            
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
