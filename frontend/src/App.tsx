@@ -6,6 +6,8 @@ import './App.css';
 import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm'; // ✅ ADICIONAR IMPORT
 import ConfiguracaoSistema from './views/ConfiguracaoSistema';
+import TestePage from './views/TestePage';
+import ConfiguracaoWhatsApp from './views/ConfiguracaoWhatsApp';
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -92,6 +94,8 @@ const AppContent = () => {
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
             <Route path="*" element={<NotFound />} />
             <Route path="/configuracao" element={<ConfiguracaoSistema />} />
+            <Route path="/teste" element={<TestePage />} />
+            <Route path="/whatsapp-config" element={<ConfiguracaoWhatsApp />} />
           </Routes>
         </Suspense>
       </div>
@@ -110,6 +114,8 @@ const AppContent = () => {
             <NavLink to="/kanbans" className="nav-link" onClick={handleCloseNav}>Kanbans</NavLink>
             <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
             <NavLink to="/configuracao" className="nav-link" onClick={handleCloseNav}>Configurações</NavLink>
+            <NavLink to="/whatsapp-config" className="nav-link" onClick={handleCloseNav}>WhatsApp</NavLink>
+            <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
             {/* ✅ BOTÃO DE LOGOUT */}
             <hr />
             <Button 

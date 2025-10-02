@@ -38,20 +38,22 @@ logger = logging.getLogger(__name__)
 
 
 # ===== INTEGRAÇÃO EVOLUTION API COMPLETA =====
-
 def get_instance_config():
+    """Obtém configuração dinâmica do banco ou fallback para settings"""
     try:
+        from core.models import ConfiguracaoSistema
         config = ConfiguracaoSistema.objects.first()
-        if config:
+        
+        if config and config.evolution_api_key:  # ✅ Só usa se tiver API key configurada
             return {
                 'url': config.evolution_api_url,
                 'api_key': config.evolution_api_key,
                 'instance_name': config.whatsapp_instance_name
             }
-    except:
-        pass
+    except Exception as e:
+        logger.warning(f"⚠️ Erro ao buscar config do banco: {e}")
     
-    # Fallback para settings.py
+    # ✅ Fallback para settings.py se não tiver config no banco
     return {
         'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evolution-api.local'),
         'api_key': getattr(settings, 'API_KEY', ''),
@@ -757,9 +759,26 @@ def whatsapp_dashboard(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def whatsapp_qr_code(request):
-    """Obter QR Code para conectar"""
+    """Obter QR Code para conectar - USA CONFIG DO BANCO"""
     try:
-        resultado = obter_qr_code()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado. Configure primeiro em Configurações do Sistema.',
+                'connected': False,
+                'redirect_to': '/configuracao'
+            }, status=400)
+        
+        # ✅ Obter QR Code usando config dinâmica
+        resultado = obter_qr_code(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         if resultado['success']:
             if resultado.get('connected'):
@@ -767,23 +786,27 @@ def whatsapp_qr_code(request):
                     'success': True,
                     'connected': True,
                     'message': 'WhatsApp já está conectado!',
-                    'qr_code': None
+                    'qr_code': None,
+                    'config_source': 'banco'
                 })
             else:
                 return Response({
                     'success': True,
                     'connected': False,
                     'qr_code': resultado.get('qr_code'),
-                    'message': 'Escaneie o QR Code com seu WhatsApp'
+                    'message': 'Escaneie o QR Code com seu WhatsApp',
+                    'config_source': 'banco'
                 })
         else:
             return Response({
                 'success': False,
                 'error': resultado.get('error'),
-                'connected': False
+                'connected': False,
+                'config_source': 'banco'
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_qr_code: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}',
             'connected': False
@@ -793,23 +816,42 @@ def whatsapp_qr_code(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def whatsapp_restart(request):
-    """Reiniciar instância WhatsApp"""
+    """Reiniciar instância WhatsApp - USA CONFIG DO BANCO"""
     try:
-        resultado = reiniciar_instancia()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado. Configure primeiro em Configurações do Sistema.',
+                'redirect_to': '/configuracao'
+            }, status=400)
+        
+        # ✅ Reiniciar usando config dinâmica
+        resultado = reiniciar_instancia(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         if resultado['success']:
             return Response({
                 'success': True,
                 'message': 'Instância reiniciada com sucesso',
-                'data': resultado['data']
+                'data': resultado.get('data'),
+                'config_source': 'banco'
             })
         else:
             return Response({
                 'success': False,
-                'error': resultado['error']
+                'error': resultado['error'],
+                'config_source': 'banco'
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_restart: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}'
         }, status=500)
@@ -818,47 +860,87 @@ def whatsapp_restart(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def whatsapp_disconnect(request):
-    """Desconectar instância WhatsApp"""
+    """Desconectar instância WhatsApp - USA CONFIG DO BANCO"""
     try:
-        resultado = desconectar_instancia()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado.',
+                'redirect_to': '/configuracao'
+            }, status=400)
+        
+        # ✅ Desconectar usando config dinâmica
+        resultado = desconectar_instancia(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         if resultado['success']:
             return Response({
                 'success': True,
                 'message': 'WhatsApp desconectado com sucesso',
-                'data': resultado['data']
+                'data': resultado.get('data'),
+                'config_source': 'banco'
             })
         else:
             return Response({
                 'success': False,
-                'error': resultado['error']
+                'error': resultado['error'],
+                'config_source': 'banco'
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_disconnect: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}'
         }, status=500)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def whatsapp_status(request):
-    """Status detalhado da conexão"""
+    """Status detalhado da conexão - USA CONFIG DO BANCO"""
     try:
-        resultado = verificar_status_instancia()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado. Acesse Configurações do Sistema.',
+                'connected': False,
+                'config_source': 'não configurado',
+                'redirect_to': '/configuracao'
+            })
+        
+        # ✅ Verificar status usando config dinâmica
+        resultado = verificar_status_instancia(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         return Response({
             'success': resultado['success'],
-            'instance_name': get_instance_config()['instance_name'],
+            'instance_name': config['instance_name'],
             'status': resultado.get('status'),
             'connected': resultado.get('connected', False),
-            'message': f"Status: {resultado.get('status', 'unknown')}"
+            'message': f"Status: {resultado.get('status', 'unknown')}",
+            'config_source': 'banco' if config['api_key'] else 'settings',
+            'api_url': config['url']
         })
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_status: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}',
-            'connected': False
+            'connected': False,
+            'config_source': 'erro'
         }, status=500)
 
 
@@ -955,8 +1037,7 @@ def enviar_presenca_view(request):
 @permission_classes([AllowAny])
 def evolution_webhook(request):
     """
-    Webhook robusto para Evolution API - OTIMIZADO PARA VPS
-    Processa mensagens recebidas e cria contatos automaticamente
+    Webhook robusto para Evolution API - USA CONFIG DO BANCO
     """
     try:
         data = request.data
@@ -965,6 +1046,14 @@ def evolution_webhook(request):
         event_data = data.get('data', {})
 
         logger.info(f"🔔 WEBHOOK: {event_type} da instância {instance_name}")
+        
+        # ✅ Verificar se temos config no banco
+        config = get_instance_config()
+        
+        # ✅ Validar se a instância do webhook é a nossa
+        if instance_name != config['instance_name']:
+            logger.warning(f"⚠️ Webhook de instância desconhecida: {instance_name} (esperado: {config['instance_name']})")
+            return Response({'status': 'ignored', 'reason': 'instance_mismatch'})
 
         # Processar mensagens recebidas
         if event_type == 'messages.upsert':
@@ -1040,7 +1129,8 @@ def evolution_webhook(request):
         return Response({
             'status': 'received',
             'event': event_type,
-            'processed': True
+            'processed': True,
+            'config_source': 'banco'
         })
 
     except Exception as e:
