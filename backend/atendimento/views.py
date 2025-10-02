@@ -955,13 +955,15 @@ def enviar_mensagem_view(request):
 
         if not numero or not mensagem:
             return Response({
+                'success': False,
                 'error': 'Campos obrigatórios: numero, mensagem'
             }, status=400)
 
+        # ✅ Enviar para WhatsApp
         resultado = enviar_mensagem_whatsapp(numero, mensagem)
 
         if resultado['success']:
-            # Salvar no CRM se conversa_id fornecido
+            # ✅ Salvar no CRM se conversa_id fornecido
             if conversa_id:
                 try:
                     conversa = Conversa.objects.get(id=conversa_id)
@@ -983,17 +985,18 @@ def enviar_mensagem_view(request):
                 'message': 'Mensagem enviada com sucesso',
                 'data': resultado['data'],
                 'whatsapp_id': resultado.get('whatsapp_id'),
-                'status': resultado.get('status')
+                'status': resultado.get('status', 'pending')
             })
         else:
             return Response({
                 'success': False,
-                'error': resultado['error'],
-                'details': resultado.get('details')
+                'error': resultado['error']
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em enviar_mensagem_view: {str(e)}")
         return Response({
+            'success': False,
             'error': f'Erro interno: {str(e)}'
         }, status=500)
 

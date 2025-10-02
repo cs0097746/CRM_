@@ -1,6 +1,7 @@
 // frontend/src/views/ConfiguracaoWhatsApp.tsx
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Badge } from 'react-bootstrap';
+import backend_url from "../config/env.ts";
 
 const ConfiguracaoWhatsApp: React.FC = () => {
   const [status, setStatus] = useState<any>(null);
@@ -11,7 +12,7 @@ const ConfiguracaoWhatsApp: React.FC = () => {
   const verificarStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/whatsapp/status/', {
+      const response = await fetch(`${backend_url}/whatsapp/status/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       const data = await response.json();
@@ -25,7 +26,7 @@ const ConfiguracaoWhatsApp: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/whatsapp/qr-code/', {
+      const response = await fetch(`${backend_url}/whatsapp/qr-code/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       const data = await response.json();
@@ -51,7 +52,7 @@ const ConfiguracaoWhatsApp: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/whatsapp/restart/', {
+      const response = await fetch(`${backend_url}/whatsapp/restart/`, {
         method: 'POST',
         headers: { 'Authorization': `Token ${token}` }
       });

@@ -60,38 +60,52 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   // Enviar mensagem
   const enviarMensagem = async () => {
     if (!novaMensagem.trim() || enviando) return;
-
+  
     setEnviando(true);
-
-    const token = await getToken();
+    
     try {
-      await api.post(
-        `conversas/${conversa.id}/interacoes/`,
-        {
-          mensagem: novaMensagem,
-          remetente: 'operador'
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      setNovaMensagem('');
-      playSound('success');
+      const token = localStorage.getItem('token');
       
-      if (onNewMessageSent) {
-        await onNewMessageSent();
+      // ✅ USAR VARIÁVEL DE AMBIENTE:
+      const response = await fetch(`${backend_url}/whatsapp/enviar/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          numero: conversa.contato.telefone,
+          mensagem: novaMensagem,
+          conversa_id: conversa.id  // ✅ Para salvar no CRM também
+        })
+      });
+  
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Mensagem enviada para WhatsApp:', result);
+        setNovaMensagem('');
+        playSound('success');
+        
+        if (onNewMessageSent) {
+          await onNewMessageSent();
+        }
+      } else {
+        console.error('❌ Erro ao enviar:', result.error);
+        alert(`Erro: ${result.error}`);
       }
+      
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('💥 Erro na requisição:', error);
       playSound('alert');
+      alert('Erro ao enviar mensagem');
     } finally {
       setEnviando(false);
     }
   };
 
+
+  const [mensagemEnviadaWhatsApp, setMensagemEnviadaWhatsApp] = useState(false);
   // Enter para enviar
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

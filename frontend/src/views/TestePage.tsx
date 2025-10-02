@@ -13,7 +13,7 @@ const TestePage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:8000/whatsapp/enviar/', {
+      const response = await fetch(`${backend_url}/whatsapp/enviar/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -47,7 +47,7 @@ const TestePage: React.FC = () => {
   const testarWebhook = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/webhook/evolution/', {
+        const response = await fetch(`${backend_url}/webhook/evolution/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -92,7 +92,7 @@ const TestePage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:8000/whatsapp/status/', {
+      const response = await fetch(`${backend_url}/whatsapp/status/`, {
         method: 'GET',
         headers: {
           'Authorization': `Token ${token}`,
@@ -124,7 +124,7 @@ const TestePage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:8000/conversas/', {
+      const response = await fetch(`${backend_url}/conversas/`, {
         method: 'GET',
         headers: {
           'Authorization': `Token ${token}`,
