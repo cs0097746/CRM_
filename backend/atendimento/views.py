@@ -1,6 +1,7 @@
 from django.shortcuts import render
 import json
 import requests
+import time
 import logging
 from django.conf import settings
 from django.utils import timezone
@@ -1037,9 +1038,7 @@ def enviar_presenca_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """
-    Webhook robusto para Evolution API - COM SUPORTE A MÍDIAS
-    """
+    """Webhook robusto para Evolution API - COM SUPORTE A MÍDIAS"""
     try:
         event_type = request.data.get('event')
         event_data = request.data.get('data', {})
@@ -1057,10 +1056,11 @@ def evolution_webhook(request):
                 
                 logger.info(f"📱 Nova mensagem de: {numero_remetente}")
                 
-                # ✅ PROCESSAR DIFERENTES TIPOS DE MÍDIA:
-                texto_mensagem, tipo_mensagem, media_url = processar_mensagem_media(message_data)
+                # ✅ PROCESSAR MÍDIA COM TODOS OS CAMPOS:
+                texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration = processar_mensagem_media(message_data)
                 
                 logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem}")
+                logger.info(f"🔗 Media URL: {media_url}")
                 
                 # Buscar ou criar contato
                 contato, created = Contato.objects.get_or_create(
@@ -1088,7 +1088,7 @@ def evolution_webhook(request):
                 if conv_created:
                     logger.info(f"💬 Nova conversa criada: ID {conversa.pk}")
                 
-                # ✅ SALVAR MENSAGEM COM MÍDIA:
+                # ✅ SALVAR MENSAGEM COM TODOS OS DADOS DE MÍDIA:
                 if texto_mensagem and texto_mensagem.strip():
                     interacao = Interacao.objects.create(
                         conversa=conversa,
@@ -1096,7 +1096,10 @@ def evolution_webhook(request):
                         remetente='cliente',
                         tipo=tipo_mensagem,
                         whatsapp_id=whatsapp_id,
-                        media_url=media_url  # ✅ NOVO CAMPO
+                        media_url=media_url,
+                        media_filename=media_filename,
+                        media_size=media_size,
+                        media_duration=media_duration
                     )
                     
                     logger.info(f"💾 Mensagem salva: ID {interacao.pk} | Tipo: {tipo_mensagem}")
@@ -1131,19 +1134,20 @@ def evolution_webhook(request):
             'error': str(e)
         }, status=500)
 
-
 def processar_mensagem_media(message_data):
     """
     Processa diferentes tipos de mensagem e extrai mídia
-    Retorna: (texto_mensagem, tipo_mensagem, media_url)
+    Retorna: (texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration)
     """
     try:
+        logger.info(f"🔍 Processando mensagem: {list(message_data.keys())}")
+        
         # ✅ TEXTO SIMPLES
         if message_data.get('conversation'):
             return (
                 message_data.get('conversation'),
                 'texto',
-                None
+                None, None, None, None
             )
         
         # ✅ TEXTO EXTENDIDO (com formatação)
@@ -1151,66 +1155,135 @@ def processar_mensagem_media(message_data):
             return (
                 message_data.get('extendedTextMessage', {}).get('text', ''),
                 'texto',
-                None
+                None, None, None, None
             )
         
-        # ✅ IMAGEM
+        # ✅ IMAGEM - VERSÃO MELHORADA
         elif message_data.get('imageMessage'):
             image_msg = message_data.get('imageMessage', {})
             caption = image_msg.get('caption', '')
-            media_url = image_msg.get('url') or image_msg.get('directPath')
+            
+            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
+            media_url = (
+                image_msg.get('url') or 
+                image_msg.get('directPath') or 
+                image_msg.get('mediaUrl') or
+                image_msg.get('thumbnail')
+            )
+            
+            # ✅ OUTROS DADOS DA IMAGEM:
+            filename = image_msg.get('fileName') or f"imagem_{int(time.time())}.jpg"
+            file_size = image_msg.get('fileLength') or image_msg.get('size')
+            
+            logger.info(f"📷 Imagem detectada - URL: {media_url}")
+            logger.info(f"📷 Dados da imagem: {image_msg}")
             
             return (
                 f"📷 Imagem enviada{': ' + caption if caption else ''}",
                 'imagem',
-                media_url
+                media_url,
+                filename,
+                file_size,
+                None
             )
         
-        # ✅ ÁUDIO
+        # ✅ ÁUDIO - VERSÃO MELHORADA
         elif message_data.get('audioMessage'):
             audio_msg = message_data.get('audioMessage', {})
-            media_url = audio_msg.get('url') or audio_msg.get('directPath')
+            
+            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
+            media_url = (
+                audio_msg.get('url') or 
+                audio_msg.get('directPath') or 
+                audio_msg.get('mediaUrl')
+            )
+            
+            # ✅ OUTROS DADOS DO ÁUDIO:
             duration = audio_msg.get('seconds', 0)
+            filename = audio_msg.get('fileName') or f"audio_{int(time.time())}.ogg"
+            file_size = audio_msg.get('fileLength') or audio_msg.get('size')
+            
+            logger.info(f"🎵 Áudio detectado - URL: {media_url} - Duração: {duration}s")
+            logger.info(f"🎵 Dados do áudio: {audio_msg}")
             
             return (
                 f"🎵 Áudio enviado ({duration}s)",
                 'audio',
-                media_url
+                media_url,
+                filename,
+                file_size,
+                duration
             )
         
-        # ✅ VÍDEO
+        # ✅ VÍDEO - VERSÃO MELHORADA
         elif message_data.get('videoMessage'):
             video_msg = message_data.get('videoMessage', {})
             caption = video_msg.get('caption', '')
-            media_url = video_msg.get('url') or video_msg.get('directPath')
+            
+            media_url = (
+                video_msg.get('url') or 
+                video_msg.get('directPath') or 
+                video_msg.get('mediaUrl')
+            )
+            
+            filename = video_msg.get('fileName') or f"video_{int(time.time())}.mp4"
+            file_size = video_msg.get('fileLength') or video_msg.get('size')
+            duration = video_msg.get('seconds', 0)
+            
+            logger.info(f"🎥 Vídeo detectado - URL: {media_url}")
             
             return (
                 f"🎥 Vídeo enviado{': ' + caption if caption else ''}",
                 'video',
-                media_url
+                media_url,
+                filename,
+                file_size,
+                duration
             )
         
-        # ✅ FIGURINHA/STICKER
+        # ✅ STICKER/FIGURINHA
         elif message_data.get('stickerMessage'):
             sticker_msg = message_data.get('stickerMessage', {})
-            media_url = sticker_msg.get('url') or sticker_msg.get('directPath')
+            
+            media_url = (
+                sticker_msg.get('url') or 
+                sticker_msg.get('directPath') or 
+                sticker_msg.get('mediaUrl')
+            )
+            
+            filename = f"sticker_{int(time.time())}.webp"
+            
+            logger.info(f"😄 Sticker detectado - URL: {media_url}")
             
             return (
                 "😄 Figurinha enviada",
                 'sticker',
-                media_url
+                media_url,
+                filename,
+                None,
+                None
             )
         
         # ✅ DOCUMENTO
         elif message_data.get('documentMessage'):
             doc_msg = message_data.get('documentMessage', {})
+            
+            media_url = (
+                doc_msg.get('url') or 
+                doc_msg.get('directPath') or 
+                doc_msg.get('mediaUrl')
+            )
+            
             filename = doc_msg.get('fileName', 'documento')
-            media_url = doc_msg.get('url') or doc_msg.get('directPath')
+            file_size = doc_msg.get('fileLength') or doc_msg.get('size')
             
             return (
                 f"📄 Documento: {filename}",
                 'documento',
-                media_url
+                media_url,
+                filename,
+                file_size,
+                None
             )
         
         # ✅ LOCALIZAÇÃO
@@ -1222,7 +1295,10 @@ def processar_mensagem_media(message_data):
             return (
                 f"📍 Localização: {lat}, {lng}",
                 'localizacao',
-                f"https://maps.google.com/maps?q={lat},{lng}"
+                f"https://maps.google.com/maps?q={lat},{lng}",
+                None,
+                None,
+                None
             )
         
         # ✅ CONTATO
@@ -1233,6 +1309,9 @@ def processar_mensagem_media(message_data):
             return (
                 f"👤 Contato compartilhado: {name}",
                 'contato',
+                None,
+                None,
+                None,
                 None
             )
         
@@ -1242,6 +1321,9 @@ def processar_mensagem_media(message_data):
             return (
                 "[Mensagem não suportada]",
                 'outros',
+                None,
+                None,
+                None,
                 None
             )
             
@@ -1250,5 +1332,44 @@ def processar_mensagem_media(message_data):
         return (
             "[Erro ao processar mensagem]",
             'erro',
+            None,
+            None,
+            None,
             None
         )
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def debug_webhook(request):
+    """Debug completo do webhook - VER DADOS RAW"""
+    try:
+        logger.info("🐛 DEBUG WEBHOOK - DADOS COMPLETOS:")
+        logger.info(f"📦 Request data: {request.data}")
+        
+        event_type = request.data.get('event')
+        event_data = request.data.get('data', {})
+        
+        if event_type == 'messages.upsert':
+            message_data = event_data.get('message', {})
+            
+            logger.info(f"🔍 Message data completo: {json.dumps(message_data, indent=2)}")
+            
+            # Verificar especificamente mídias
+            if message_data.get('imageMessage'):
+                logger.info(f"📷 IMAGEM DETECTADA: {json.dumps(message_data.get('imageMessage'), indent=2)}")
+            
+            if message_data.get('audioMessage'):
+                logger.info(f"🎵 ÁUDIO DETECTADO: {json.dumps(message_data.get('audioMessage'), indent=2)}")
+        
+        return Response({
+            'status': 'debug_processed',
+            'received_data': request.data,
+            'message': 'Debug completo nos logs'
+        })
+        
+    except Exception as e:
+        logger.error(f"💥 Erro no debug: {str(e)}")
+        return Response({
+            'status': 'debug_error',
+            'error': str(e)
+        })

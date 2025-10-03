@@ -1,6 +1,7 @@
 // frontend/src/views/TestePage.tsx
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Button, Form, Alert, Badge } from 'react-bootstrap';
+import backend_url from "../config/env.ts";
 
 const TestePage: React.FC = () => {
   const [numero, setNumero] = useState('5555999566836'); // Coloque seu número aqui
