@@ -9,15 +9,26 @@ interface Mensagem {
   remetente: string;
 }
 
-export interface Conversa {
+export interface Interacao {
   id: number;
-  contato: Contato;
-  operador?: Operador | null;
-  status: StatusConversa;
+  mensagem: string;
+  remetente: string;
+  autor?: string;  // ✅ Campo alternativo
+  tipo: string;
   criado_em: string;
-  atualizado_em: string;
-  interacoes?: Interacao[];
-  // Campo adicionado para a lista da caixa de entrada
-  ultima_mensagem: Mensagem | null;
+  timestamp: string;
+  whatsapp_id?: string;
+  
+  // ✅ CAMPOS DE MÍDIA:
+  media_url?: string;
+  media_filename?: string;
+  media_size?: number;
+  media_duration?: number;
+  
+  operador?: {
+    id: number;
+    user: {
+      username: string;
+    };
+  };
 }
-

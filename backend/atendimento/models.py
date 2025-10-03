@@ -54,38 +54,35 @@ class Conversa(models.Model):
 
 
 class Interacao(models.Model):
-    REMETENTE_CHOICES = [
-        ('cliente', 'Cliente'),
-        ('operador', 'Operador'),
-        ('sistema', 'Sistema'),
-    ]
-
     TIPO_CHOICES = [
         ('texto', 'Texto'),
-        ('arquivo', 'Arquivo'),
+        ('imagem', 'Imagem'),
         ('audio', 'Áudio'),
         ('video', 'Vídeo'),
-        ('imagem', 'Imagem'),
+        ('documento', 'Documento'),
+        ('sticker', 'Figurinha'),
         ('localizacao', 'Localização'),
         ('contato', 'Contato'),
+        ('outros', 'Outros'),
     ]
 
-    conversa = models.ForeignKey('atendimento.Conversa', on_delete=models.CASCADE, related_name='interacoes')
+    conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name='interacoes')
     mensagem = models.TextField()
-    remetente = models.CharField(max_length=10, choices=REMETENTE_CHOICES)
-    tipo = models.CharField(max_length=15, choices=TIPO_CHOICES, default='texto')
+    remetente = models.CharField(max_length=20)
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default='texto')
     operador = models.ForeignKey('contato.Operador', on_delete=models.SET_NULL, null=True, blank=True)
-    lida = models.BooleanField(default=False)
-    respondida = models.BooleanField(default=False)
-    anexo = models.FileField(upload_to='anexos_interacao/', null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
-
-    # ✅ ADICIONAR ESTA LINHA:
-    whatsapp_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID da mensagem no WhatsApp")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    whatsapp_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    media_url = models.URLField(blank=True, null=True, help_text="URL da mídia no Evolution API")
+    media_filename = models.CharField(max_length=255, blank=True, null=True)
+    media_size = models.IntegerField(blank=True, null=True, help_text="Tamanho em bytes")
+    media_duration = models.IntegerField(blank=True, null=True, help_text="Duração em segundos (áudio/vídeo)")
 
     def __str__(self):
-        return f"{self.get_remetente_display()}: {self.mensagem[:50]}..."
-
+        return f"{self.remetente}: {self.mensagem[:50]}... ({self.tipo})"
+    
     class Meta:
         verbose_name = "Interação"
         verbose_name_plural = "Interações"

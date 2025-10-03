@@ -1034,48 +1034,34 @@ def enviar_presenca_view(request):
         }, status=500)
 
 
-# ===== WEBHOOK EVOLUTION API ROBUSTO =====
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
     """
-    Webhook robusto para Evolution API - USA CONFIG DO BANCO
+    Webhook robusto para Evolution API - COM SUPORTE A MÍDIAS
     """
     try:
-        data = request.data
-        event_type = data.get('event')
-        instance_name = data.get('instance')
-        event_data = data.get('data', {})
-
-        logger.info(f"🔔 WEBHOOK: {event_type} da instância {instance_name}")
+        event_type = request.data.get('event')
+        event_data = request.data.get('data', {})
         
-        # ✅ Verificar se temos config no banco
-        config = get_instance_config()
+        logger.info(f"📥 Webhook recebido: {event_type}")
         
-        # ✅ Validar se a instância do webhook é a nossa
-        if instance_name != config['instance_name']:
-            logger.warning(f"⚠️ Webhook de instância desconhecida: {instance_name} (esperado: {config['instance_name']})")
-            return Response({'status': 'ignored', 'reason': 'instance_mismatch'})
-
-        # Processar mensagens recebidas
         if event_type == 'messages.upsert':
             key_data = event_data.get('key', {})
             message_data = event_data.get('message', {})
-
+            
             # Verificar se é mensagem recebida (não enviada por nós)
             if not key_data.get('fromMe', True):
                 numero_remetente = key_data.get('remoteJid', '').replace('@s.whatsapp.net', '')
-                texto_mensagem = (
-                        message_data.get('conversation', '') or
-                        message_data.get('extendedTextMessage', {}).get('text', '') or
-                        '[Mídia]'
-                )
                 whatsapp_id = key_data.get('id')
-
+                
                 logger.info(f"📱 Nova mensagem de: {numero_remetente}")
-                logger.info(f"💬 Conteúdo: {texto_mensagem}")
-
+                
+                # ✅ PROCESSAR DIFERENTES TIPOS DE MÍDIA:
+                texto_mensagem, tipo_mensagem, media_url = processar_mensagem_media(message_data)
+                
+                logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem}")
+                
                 # Buscar ou criar contato
                 contato, created = Contato.objects.get_or_create(
                     telefone=numero_remetente,
@@ -1084,10 +1070,10 @@ def evolution_webhook(request):
                         'observacoes': 'Criado automaticamente via webhook'
                     }
                 )
-
+                
                 if created:
                     logger.info(f"👤 Novo contato criado: {contato.nome}")
-
+                
                 # Buscar ou criar conversa ativa
                 conversa, conv_created = Conversa.objects.get_or_create(
                     contato=contato,
@@ -1098,47 +1084,171 @@ def evolution_webhook(request):
                         'assunto': 'Conversa WhatsApp'
                     }
                 )
-
+                
                 if conv_created:
                     logger.info(f"💬 Nova conversa criada: ID {conversa.pk}")
-
-                # Salvar mensagem
+                
+                # ✅ SALVAR MENSAGEM COM MÍDIA:
                 if texto_mensagem and texto_mensagem.strip():
                     interacao = Interacao.objects.create(
                         conversa=conversa,
                         mensagem=texto_mensagem,
                         remetente='cliente',
-                        tipo='texto'
+                        tipo=tipo_mensagem,
+                        whatsapp_id=whatsapp_id,
+                        media_url=media_url  # ✅ NOVO CAMPO
                     )
-
-                    logger.info(f"💾 Mensagem salva: ID {interacao.pk}")
-
+                    
+                    logger.info(f"💾 Mensagem salva: ID {interacao.pk} | Tipo: {tipo_mensagem}")
+                    
                     # Atualizar timestamp da conversa
                     conversa.atualizado_em = timezone.now()
                     conversa.save()
-
+                
                 return Response({
                     'status': 'processed',
                     'contato_id': contato.pk,
                     'conversa_id': conversa.pk,
-                    'message': 'Mensagem processada com sucesso'
+                    'message': f'Mensagem {tipo_mensagem} processada com sucesso'
                 })
-
+        
         # Processar outros eventos
         elif event_type == 'connection.update':
             connection_state = event_data.get('state')
             logger.info(f"🔌 Estado da conexão: {connection_state}")
-
+        
         return Response({
             'status': 'received',
             'event': event_type,
             'processed': True,
             'config_source': 'banco'
         })
-
+        
     except Exception as e:
         logger.error(f"💥 Erro no webhook: {str(e)}")
         return Response({
             'status': 'error',
             'error': str(e)
         }, status=500)
+
+
+def processar_mensagem_media(message_data):
+    """
+    Processa diferentes tipos de mensagem e extrai mídia
+    Retorna: (texto_mensagem, tipo_mensagem, media_url)
+    """
+    try:
+        # ✅ TEXTO SIMPLES
+        if message_data.get('conversation'):
+            return (
+                message_data.get('conversation'),
+                'texto',
+                None
+            )
+        
+        # ✅ TEXTO EXTENDIDO (com formatação)
+        elif message_data.get('extendedTextMessage'):
+            return (
+                message_data.get('extendedTextMessage', {}).get('text', ''),
+                'texto',
+                None
+            )
+        
+        # ✅ IMAGEM
+        elif message_data.get('imageMessage'):
+            image_msg = message_data.get('imageMessage', {})
+            caption = image_msg.get('caption', '')
+            media_url = image_msg.get('url') or image_msg.get('directPath')
+            
+            return (
+                f"📷 Imagem enviada{': ' + caption if caption else ''}",
+                'imagem',
+                media_url
+            )
+        
+        # ✅ ÁUDIO
+        elif message_data.get('audioMessage'):
+            audio_msg = message_data.get('audioMessage', {})
+            media_url = audio_msg.get('url') or audio_msg.get('directPath')
+            duration = audio_msg.get('seconds', 0)
+            
+            return (
+                f"🎵 Áudio enviado ({duration}s)",
+                'audio',
+                media_url
+            )
+        
+        # ✅ VÍDEO
+        elif message_data.get('videoMessage'):
+            video_msg = message_data.get('videoMessage', {})
+            caption = video_msg.get('caption', '')
+            media_url = video_msg.get('url') or video_msg.get('directPath')
+            
+            return (
+                f"🎥 Vídeo enviado{': ' + caption if caption else ''}",
+                'video',
+                media_url
+            )
+        
+        # ✅ FIGURINHA/STICKER
+        elif message_data.get('stickerMessage'):
+            sticker_msg = message_data.get('stickerMessage', {})
+            media_url = sticker_msg.get('url') or sticker_msg.get('directPath')
+            
+            return (
+                "😄 Figurinha enviada",
+                'sticker',
+                media_url
+            )
+        
+        # ✅ DOCUMENTO
+        elif message_data.get('documentMessage'):
+            doc_msg = message_data.get('documentMessage', {})
+            filename = doc_msg.get('fileName', 'documento')
+            media_url = doc_msg.get('url') or doc_msg.get('directPath')
+            
+            return (
+                f"📄 Documento: {filename}",
+                'documento',
+                media_url
+            )
+        
+        # ✅ LOCALIZAÇÃO
+        elif message_data.get('locationMessage'):
+            location_msg = message_data.get('locationMessage', {})
+            lat = location_msg.get('degreesLatitude', 0)
+            lng = location_msg.get('degreesLongitude', 0)
+            
+            return (
+                f"📍 Localização: {lat}, {lng}",
+                'localizacao',
+                f"https://maps.google.com/maps?q={lat},{lng}"
+            )
+        
+        # ✅ CONTATO
+        elif message_data.get('contactMessage'):
+            contact_msg = message_data.get('contactMessage', {})
+            name = contact_msg.get('displayName', 'Contato')
+            
+            return (
+                f"👤 Contato compartilhado: {name}",
+                'contato',
+                None
+            )
+        
+        # ✅ MENSAGEM NÃO SUPORTADA
+        else:
+            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
+            return (
+                "[Mensagem não suportada]",
+                'outros',
+                None
+            )
+            
+    except Exception as e:
+        logger.error(f"💥 Erro ao processar mídia: {str(e)}")
+        return (
+            "[Erro ao processar mensagem]",
+            'erro',
+            None
+        )

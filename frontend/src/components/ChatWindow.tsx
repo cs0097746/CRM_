@@ -131,19 +131,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     return {
       id: interacao.id,
       mensagem: interacao.mensagem,
-      timestamp: interacao.timestamp,
+      timestamp: interacao.timestamp || interacao.criado_em,
       tipo: remetente === 'operador' ? 'operador' : 'cliente',
-      operador: interacao.operador ? {
+      // ✅ PROTEÇÃO CONTRA UNDEFINED:
+      operador: (interacao.operador && interacao.operador.user) ? {
         id: interacao.operador.id,
         user: {
           username: interacao.operador.user.username
         }
       } : undefined,
-      anexo: interacao.anexo ? {
-        tipo: 'arquivo',
-        url: interacao.anexo,
-        nome: 'Anexo'
-      } : undefined
+      // ✅ CAMPOS DE MÍDIA:
+      media_type: interacao.tipo,
+      media_url: interacao.media_url,
+      media_filename: interacao.media_filename,
+      media_size: interacao.media_size,
+      media_duration: interacao.media_duration
     };
   };
 
