@@ -22,3 +22,17 @@ class MarcarTodasLidasView(APIView):
             {"mensagem": f"{count} notificações marcadas como lidas."},
             status=status.HTTP_200_OK
         )
+
+
+class CriarNotificacaoView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data['usuario'] = request.user.id
+
+        serializer = NotificacaoSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

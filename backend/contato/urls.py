@@ -96,6 +96,7 @@ urlpatterns = [
     # notifs do usuario
     path('notificacoes/', notificacao_views.NotificacaoListView.as_view(), name='notificacoes'),
     path('notificacoes/marcar-todas-lidas/', notificacao_views.MarcarTodasLidasView.as_view(), name='marcar-todas-lidas'),
+    path('notificacoes/', notificacao_views.CriarNotificacaoView.as_view(), name='notificacoes'),
 
     # ===== ROUTER URLS =====
     path('', include(router.urls)),
