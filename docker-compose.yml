@@ -12,15 +12,6 @@ services:
     networks:
       - loomie-network
 
-  redis:
-    image: redis:7
-    container_name: crm_redis
-    restart: unless-stopped
-    ports:
-      - "6380:6379"
-    networks:
-      - loomie-network
-
   backend:
     build:
       context: ./backend
@@ -33,44 +24,18 @@ services:
       POSTGRES_PASSWORD: crmpassword
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      REDIS_HOST: redis
-      REDIS_PORT: 6380
       ALLOWED_HOSTS: "crm.backend.localhost"
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
     entrypoint: >
-      sh -c "python manage.py migrate &&
-             python manage.py createsuperuser --noinput 2>/dev/null || true &&
-             exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+        sh -c "python manage.py migrate &&
+               python manage.py createsuperuser --noinput 2>/dev/null || true &&
+               exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     depends_on:
       - db
-      - redis
     expose:
       - "8000"
-    networks:
-      - loomie-network
-
-  celery:
-    image: crm_celery:latest
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: crm_celery
-    command: celery -A backend worker --loglevel=info
-    environment:
-      POSTGRES_DB: crmdb
-      POSTGRES_USER: crmuser
-      POSTGRES_PASSWORD: crmpassword
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      DJANGO_SETTINGS_MODULE: backend.settings
-    depends_on:
-      - backend
-      - redis
-      - db
     networks:
       - loomie-network
 
