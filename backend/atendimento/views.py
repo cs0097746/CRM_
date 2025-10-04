@@ -1,6 +1,7 @@
 from django.shortcuts import render
 import json
 import requests
+import time
 import logging
 from django.conf import settings
 from django.utils import timezone
@@ -12,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.models import ConfiguracaoSistema
 from contato.models import Contato, Operador
 from .models import (
     Conversa,
@@ -37,14 +39,26 @@ logger = logging.getLogger(__name__)
 
 
 # ===== INTEGRAÇÃO EVOLUTION API COMPLETA =====
-
 def get_instance_config():
-    """Obtém configuração da instância via settings"""
-    from django.conf import settings
+    """Obtém configuração dinâmica do banco ou fallback para settings"""
+    try:
+        from core.models import ConfiguracaoSistema
+        config = ConfiguracaoSistema.objects.first()
+        
+        if config and config.evolution_api_key:  # ✅ Só usa se tiver API key configurada
+            return {
+                'url': config.evolution_api_url,
+                'api_key': config.evolution_api_key,
+                'instance_name': config.whatsapp_instance_name
+            }
+    except Exception as e:
+        logger.warning(f"⚠️ Erro ao buscar config do banco: {e}")
+    
+    # ✅ Fallback para settings.py se não tiver config no banco
     return {
-        'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evo.loomiecrm.com'),
-        'api_key': getattr(settings, 'API_KEY', '095B7FC5F286-4E22-A2E9-3A8C54545870'),
-        'instance_name': getattr(settings, 'INSTANCE_NAME', 'nate')
+        'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evolution-api.local'),
+        'api_key': getattr(settings, 'API_KEY', ''),
+        'instance_name': getattr(settings, 'INSTANCE_NAME', 'main')
     }
 
 
@@ -746,9 +760,26 @@ def whatsapp_dashboard(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def whatsapp_qr_code(request):
-    """Obter QR Code para conectar"""
+    """Obter QR Code para conectar - USA CONFIG DO BANCO"""
     try:
-        resultado = obter_qr_code()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado. Configure primeiro em Configurações do Sistema.',
+                'connected': False,
+                'redirect_to': '/configuracao'
+            }, status=400)
+        
+        # ✅ Obter QR Code usando config dinâmica
+        resultado = obter_qr_code(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         if resultado['success']:
             if resultado.get('connected'):
@@ -756,23 +787,27 @@ def whatsapp_qr_code(request):
                     'success': True,
                     'connected': True,
                     'message': 'WhatsApp já está conectado!',
-                    'qr_code': None
+                    'qr_code': None,
+                    'config_source': 'banco'
                 })
             else:
                 return Response({
                     'success': True,
                     'connected': False,
                     'qr_code': resultado.get('qr_code'),
-                    'message': 'Escaneie o QR Code com seu WhatsApp'
+                    'message': 'Escaneie o QR Code com seu WhatsApp',
+                    'config_source': 'banco'
                 })
         else:
             return Response({
                 'success': False,
                 'error': resultado.get('error'),
-                'connected': False
+                'connected': False,
+                'config_source': 'banco'
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_qr_code: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}',
             'connected': False
@@ -782,23 +817,42 @@ def whatsapp_qr_code(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def whatsapp_restart(request):
-    """Reiniciar instância WhatsApp"""
+    """Reiniciar instância WhatsApp - USA CONFIG DO BANCO"""
     try:
-        resultado = reiniciar_instancia()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado. Configure primeiro em Configurações do Sistema.',
+                'redirect_to': '/configuracao'
+            }, status=400)
+        
+        # ✅ Reiniciar usando config dinâmica
+        resultado = reiniciar_instancia(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         if resultado['success']:
             return Response({
                 'success': True,
                 'message': 'Instância reiniciada com sucesso',
-                'data': resultado['data']
+                'data': resultado.get('data'),
+                'config_source': 'banco'
             })
         else:
             return Response({
                 'success': False,
-                'error': resultado['error']
+                'error': resultado['error'],
+                'config_source': 'banco'
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_restart: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}'
         }, status=500)
@@ -807,47 +861,87 @@ def whatsapp_restart(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def whatsapp_disconnect(request):
-    """Desconectar instância WhatsApp"""
+    """Desconectar instância WhatsApp - USA CONFIG DO BANCO"""
     try:
-        resultado = desconectar_instancia()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado.',
+                'redirect_to': '/configuracao'
+            }, status=400)
+        
+        # ✅ Desconectar usando config dinâmica
+        resultado = desconectar_instancia(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         if resultado['success']:
             return Response({
                 'success': True,
                 'message': 'WhatsApp desconectado com sucesso',
-                'data': resultado['data']
+                'data': resultado.get('data'),
+                'config_source': 'banco'
             })
         else:
             return Response({
                 'success': False,
-                'error': resultado['error']
+                'error': resultado['error'],
+                'config_source': 'banco'
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_disconnect: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}'
         }, status=500)
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def whatsapp_status(request):
-    """Status detalhado da conexão"""
+    """Status detalhado da conexão - USA CONFIG DO BANCO"""
     try:
-        resultado = verificar_status_instancia()
+        # ✅ Buscar config do banco
+        config = get_instance_config()
+        
+        # ✅ Verificar se WhatsApp está configurado
+        if not config['api_key']:
+            return Response({
+                'success': False,
+                'error': 'WhatsApp não configurado. Acesse Configurações do Sistema.',
+                'connected': False,
+                'config_source': 'não configurado',
+                'redirect_to': '/configuracao'
+            })
+        
+        # ✅ Verificar status usando config dinâmica
+        resultado = verificar_status_instancia(
+            instance_name=config['instance_name'],
+            evolution_api_url=config['url'],
+            api_key=config['api_key']
+        )
 
         return Response({
             'success': resultado['success'],
-            'instance_name': get_instance_config()['instance_name'],
+            'instance_name': config['instance_name'],
             'status': resultado.get('status'),
             'connected': resultado.get('connected', False),
-            'message': f"Status: {resultado.get('status', 'unknown')}"
+            'message': f"Status: {resultado.get('status', 'unknown')}",
+            'config_source': 'banco' if config['api_key'] else 'settings',
+            'api_url': config['url']
         })
 
     except Exception as e:
+        logger.error(f"Erro em whatsapp_status: {str(e)}")
         return Response({
             'error': f'Erro interno: {str(e)}',
-            'connected': False
+            'connected': False,
+            'config_source': 'erro'
         }, status=500)
 
 
@@ -862,13 +956,15 @@ def enviar_mensagem_view(request):
 
         if not numero or not mensagem:
             return Response({
+                'success': False,
                 'error': 'Campos obrigatórios: numero, mensagem'
             }, status=400)
 
+        # ✅ Enviar para WhatsApp
         resultado = enviar_mensagem_whatsapp(numero, mensagem)
 
         if resultado['success']:
-            # Salvar no CRM se conversa_id fornecido
+            # ✅ Salvar no CRM se conversa_id fornecido
             if conversa_id:
                 try:
                     conversa = Conversa.objects.get(id=conversa_id)
@@ -890,17 +986,18 @@ def enviar_mensagem_view(request):
                 'message': 'Mensagem enviada com sucesso',
                 'data': resultado['data'],
                 'whatsapp_id': resultado.get('whatsapp_id'),
-                'status': resultado.get('status')
+                'status': resultado.get('status', 'pending')
             })
         else:
             return Response({
                 'success': False,
-                'error': resultado['error'],
-                'details': resultado.get('details')
+                'error': resultado['error']
             }, status=400)
 
     except Exception as e:
+        logger.error(f"Erro em enviar_mensagem_view: {str(e)}")
         return Response({
+            'success': False,
             'error': f'Erro interno: {str(e)}'
         }, status=500)
 
@@ -938,41 +1035,33 @@ def enviar_presenca_view(request):
         }, status=500)
 
 
-# ===== WEBHOOK EVOLUTION API ROBUSTO =====
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """
-    Webhook robusto para Evolution API - OTIMIZADO PARA VPS
-    Processa mensagens recebidas e cria contatos automaticamente
-    """
+    """Webhook robusto para Evolution API - COM SUPORTE A MÍDIAS"""
     try:
-        data = request.data
-        event_type = data.get('event')
-        instance_name = data.get('instance')
-        event_data = data.get('data', {})
-
-        logger.info(f"🔔 WEBHOOK: {event_type} da instância {instance_name}")
-
-        # Processar mensagens recebidas
+        event_type = request.data.get('event')
+        event_data = request.data.get('data', {})
+        
+        logger.info(f"📥 Webhook recebido: {event_type}")
+        
         if event_type == 'messages.upsert':
             key_data = event_data.get('key', {})
             message_data = event_data.get('message', {})
-
+            
             # Verificar se é mensagem recebida (não enviada por nós)
             if not key_data.get('fromMe', True):
                 numero_remetente = key_data.get('remoteJid', '').replace('@s.whatsapp.net', '')
-                texto_mensagem = (
-                        message_data.get('conversation', '') or
-                        message_data.get('extendedTextMessage', {}).get('text', '') or
-                        '[Mídia]'
-                )
                 whatsapp_id = key_data.get('id')
-
+                
                 logger.info(f"📱 Nova mensagem de: {numero_remetente}")
-                logger.info(f"💬 Conteúdo: {texto_mensagem}")
-
+                
+                # ✅ PROCESSAR MÍDIA COM TODOS OS CAMPOS:
+                texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration = processar_mensagem_media(message_data)
+                
+                logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem}")
+                logger.info(f"🔗 Media URL: {media_url}")
+                
                 # Buscar ou criar contato
                 contato, created = Contato.objects.get_or_create(
                     telefone=numero_remetente,
@@ -981,10 +1070,10 @@ def evolution_webhook(request):
                         'observacoes': 'Criado automaticamente via webhook'
                     }
                 )
-
+                
                 if created:
                     logger.info(f"👤 Novo contato criado: {contato.nome}")
-
+                
                 # Buscar ou criar conversa ativa
                 conversa, conv_created = Conversa.objects.get_or_create(
                     contato=contato,
@@ -995,46 +1084,292 @@ def evolution_webhook(request):
                         'assunto': 'Conversa WhatsApp'
                     }
                 )
-
+                
                 if conv_created:
                     logger.info(f"💬 Nova conversa criada: ID {conversa.pk}")
-
-                # Salvar mensagem
+                
+                # ✅ SALVAR MENSAGEM COM TODOS OS DADOS DE MÍDIA:
                 if texto_mensagem and texto_mensagem.strip():
                     interacao = Interacao.objects.create(
                         conversa=conversa,
                         mensagem=texto_mensagem,
                         remetente='cliente',
-                        tipo='texto'
+                        tipo=tipo_mensagem,
+                        whatsapp_id=whatsapp_id,
+                        media_url=media_url,
+                        media_filename=media_filename,
+                        media_size=media_size,
+                        media_duration=media_duration
                     )
-
-                    logger.info(f"💾 Mensagem salva: ID {interacao.pk}")
-
+                    
+                    logger.info(f"💾 Mensagem salva: ID {interacao.pk} | Tipo: {tipo_mensagem}")
+                    
                     # Atualizar timestamp da conversa
                     conversa.atualizado_em = timezone.now()
                     conversa.save()
-
+                
                 return Response({
                     'status': 'processed',
                     'contato_id': contato.pk,
                     'conversa_id': conversa.pk,
-                    'message': 'Mensagem processada com sucesso'
+                    'message': f'Mensagem {tipo_mensagem} processada com sucesso'
                 })
-
+        
         # Processar outros eventos
         elif event_type == 'connection.update':
             connection_state = event_data.get('state')
             logger.info(f"🔌 Estado da conexão: {connection_state}")
-
+        
         return Response({
             'status': 'received',
             'event': event_type,
-            'processed': True
+            'processed': True,
+            'config_source': 'banco'
         })
-
+        
     except Exception as e:
         logger.error(f"💥 Erro no webhook: {str(e)}")
         return Response({
             'status': 'error',
             'error': str(e)
         }, status=500)
+
+def processar_mensagem_media(message_data):
+    """
+    Processa diferentes tipos de mensagem e extrai mídia
+    Retorna: (texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration)
+    """
+    try:
+        logger.info(f"🔍 Processando mensagem: {list(message_data.keys())}")
+        
+        # ✅ TEXTO SIMPLES
+        if message_data.get('conversation'):
+            return (
+                message_data.get('conversation'),
+                'texto',
+                None, None, None, None
+            )
+        
+        # ✅ TEXTO EXTENDIDO (com formatação)
+        elif message_data.get('extendedTextMessage'):
+            return (
+                message_data.get('extendedTextMessage', {}).get('text', ''),
+                'texto',
+                None, None, None, None
+            )
+        
+        # ✅ IMAGEM - VERSÃO MELHORADA
+        elif message_data.get('imageMessage'):
+            image_msg = message_data.get('imageMessage', {})
+            caption = image_msg.get('caption', '')
+            
+            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
+            media_url = (
+                image_msg.get('url') or 
+                image_msg.get('directPath') or 
+                image_msg.get('mediaUrl') or
+                image_msg.get('thumbnail')
+            )
+            
+            # ✅ OUTROS DADOS DA IMAGEM:
+            filename = image_msg.get('fileName') or f"imagem_{int(time.time())}.jpg"
+            file_size = image_msg.get('fileLength') or image_msg.get('size')
+            
+            logger.info(f"📷 Imagem detectada - URL: {media_url}")
+            logger.info(f"📷 Dados da imagem: {image_msg}")
+            
+            return (
+                f"📷 Imagem enviada{': ' + caption if caption else ''}",
+                'imagem',
+                media_url,
+                filename,
+                file_size,
+                None
+            )
+        
+        # ✅ ÁUDIO - VERSÃO MELHORADA
+        elif message_data.get('audioMessage'):
+            audio_msg = message_data.get('audioMessage', {})
+            
+            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
+            media_url = (
+                audio_msg.get('url') or 
+                audio_msg.get('directPath') or 
+                audio_msg.get('mediaUrl')
+            )
+            
+            # ✅ OUTROS DADOS DO ÁUDIO:
+            duration = audio_msg.get('seconds', 0)
+            filename = audio_msg.get('fileName') or f"audio_{int(time.time())}.ogg"
+            file_size = audio_msg.get('fileLength') or audio_msg.get('size')
+            
+            logger.info(f"🎵 Áudio detectado - URL: {media_url} - Duração: {duration}s")
+            logger.info(f"🎵 Dados do áudio: {audio_msg}")
+            
+            return (
+                f"🎵 Áudio enviado ({duration}s)",
+                'audio',
+                media_url,
+                filename,
+                file_size,
+                duration
+            )
+        
+        # ✅ VÍDEO - VERSÃO MELHORADA
+        elif message_data.get('videoMessage'):
+            video_msg = message_data.get('videoMessage', {})
+            caption = video_msg.get('caption', '')
+            
+            media_url = (
+                video_msg.get('url') or 
+                video_msg.get('directPath') or 
+                video_msg.get('mediaUrl')
+            )
+            
+            filename = video_msg.get('fileName') or f"video_{int(time.time())}.mp4"
+            file_size = video_msg.get('fileLength') or video_msg.get('size')
+            duration = video_msg.get('seconds', 0)
+            
+            logger.info(f"🎥 Vídeo detectado - URL: {media_url}")
+            
+            return (
+                f"🎥 Vídeo enviado{': ' + caption if caption else ''}",
+                'video',
+                media_url,
+                filename,
+                file_size,
+                duration
+            )
+        
+        # ✅ STICKER/FIGURINHA
+        elif message_data.get('stickerMessage'):
+            sticker_msg = message_data.get('stickerMessage', {})
+            
+            media_url = (
+                sticker_msg.get('url') or 
+                sticker_msg.get('directPath') or 
+                sticker_msg.get('mediaUrl')
+            )
+            
+            filename = f"sticker_{int(time.time())}.webp"
+            
+            logger.info(f"😄 Sticker detectado - URL: {media_url}")
+            
+            return (
+                "😄 Figurinha enviada",
+                'sticker',
+                media_url,
+                filename,
+                None,
+                None
+            )
+        
+        # ✅ DOCUMENTO
+        elif message_data.get('documentMessage'):
+            doc_msg = message_data.get('documentMessage', {})
+            
+            media_url = (
+                doc_msg.get('url') or 
+                doc_msg.get('directPath') or 
+                doc_msg.get('mediaUrl')
+            )
+            
+            filename = doc_msg.get('fileName', 'documento')
+            file_size = doc_msg.get('fileLength') or doc_msg.get('size')
+            
+            return (
+                f"📄 Documento: {filename}",
+                'documento',
+                media_url,
+                filename,
+                file_size,
+                None
+            )
+        
+        # ✅ LOCALIZAÇÃO
+        elif message_data.get('locationMessage'):
+            location_msg = message_data.get('locationMessage', {})
+            lat = location_msg.get('degreesLatitude', 0)
+            lng = location_msg.get('degreesLongitude', 0)
+            
+            return (
+                f"📍 Localização: {lat}, {lng}",
+                'localizacao',
+                f"https://maps.google.com/maps?q={lat},{lng}",
+                None,
+                None,
+                None
+            )
+        
+        # ✅ CONTATO
+        elif message_data.get('contactMessage'):
+            contact_msg = message_data.get('contactMessage', {})
+            name = contact_msg.get('displayName', 'Contato')
+            
+            return (
+                f"👤 Contato compartilhado: {name}",
+                'contato',
+                None,
+                None,
+                None,
+                None
+            )
+        
+        # ✅ MENSAGEM NÃO SUPORTADA
+        else:
+            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
+            return (
+                "[Mensagem não suportada]",
+                'outros',
+                None,
+                None,
+                None,
+                None
+            )
+            
+    except Exception as e:
+        logger.error(f"💥 Erro ao processar mídia: {str(e)}")
+        return (
+            "[Erro ao processar mensagem]",
+            'erro',
+            None,
+            None,
+            None,
+            None
+        )
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def debug_webhook(request):
+    """Debug completo do webhook - VER DADOS RAW"""
+    try:
+        logger.info("🐛 DEBUG WEBHOOK - DADOS COMPLETOS:")
+        logger.info(f"📦 Request data: {request.data}")
+        
+        event_type = request.data.get('event')
+        event_data = request.data.get('data', {})
+        
+        if event_type == 'messages.upsert':
+            message_data = event_data.get('message', {})
+            
+            logger.info(f"🔍 Message data completo: {json.dumps(message_data, indent=2)}")
+            
+            # Verificar especificamente mídias
+            if message_data.get('imageMessage'):
+                logger.info(f"📷 IMAGEM DETECTADA: {json.dumps(message_data.get('imageMessage'), indent=2)}")
+            
+            if message_data.get('audioMessage'):
+                logger.info(f"🎵 ÁUDIO DETECTADO: {json.dumps(message_data.get('audioMessage'), indent=2)}")
+        
+        return Response({
+            'status': 'debug_processed',
+            'received_data': request.data,
+            'message': 'Debug completo nos logs'
+        })
+        
+    except Exception as e:
+        logger.error(f"💥 Erro no debug: {str(e)}")
+        return Response({
+            'status': 'debug_error',
+            'error': str(e)
+        })

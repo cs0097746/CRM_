@@ -1,3 +1,7 @@
-const backend_url = import.meta.env.VITE_BACKEND_URL;
+const isDevelopment = import.meta.env.DEV;
+
+const backend_url = isDevelopment 
+  ? 'http://localhost:8000'  // ✅ Desenvolvimento
+  : 'https://evo.loomiecrm.com';   // ✅ Produção (altere quando fizer deploy)
 
 export default backend_url;

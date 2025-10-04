@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from atendimento import views as atendimento_views
 
 urlpatterns = [
     # ===== ADMIN =====
@@ -18,7 +19,10 @@ urlpatterns = [
     path('api/oauth/', include('oauth2_integration.urls')),
     
     # ===== MAIN API =====
-    path('', include('contato.urls')),  # Mantém sem prefixo como estava
+    path('', include('contato.urls')),
+    path('', include('core.urls')),  # Mantém sem prefixo como estava
+
+    path('webhook/debug/', atendimento_views.debug_webhook, name='debug_webhook'),
 ]
 
 # ===== STATIC/MEDIA FILES =====

@@ -1,10 +1,11 @@
+// frontend/src/components/ChatWindow.tsx - CORRIGIR IMPORTS E TIPOS:
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
-import type { Conversa } from '../types/Conversa';
-import type { Interacao } from '../types/Interacao';
+import type { Conversa, Interacao } from '../types/Conversa'; // ✅ IMPORT CORRETO
 import type { ChatMensagem } from '../types/Chat';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
@@ -26,8 +27,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { playSound } = useNotificationSound();
 
-  const api = axios.create({ baseURL: `${backend_url}` });
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -36,57 +35,72 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     scrollToBottom();
   }, [mensagens]);
 
-  const USERNAME = "admin";
-  const PASSWORD = "admin";
-  const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-  const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
-
-  const getToken = async () => {
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    try {
-      const res = await axios.post(`${backend_url}o/token/`, params);
-      return res.data.access_token;
-    } catch (err) {
-      console.error(err);
-    }
+  // ✅ FUNÇÃO PARA ADAPTAR MENSAGEM (CORRIGIDA):
+  const adaptarMensagem = (interacao: Interacao): ChatMensagem => {
+    const remetente = interacao.remetente || interacao.autor || 'cliente';
+    
+    return {
+      id: interacao.id,
+      mensagem: interacao.mensagem,
+      timestamp: interacao.timestamp || interacao.criado_em, // ✅ CORRIGIDO
+      tipo: remetente === 'operador' ? 'operador' : 'cliente',
+      // ✅ PROTEÇÃO CONTRA UNDEFINED:
+      operador: (interacao.operador && interacao.operador.user) ? {
+        id: interacao.operador.id,
+        user: {
+          username: interacao.operador.user.username
+        }
+      } : undefined,
+      // ✅ CAMPOS DE MÍDIA:
+      media_type: interacao.tipo, // ✅ CORRIGIDO
+      media_url: interacao.media_url, // ✅ CORRIGIDO
+      media_filename: interacao.media_filename, // ✅ CORRIGIDO
+      media_size: interacao.media_size, // ✅ CORRIGIDO
+      media_duration: interacao.media_duration // ✅ CORRIGIDO
+    };
   };
 
   // Enviar mensagem
   const enviarMensagem = async () => {
     if (!novaMensagem.trim() || enviando) return;
-
+  
     setEnviando(true);
-
-    const token = await getToken();
+    
     try {
-      await api.post(
-        `conversas/${conversa.id}/interacoes/`,
-        {
-          mensagem: novaMensagem,
-          remetente: 'operador'
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      setNovaMensagem('');
-      playSound('success');
+      const token = localStorage.getItem('token');
       
-      if (onNewMessageSent) {
-        await onNewMessageSent();
+      const response = await fetch(`${backend_url}/whatsapp/enviar/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          numero: conversa.contato.telefone,
+          mensagem: novaMensagem,
+          conversa_id: conversa.id
+        })
+      });
+  
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Mensagem enviada para WhatsApp:', result);
+        setNovaMensagem('');
+        playSound('success');
+        
+        if (onNewMessageSent) {
+          await onNewMessageSent();
+        }
+      } else {
+        console.error('❌ Erro ao enviar:', result.error);
+        alert(`Erro: ${result.error}`);
       }
+      
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('💥 Erro na requisição:', error);
       playSound('alert');
+      alert('Erro ao enviar mensagem');
     } finally {
       setEnviando(false);
     }
@@ -108,29 +122,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       setDigitando(true);
       setTimeout(() => setDigitando(false), 1000);
     }
-  };
-
-  // Função para converter Interacao para ChatMensagem
-  const adaptarMensagem = (interacao: Interacao): ChatMensagem => {
-    const remetente = interacao.remetente || interacao.autor || 'cliente';
-    
-    return {
-      id: interacao.id,
-      mensagem: interacao.mensagem,
-      timestamp: interacao.timestamp,
-      tipo: remetente === 'operador' ? 'operador' : 'cliente',
-      operador: interacao.operador ? {
-        id: interacao.operador.id,
-        user: {
-          username: interacao.operador.user.username
-        }
-      } : undefined,
-      anexo: interacao.anexo ? {
-        tipo: 'arquivo',
-        url: interacao.anexo,
-        nome: 'Anexo'
-      } : undefined
-    };
   };
 
   return (
@@ -160,10 +151,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           color: #1d2129;
         }
 
-        .chat-header .subtitle {
-          font-size: 14px;
+        .subtitle {
+          font-size: 13px;
           color: #65676b;
-          margin-top: 2px;
+          margin-top: 4px;
+        }
+
+        .online-indicator {
+          width: 8px;
+          height: 8px;
+          background: #42b883;
+          border-radius: 50%;
+          display: inline-block;
+          margin-right: 8px;
         }
 
         .chat-status {
@@ -171,31 +171,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           padding: 4px 8px;
           border-radius: 12px;
           font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
         }
 
-        .status-entrada {
-          background: #fee;
-          color: #d73527;
+        .status-entrada { 
+          background: #ffebee; 
+          color: #c62828; 
         }
 
-        .status-atendimento {
-          background: #fff3cd;
-          color: #856404;
+        .status-atendimento { 
+          background: #fff3e0; 
+          color: #ef6c00; 
         }
 
-        .status-resolvida {
-          background: #d1e7dd;
-          color: #0f5132;
+        .status-resolvida { 
+          background: #e8f5e8; 
+          color: #2e7d32; 
         }
 
         .messages-area {
           flex: 1;
           overflow-y: auto;
           padding: 16px 20px;
-          background: #ffffff;
-          min-height: 0;
+          background: #f8f9fa;
         }
 
         .messages-area::-webkit-scrollbar {
@@ -203,17 +200,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
 
         .messages-area::-webkit-scrollbar-track {
-          background: #f1f3f4;
-          border-radius: 3px;
+          background: transparent;
         }
 
         .messages-area::-webkit-scrollbar-thumb {
           background: #c1c8cd;
           border-radius: 3px;
-        }
-
-        .messages-area::-webkit-scrollbar-thumb:hover {
-          background: #a8b3ba;
         }
 
         .empty-state {
@@ -222,21 +214,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           align-items: center;
           justify-content: center;
           height: 100%;
-          color: #65676b;
           text-align: center;
+          color: #8a8d91;
         }
 
         .empty-state-icon {
-          width: 64px;
-          height: 64px;
-          background: #f0f2f5;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-size: 48px;
           margin-bottom: 16px;
-          font-size: 24px;
-          color: #8a8d91;
+          opacity: 0.5;
         }
 
         .compose-area {
@@ -256,33 +241,35 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         .compose-status {
           font-size: 12px;
           color: #65676b;
-          display: flex;
-          align-items: center;
-          gap: 8px;
         }
 
         .typing-indicator {
+          display: flex;
+          align-items: center;
           font-size: 12px;
           color: #1877f2;
-          font-style: italic;
+        }
+
+        .compose-container {
+          position: relative;
+          display: flex;
+          align-items: flex-end;
+          gap: 12px;
         }
 
         .compose-input {
+          flex: 1;
           border: 1px solid #e1e5e9;
           border-radius: 20px;
           padding: 12px 16px;
+          font-size: 14px;
           resize: none;
           outline: none;
-          font-size: 14px;
-          line-height: 1.4;
           transition: border-color 0.2s ease;
-          width: 100%;
-          font-family: inherit;
         }
 
         .compose-input:focus {
           border-color: #1877f2;
-          box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.1);
         }
 
         .compose-input:disabled {
@@ -299,70 +286,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
 
         .compose-hint {
-          font-size: 12px;
+          font-size: 11px;
           color: #8a8d91;
         }
 
         .char-count {
-          font-size: 12px;
-          color: #65676b;
+          font-size: 11px;
+          color: #8a8d91;
         }
 
         .char-count.warning {
           color: #fa7970;
-        }
-
-        .send-button {
-          background: #1877f2;
-          border: none;
-          border-radius: 20px;
-          padding: 8px 20px;
-          color: white;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          min-width: 80px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-        }
-
-        .send-button:hover:not(:disabled) {
-          background: #166fe5;
-          transform: translateY(-1px);
-        }
-
-        .send-button:disabled {
-          background: #e4e6ea;
-          color: #8a8d91;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .send-button:active {
-          transform: translateY(0);
-        }
-
-        .online-indicator {
-          width: 8px;
-          height: 8px;
-          background: #42b883;
-          border-radius: 50%;
-          display: inline-block;
-          margin-right: 6px;
-        }
-
-        .compose-container {
-          position: relative;
+          font-weight: 500;
         }
 
         .send-button-inline {
           position: absolute;
-          bottom: 8px;
           right: 8px;
+          bottom: 8px;
           background: #1877f2;
           border: none;
           border-radius: 50%;

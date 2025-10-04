@@ -4,6 +4,11 @@ from django.utils import timezone
 from decimal import Decimal
 
 class Operador(models.Model):
+    NIVEL_CHOICES = [
+        ('operador', 'Operador'),
+        ('supervisor', 'Supervisor'),
+        ('admin', 'Administrador'),
+    ]
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     ativo = models.BooleanField(default=True)
     ramal = models.CharField(max_length=10, blank=True, null=True)

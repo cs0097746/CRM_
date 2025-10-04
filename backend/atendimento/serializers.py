@@ -1,19 +1,18 @@
 from rest_framework import serializers
 from .models import Interacao, Conversa, RespostasRapidas, AnexoNota, NotaAtendimento, TarefaAtendimento
 from contato.serializers import OperadorSerializer, ContatoSerializer
-
-# ===== SERIALIZERS DE CONVERSAS =====
+from contato.models import Contato, Operador
 
 class InteracaoSerializer(serializers.ModelSerializer):
     operador = OperadorSerializer(read_only=True)
-
+    
     class Meta:
         model = Interacao
         fields = [
-            'id', 'mensagem', 'remetente', 'tipo', 'operador',
-            'lida', 'respondida', 'anexo', 'criado_em'
+            'id', 'mensagem', 'remetente', 'tipo', 'criado_em', 
+            'timestamp', 'operador', 'whatsapp_id',
+            'media_url', 'media_filename', 'media_size', 'media_duration'  # ✅ CAMPOS DE MÍDIA
         ]
-        read_only_fields = ['remetente', 'operador']
 
 
 class ConversaListSerializer(serializers.ModelSerializer):
@@ -45,30 +44,31 @@ class ConversaDetailSerializer(serializers.ModelSerializer):
     contato = ContatoSerializer(read_only=True)
     operador = OperadorSerializer(read_only=True)
     interacoes = InteracaoSerializer(many=True, read_only=True)
-
     operador_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Conversa
         fields = [
-            'id', 'contato', 'operador', 'operador_id', 'status',
-            'assunto', 'origem', 'prioridade', 'interacoes',
+            'id', 'contato', 'operador', 'status', 'assunto',
+            'origem', 'prioridade', 'interacoes', 'operador_id',
             'criado_em', 'atualizado_em', 'finalizada_em'
         ]
 
     def update(self, instance, validated_data):
+        # ✅ CORRIGIR O UPDATE:
         operador_id = validated_data.pop('operador_id', None)
-
+        
         if operador_id is not None:
             try:
+                # ✅ IMPORT CORRETO:
                 operador = Operador.objects.get(pk=operador_id)
                 instance.operador = operador
             except Operador.DoesNotExist:
-                raise serializers.ValidationError({"operador_id": "Operador não encontrado."})
-
+                instance.operador = None
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-
+            
         instance.save()
         return instance
 
@@ -247,3 +247,4 @@ class ConversaCreateSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Contato é obrigatório")
         return value
+    
