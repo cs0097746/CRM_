@@ -8,6 +8,7 @@ from atendimento import views as atendimento_views
 from kanban import views as kanban_views
 from knowledge_base.views import *
 from atributo import views as atributos_views
+from notificacao import views as notificacao_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -91,6 +92,11 @@ urlpatterns = [
 
     # comentarios do negocio
     path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),
+
+    # notifs do usuario
+    path('notificacoes/', notificacao_views.NotificacaoListView.as_view(), name='notificacoes'),
+    path('notificacoes/marcar-todas-lidas/', notificacao_views.MarcarTodasLidasView.as_view(), name='marcar-todas-lidas'),
+
     # ===== ROUTER URLS =====
     path('', include(router.urls)),
 ]

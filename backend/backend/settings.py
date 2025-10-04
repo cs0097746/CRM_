@@ -75,6 +75,7 @@ LOCAL_APPS = [
     'oauth2_integration',
     'knowledge_base',
     'core',
+    'notificacao',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Container, Row, Col, Button, Card, Badge, Alert } from 'react-bootstrap';
+import { useState, useEffect, useCallback } from 'react';
+import { Container, Row, Col, Button, Card, Badge, Alert, ListGroup, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import type {Conversa} from "../types/Conversa.ts";
 import backend_url from "../config/env.ts";
@@ -11,13 +11,45 @@ const Home = () => {
     emAndamento: 0,
     operadoresOnline: 0
   });
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [markingLidas, setMarkingLidas] = useState(false);
+  const [notificacoesError, setNotificacoesError] = useState<string | null>(null);
+
+  // NOVO: Estado para controlar a expansão
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const notificacoesNaoLidas = notificacoes.filter(n => !n.lida);
+
+  // Lista de notificações a serem exibidas: todas se expandido, ou apenas as 3 primeiras
+  const notificacoesExibidas = isExpanded ? notificacoesNaoLidas : notificacoesNaoLidas.slice(0, 3);
+
+  // Verifica se há mais de 3 notificações não lidas para mostrar o botão "Ver Mais"
+  const hasMoreNotifs = notificacoesNaoLidas.length > 3;
 
   const api = axios.create({ baseURL: `${backend_url}` });
 
     const USERNAME = "admin";
     const PASSWORD = "admin";
-    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+    const CLIENT_ID = "R2W2Ypo54DAiLKZZLKlCvqLe3U81i67n2NjoQhS0";
+    const CLIENT_SECRET = "i1XG19wUmdnNYEdatXsxpPF32qAX9oQsk46wu3393H91IpDi8rDtGcU7s9ZLs5BKNK0oaAHravReclTXZIzSS6bFhgHSetAuKq46OPDMJ29Q0uPUqO60CVFi2PYOvSKh";
+
+    // --- Tipos e Funções de Notificação ---
+    interface Notificacao {
+        id: number;
+        lida: boolean;
+        texto: string;
+        tipo: 'boa' | 'alerta' | 'erro';
+        criado_em: string;
+    }
+
+    const getTipoBadge = (tipo: Notificacao['tipo']) => {
+        switch (tipo) {
+            case 'boa': return { variant: 'success', icone: '✅' };
+            case 'alerta': return { variant: 'warning', icone: '⚠️' };
+            case 'erro': return { variant: 'danger', icone: '❌' };
+            default: return { variant: 'secondary', icone: 'ℹ️' };
+        }
+    };
 
     const getToken = async () => {
       const params = new URLSearchParams();
@@ -34,45 +66,86 @@ const Home = () => {
         console.error(err);
       }
     };
+    // ------------------------------------
 
-  useEffect(() => {
-    const fetchResumoRapido = async () => {
-      try {
-        // Buscar apenas dados essenciais para a home
-        const token = await getToken();
+    const handleMarcarTodasLidas = async () => {
+        if (notificacoesNaoLidas.length === 0) return;
 
-        const response = await api.get<Conversa[]>('conversas/', {
-              headers: {
-                Authorization: `Bearer ${token}`
-              },
+        try {
+            setMarkingLidas(true);
+            const token = await getToken();
+            if (!token) throw new Error("Autenticação falhou.");
+
+            await api.patch('notificacoes/marcar-todas-lidas/', {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Atualiza o estado das notificações localmente
+            const novasNotificacoes = notificacoes.map(n => ({ ...n, lida: true }));
+            setNotificacoes(novasNotificacoes);
+
+            // Oculta após marcar todas como lidas
+            if (isExpanded) {
+                setIsExpanded(false);
             }
-          );
+
+        } catch (err) {
+            setNotificacoesError('Erro ao marcar notificações como lidas.');
+            console.error('Erro ao marcar como lidas:', err);
+        } finally {
+            setMarkingLidas(false);
+        }
+    };
+
+    // Função para buscar o resumo e notificações (ajustada)
+    const fetchResumoRapido = useCallback(async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+            setLoading(false);
+            return;
+        }
+
+        const [resumoResponse, notifResponse] = await Promise.all([
+             api.get<Conversa[]>('conversas/', {
+              headers: { Authorization: `Bearer ${token}` }
+            }),
+            api.get<Notificacao[]>('notificacoes/', {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+        ]);
 
         // @ts-ignore
-        const conversas = response.data.results;
+        const conversas = resumoResponse.data.results;
         const aguardando = conversas.filter((c: Conversa) => c.status === 'entrada' && !c.operador).length;
         const emAndamento = conversas.filter((c: Conversa) => c.status === 'atendimento').length;
         const operadoresUnicos = new Set(
           conversas.filter((c: Conversa) => c.operador).map((c: Conversa) => c.operador!.id)
         );
+
         setResumoAtendimento({
           aguardando,
           emAndamento,
           operadoresOnline: operadoresUnicos.size
         });
+        // @ts-ignore
+        setNotificacoes(notifResponse.data.results || []);
+
       } catch (error) {
-        console.error('Erro ao carregar resumo:', error);
+        console.error('Erro ao carregar resumo/notificações:', error);
       } finally {
         setLoading(false);
       }
-    };
+    }, [api]);
 
+
+  useEffect(() => {
     fetchResumoRapido();
-    
+
     // Atualizar a cada 30 segundos
     const interval = setInterval(fetchResumoRapido, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchResumoRapido]);
 
   const modulosCRM = [
     {
@@ -114,23 +187,103 @@ const Home = () => {
         fontFamily: "'Inter', sans-serif",
       }}
     >
+      {/* Container Flutuante de Notificações */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1050, // Acima de outros elementos normais
+          width: '350px',
+          // Limita a altura do container principal se expandido
+          maxHeight: isExpanded ? '85vh' : 'auto',
+          overflowY: isExpanded ? 'auto' : 'visible',
+        }}
+      >
+        {notificacoesNaoLidas.length > 0 && (
+          <Card className="shadow-lg border-0" style={{ borderRadius: '10px' }}>
+            <Card.Header className="d-flex justify-content-between align-items-center" style={{ backgroundColor: '#316dbd', color: 'white', borderTopLeftRadius: '10px', borderTopRightRadius: '10px' }}>
+              <h6 className="mb-0" style={{ fontWeight: 600 }}>
+                🔔 {notificacoesNaoLidas.length} Novas Notificações
+              </h6>
+              {markingLidas ? (
+                <Spinner animation="border" size="sm" variant="light" />
+              ) : (
+                <Button
+                    variant="light"
+                    size="sm"
+                    onClick={handleMarcarTodasLidas}
+                    style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '5px' }}
+                >
+                    Marcar Todas como Lidas
+                </Button>
+              )}
+            </Card.Header>
+            <ListGroup variant="flush">
+              {notificacoesExibidas.map(n => {
+                const tipoStyle = getTipoBadge(n.tipo);
+                return (
+                  <ListGroup.Item key={n.id} style={{ padding: '10px 15px', borderLeft: `3px solid ${tipoStyle.variant === 'danger' ? '#dc3545' : tipoStyle.variant === 'warning' ? '#ffc107' : '#28a745'}`, backgroundColor: '#fff' }}>
+                    <div className="d-flex align-items-start">
+                      <Badge bg={tipoStyle.variant} className="me-2 mt-1" style={{ fontSize: '1rem' }}>
+                        {tipoStyle.icone}
+                      </Badge>
+                      <div className="flex-grow-1">
+                        <small style={{ fontWeight: 600, color: '#333' }}>
+                          {n.texto}
+                        </small>
+                        <div style={{ fontSize: '0.7rem', color: '#888' }}>
+                          {new Date(n.criado_em).toLocaleTimeString('pt-BR')}
+                        </div>
+                      </div>
+                    </div>
+                  </ListGroup.Item>
+                );
+              })}
+              {/* Botão de expansão/colapso, visível se houver mais de 3 e não estiver totalmente expandido */}
+              {hasMoreNotifs && (
+                  <ListGroup.Item className="text-center py-2" style={{ backgroundColor: '#f8f9fa' }}>
+                      <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          style={{ fontSize: '0.85rem', fontWeight: 600, color: '#316dbd' }}
+                      >
+                          {isExpanded ? (
+                              '▲ Mostrar menos'
+                          ) : (
+                              `▼ Ver todas (${notificacoesNaoLidas.length - 3} a mais)`
+                          )}
+                      </Button>
+                  </ListGroup.Item>
+              )}
+            </ListGroup>
+          </Card>
+        )}
+        {notificacoesError && (
+            <Alert variant="danger" className="mt-3 p-2" style={{ fontSize: '0.8rem' }}>
+                Erro: {notificacoesError}
+            </Alert>
+        )}
+      </div>
+
       {/* Header Principal */}
       <header className="text-center mb-5">
         <div className="d-flex justify-content-center align-items-center gap-3 mb-3">
           <img src="/Loomie.svg" alt="Loomie Logo" style={{ width: "100px", height: "100px" }} />
           <div>
-            <h1 style={{ 
-              color: "#316dbd", 
-              fontWeight: 800, 
-              fontSize: "3rem", 
+            <h1 style={{
+              color: "#316dbd",
+              fontWeight: 800,
+              fontSize: "3rem",
               margin: 0,
               textShadow: "2px 2px 4px rgba(0,0,0,0.1)"
             }}>
               CRM Loomie
             </h1>
-            <p style={{ 
-              color: "#6c757d", 
-              fontSize: "1.3rem", 
+            <p style={{
+              color: "#6c757d",
+              fontSize: "1.3rem",
               margin: 0,
               fontWeight: 500
             }}>
@@ -138,10 +291,10 @@ const Home = () => {
             </p>
           </div>
         </div>
-        
+
         {/* Status Rápido */}
         {!loading && (
-          <div className="d-flex justify-content-center gap-3 flex-wrap">
+          <div className="d-flex justify-content-center align-items-center gap-3 flex-wrap">
             {resumoAtendimento.aguardando > 0 && (
               <Alert variant="danger" className="py-2 px-3 mb-0">
                 <strong>🔔 {resumoAtendimento.aguardando} chamados aguardando!</strong>
@@ -165,7 +318,7 @@ const Home = () => {
         <Row className="g-4 justify-content-center">
           {modulosCRM.map((modulo, index) => (
             <Col md={6} lg={3} key={index}>
-              <Card 
+              <Card
                 className="h-100 shadow-sm border-0"
                 style={{
                   borderRadius: '20px',
@@ -209,8 +362,8 @@ const Home = () => {
                     {modulo.descricao}
                   </p>
                   {modulo.badge && (
-                    <Badge 
-                      bg={modulo.urgente ? 'danger' : 'primary'} 
+                    <Badge
+                      bg={modulo.urgente ? 'danger' : 'primary'}
                       className="mb-2"
                       style={{ fontSize: '0.8rem' }}
                     >
@@ -218,9 +371,9 @@ const Home = () => {
                     </Badge>
                   )}
                   <br />
-                  <Button 
-                    style={{ 
-                      backgroundColor: modulo.cor, 
+                  <Button
+                    style={{
+                      backgroundColor: modulo.cor,
                       borderColor: modulo.cor,
                       borderRadius: '15px',
                       fontWeight: 600

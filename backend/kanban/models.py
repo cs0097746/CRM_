@@ -24,3 +24,12 @@ class Estagio(models.Model):
         verbose_name = "Estágio"
         verbose_name_plural = "Estágios"
         ordering = ['ordem', 'nome']
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and not self.ordem:
+            ultimo_ordem = (
+                Estagio.objects.filter(kanban=self.kanban)
+                .aggregate(models.Max('ordem'))['ordem__max']
+            )
+            self.ordem = (ultimo_ordem or 0) + 1
+        super().save(*args, **kwargs)
