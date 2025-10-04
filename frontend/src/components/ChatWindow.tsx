@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from 'react-bootstrap';
-import axios from 'axios';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 import type { Conversa, Interacao } from '../types/Conversa'; // ✅ IMPORT CORRETO
@@ -52,7 +51,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
       } : undefined,
       // ✅ CAMPOS DE MÍDIA:
-      media_type: interacao.tipo, // ✅ CORRIGIDO
+      media_type: interacao.tipo as ChatMensagem['media_type'], // ✅ CORRIGIDO
       media_url: interacao.media_url, // ✅ CORRIGIDO
       media_filename: interacao.media_filename, // ✅ CORRIGIDO
       media_size: interacao.media_size, // ✅ CORRIGIDO
