@@ -28,11 +28,8 @@ class CriarNotificacaoView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        print("data", request.data)
-        data = request.data.copy()
-        data['usuario'] = request.user.id
 
-        serializer = NotificacaoSerializer(data=data)
+        serializer = NotificacaoSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
