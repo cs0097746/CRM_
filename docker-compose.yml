@@ -17,7 +17,7 @@ services:
     container_name: crm_redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
       - loomie-network
 
@@ -34,7 +34,7 @@ services:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT: 6380
       ALLOWED_HOSTS: "crm.backend.localhost"
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
