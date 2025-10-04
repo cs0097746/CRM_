@@ -30,8 +30,8 @@ const Home = () => {
 
     const USERNAME = "admin";
     const PASSWORD = "admin";
-    const CLIENT_ID = "R2W2Ypo54DAiLKZZLKlCvqLe3U81i67n2NjoQhS0";
-    const CLIENT_SECRET = "i1XG19wUmdnNYEdatXsxpPF32qAX9oQsk46wu3393H91IpDi8rDtGcU7s9ZLs5BKNK0oaAHravReclTXZIzSS6bFhgHSetAuKq46OPDMJ29Q0uPUqO60CVFi2PYOvSKh";
+    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
     // --- Tipos e Funções de Notificação ---
     interface Notificacao {
