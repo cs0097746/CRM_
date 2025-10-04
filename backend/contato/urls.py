@@ -88,7 +88,7 @@ urlpatterns = [
     path('stats/tempo-resposta/', contato_views.TempoRespostaStatsView.as_view(), name='tempo_resposta_stats'),
 
     # atrib person
-    path('atributos-personalizaveis/<int:negocio_id>', atributos_views.AtributoPersonalizavelCreateView.as_view(), name='atributo-personalizavel-create'),
+    path('atributos-personalizaveis/<int:negocio_id>/', atributos_views.AtributoPersonalizavelCreateView.as_view(), name='atributo-personalizavel-create'),
 
     # comentarios do negocio
     path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),
