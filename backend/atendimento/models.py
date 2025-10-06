@@ -65,7 +65,7 @@ class Interacao(models.Model):
         ('contato', 'Contato'),
         ('outros', 'Outros'),
     ]
-
+    
     conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name='interacoes')
     mensagem = models.TextField()
     remetente = models.CharField(max_length=20)
@@ -74,12 +74,12 @@ class Interacao(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     whatsapp_id = models.CharField(max_length=100, blank=True, null=True)
-    
-    media_url = models.URLField(blank=True, null=True, help_text="URL da mídia no Evolution API")
+    media_url = models.URLField(max_length=500, blank=True, null=True, help_text="URL da mídia da Evolution API")
     media_filename = models.CharField(max_length=255, blank=True, null=True)
-    media_size = models.IntegerField(blank=True, null=True, help_text="Tamanho em bytes")
-    media_duration = models.IntegerField(blank=True, null=True, help_text="Duração em segundos (áudio/vídeo)")
-
+    media_size = models.PositiveIntegerField(blank=True, null=True, help_text="Tamanho em bytes")
+    media_mimetype = models.CharField(max_length=100, blank=True, null=True)
+    media_duration = models.PositiveIntegerField(blank=True, null=True, help_text="Duração em segundos para áudio/vídeo")
+    
     def __str__(self):
         return f"{self.remetente}: {self.mensagem[:50]}... ({self.tipo})"
     

@@ -300,18 +300,6 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-# =========================
-# CONFIGURAÇÕES WHATSAPP (EVOLUTION API)
-# =========================
-
-EVOLUTION_API_URL = "https://evo.loomiecrm.com"
-API_KEY = "095B7FC5F286-4E22-A2E9-3A8C54545870"
-INSTANCE_NAME = "nate"
-
-# =========================
-# LOGGING
-# =========================
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

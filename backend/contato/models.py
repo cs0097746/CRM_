@@ -30,6 +30,13 @@ class Contato(models.Model):
     nome = models.CharField(max_length=100)
     email = models.EmailField(blank=True, null=True)
     telefone = models.CharField(max_length=20, blank=True, null=True)
+    whatsapp_id = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True, 
+        unique=True,
+        help_text="ID do WhatsApp (número + @s.whatsapp.net)"
+    )
     empresa = models.CharField(max_length=100, blank=True, null=True)
     cargo = models.CharField(max_length=50, blank=True, null=True)
     endereco = models.TextField(blank=True, null=True)

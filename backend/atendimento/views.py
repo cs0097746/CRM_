@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import traceback
 import json
 import requests
 import time
@@ -12,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .utils import baixar_e_salvar_media
 
 from core.models import ConfiguracaoSistema
 from contato.models import Contato, Operador
@@ -1038,7 +1040,7 @@ def enviar_presenca_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """Webhook robusto para Evolution API - COM SUPORTE A MÍDIAS"""
+    """Webhook Evolution API - VERSÃO CORRIGIDA"""
     try:
         event_type = request.data.get('event')
         event_data = request.data.get('data', {})
@@ -1052,21 +1054,23 @@ def evolution_webhook(request):
             # Verificar se é mensagem recebida (não enviada por nós)
             if not key_data.get('fromMe', True):
                 numero_remetente = key_data.get('remoteJid', '').replace('@s.whatsapp.net', '')
-                whatsapp_id = key_data.get('id')
+                message_id = key_data.get('id')
+                push_name = event_data.get('pushName', f'Contato {numero_remetente}')
                 
                 logger.info(f"📱 Nova mensagem de: {numero_remetente}")
                 
-                # ✅ PROCESSAR MÍDIA COM TODOS OS CAMPOS:
+                # ✅ USAR FUNÇÃO EXISTENTE processar_mensagem_media:
                 texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration = processar_mensagem_media(message_data)
                 
-                logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem}")
-                logger.info(f"🔗 Media URL: {media_url}")
+                logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem or '[Mídia sem texto]'}")
+                if media_url:
+                    logger.info(f"🔗 Media URL: {media_url}")
                 
-                # Buscar ou criar contato
+                # ✅ BUSCAR OU CRIAR CONTATO:
                 contato, created = Contato.objects.get_or_create(
                     telefone=numero_remetente,
                     defaults={
-                        'nome': f'WhatsApp {numero_remetente[-4:]}',
+                        'nome': push_name,
                         'observacoes': 'Criado automaticamente via webhook'
                     }
                 )
@@ -1074,7 +1078,7 @@ def evolution_webhook(request):
                 if created:
                     logger.info(f"👤 Novo contato criado: {contato.nome}")
                 
-                # Buscar ou criar conversa ativa
+                # ✅ BUSCAR OU CRIAR CONVERSA:
                 conversa, conv_created = Conversa.objects.get_or_create(
                     contato=contato,
                     status__in=['entrada', 'atendimento'],
@@ -1087,52 +1091,74 @@ def evolution_webhook(request):
                 
                 if conv_created:
                     logger.info(f"💬 Nova conversa criada: ID {conversa.pk}")
-                
-                # ✅ SALVAR MENSAGEM COM TODOS OS DADOS DE MÍDIA:
-                if texto_mensagem and texto_mensagem.strip():
+
+                # Só processa se houver conteúdo de texto ou mídia para salvar
+                if texto_mensagem or media_url:
+                    arquivo_local_url = None # Usar um nome de variável diferente para clareza
+                    
+                    if media_url and tipo_mensagem in ['imagem', 'audio', 'video', 'documento']:
+                        arquivo_salvo, sucesso, erro = baixar_e_salvar_media(
+                            media_url, 
+                            media_filename or f"{tipo_mensagem}_{int(time.time())}.bin",
+                            tipo_mensagem
+                        )
+                        
+                        if sucesso:
+                            logger.info(f"📁 Arquivo salvo localmente: {arquivo_salvo}")
+                            # URL para ser acessada pelo sistema
+                            arquivo_local_url = request.build_absolute_uri(arquivo_salvo)
+                        else:
+                            logger.warning(f"⚠️ Falha ao baixar mídia: {erro}")
+                            # Salva a URL temporária como fallback
+                            arquivo_local_url = media_url
+                    
+                    # Cria a interação no banco de dados
                     interacao = Interacao.objects.create(
                         conversa=conversa,
                         mensagem=texto_mensagem,
                         remetente='cliente',
                         tipo=tipo_mensagem,
-                        whatsapp_id=whatsapp_id,
-                        media_url=media_url,
+                        whatsapp_id=message_id,
+                        media_url=arquivo_local_url,
                         media_filename=media_filename,
                         media_size=media_size,
                         media_duration=media_duration
                     )
                     
                     logger.info(f"💾 Mensagem salva: ID {interacao.pk} | Tipo: {tipo_mensagem}")
-                    
+                    if arquivo_local_url: 
+                        logger.info(f"🔗 MÍDIA SALVA: {arquivo_local_url}")
+                        
                     # Atualizar timestamp da conversa
                     conversa.atualizado_em = timezone.now()
                     conversa.save()
                 
-                return Response({
-                    'status': 'processed',
-                    'contato_id': contato.pk,
-                    'conversa_id': conversa.pk,
-                    'message': f'Mensagem {tipo_mensagem} processada com sucesso'
-                })
-        
+                    return Response({
+                        'status': 'processed',
+                        'contato_id': contato.pk,
+                        'conversa_id': conversa.pk,
+                        'interacao_id': interacao.pk,
+                        'has_media': bool(arquivo_local_url),
+                        'message': f'Mensagem {tipo_mensagem} processada com sucesso'
+                    })
+                else:
+                    logger.info("ℹ️ Mensagem ignorada (sem texto ou mídia).")
+
         # Processar outros eventos
         elif event_type == 'connection.update':
             connection_state = event_data.get('state')
             logger.info(f"🔌 Estado da conexão: {connection_state}")
         
+        # Resposta padrão para eventos recebidos mas não processados (ou mensagens 'fromMe')
         return Response({
-            'status': 'received',
+            'status': 'received_ok',
             'event': event_type,
-            'processed': True,
-            'config_source': 'banco'
+            'message': 'Event received but no action taken.'
         })
         
     except Exception as e:
-        logger.error(f"💥 Erro no webhook: {str(e)}")
-        return Response({
-            'status': 'error',
-            'error': str(e)
-        }, status=500)
+        logger.error(f"💥 Erro no webhook: {str(e)}", exc_info=True) # exc_info=True para logar o traceback
+        return Response({'status': 'error', 'error': str(e)}, status=500)
 
 def processar_mensagem_media(message_data):
     """
