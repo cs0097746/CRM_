@@ -14,7 +14,7 @@ const TestePage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${backend_url}/whatsapp/enviar/`, {
+      const response = await fetch(`${backend_url}whatsapp/enviar/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -93,7 +93,7 @@ const TestePage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${backend_url}/whatsapp/status/`, {
+      const response = await fetch(`${backend_url}whatsapp/status/`, {
         method: 'GET',
         headers: {
           'Authorization': `Token ${token}`,

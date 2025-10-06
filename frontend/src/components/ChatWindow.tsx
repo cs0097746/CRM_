@@ -68,7 +68,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${backend_url}/whatsapp/enviar/`, {
+      const response = await fetch(`${backend_url}whatsapp/enviar/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,

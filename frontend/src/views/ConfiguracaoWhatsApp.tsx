@@ -12,7 +12,7 @@ const ConfiguracaoWhatsApp: React.FC = () => {
   const verificarStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${backend_url}/whatsapp/status/`, {
+      const response = await fetch(`${backend_url}whatsapp/status/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       const data = await response.json();
@@ -26,7 +26,7 @@ const ConfiguracaoWhatsApp: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${backend_url}/whatsapp/qr-code/`, {
+      const response = await fetch(`${backend_url}whatsapp/qr-code/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
       const data = await response.json();
@@ -52,7 +52,7 @@ const ConfiguracaoWhatsApp: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${backend_url}/whatsapp/restart/`, {
+      const response = await fetch(`${backend_url}whatsapp/restart/`, {
         method: 'POST',
         headers: { 'Authorization': `Token ${token}` }
       });
