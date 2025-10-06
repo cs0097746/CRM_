@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from .models import Estagio, Kanban
 from .serializers import EstagioSerializer, KanbanSerializer
 from negocio.models import Negocio
+from negocio.serializers import NegocioSerializer
 # ===== CRM/KANBAN =====
 
 class EstagioListView(generics.ListCreateAPIView):
