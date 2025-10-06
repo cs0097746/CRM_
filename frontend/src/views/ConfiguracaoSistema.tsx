@@ -1,6 +1,5 @@
-// frontend/src/views/ConfiguracaoSistema.tsx
-
 import React, { useState, useEffect } from 'react';
+import backend_url from "../config/env.ts";
 
 const ConfiguracaoSistema: React.FC = () => {
   const [config, setConfig] = useState({
@@ -27,8 +26,8 @@ const ConfiguracaoSistema: React.FC = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:8000/api/configuracao-sistema/', {
-        headers: { 
+      const response = await fetch(`${backend_url}api/configuracao-sistema/`, {
+        headers: {
           Authorization: `Token ${token}`,
           'Content-Type': 'application/json'
         }
@@ -56,7 +55,7 @@ const ConfiguracaoSistema: React.FC = () => {
       
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:8000/api/configuracao-sistema/', {
+      const response = await fetch(`${backend_url}api/configuracao-sistema/`, {
         method: 'PUT',
         headers: {
           Authorization: `Token ${token}`,
