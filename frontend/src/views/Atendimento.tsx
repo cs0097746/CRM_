@@ -271,7 +271,7 @@ export default function Atendimento() {
       params.append("client_secret", CLIENT_SECRET);
 
       try {
-        const res = await axios.post(`${backend_url}/o/token/`, params);
+        const res = await axios.post(`${backend_url}o/token/`, params);
         return res.data.access_token;
       } catch (err) {
         console.error(err);
