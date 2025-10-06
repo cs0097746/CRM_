@@ -37,7 +37,7 @@ const WhatsAppWidget: React.FC = () => {
     try {
       console.log('📡 Verificando status...');
       
-      const response = await fetch(`${API_BASE_URL}/whatsapp/status/`, {
+      const response = await fetch(`${API_BASE_URL}whatsapp/status/`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -84,7 +84,7 @@ const WhatsAppWidget: React.FC = () => {
             Headers: Authorization: Token ${token}
             `);
             
-      const response = await fetch(`${API_BASE_URL}/whatsapp/restart-debug/`, {  // ✅ DEBUG
+      const response = await fetch(`${API_BASE_URL}whatsapp/restart-debug/`, {  // ✅ DEBUG
         method: 'POST',
         headers: getAuthHeaders()
       });
@@ -121,7 +121,7 @@ const WhatsAppWidget: React.FC = () => {
   const handleGetQRCode = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/whatsapp/qr-code/`, {
+      const response = await fetch(`${API_BASE_URL}whatsapp/qr-code/`, {
         method: 'GET',
         headers: getAuthHeaders()
       });
@@ -156,7 +156,7 @@ const WhatsAppWidget: React.FC = () => {
     
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/whatsapp/disconnect/`, {
+      const response = await fetch(`${API_BASE_URL}whatsapp/disconnect/`, {
         method: 'POST',
         headers: getAuthHeaders()
       });
