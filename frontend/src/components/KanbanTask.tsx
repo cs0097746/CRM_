@@ -101,7 +101,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     };
 
     try {
-        const response = await fetch(`${backend_url}atributos-personalizaveis/${negocio.id}`, {
+        const response = await fetch(`${backend_url}atributos-personalizaveis/${negocio.id}/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
