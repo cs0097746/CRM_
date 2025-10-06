@@ -60,6 +60,7 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    'django_celery_beat',
     'rest_framework',
     'rest_framework.authtoken',
     'oauth2_provider',
@@ -403,3 +404,5 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Sao_Paulo'
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

@@ -12,6 +12,15 @@ services:
     networks:
       - loomie-network
 
+  crm-redis:
+    image: redis:7-alpine
+    container_name: crm-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - loomie-network
+
   backend:
     build:
       context: ./backend
@@ -28,12 +37,15 @@ services:
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
+      CELERY_BROKER_URL: redis://crm-redis:6379/0
+      CELERY_RESULT_BACKEND: redis://crm-redis:6379/0
     entrypoint: >
         sh -c "python manage.py migrate &&
                python manage.py createsuperuser --noinput 2>/dev/null || true &&
                exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     depends_on:
       - db
+      - crm-redis
     expose:
       - "8000"
     networks:
@@ -49,6 +61,22 @@ services:
       - backend
     expose:
       - "80"
+    networks:
+      - loomie-network
+
+  crm-celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm-celery
+    image: crm-celery:latest
+    command: celery -A backend worker --loglevel=info
+    depends_on:
+      - backend
+      - crm-redis
+    environment:
+      CELERY_BROKER_URL: redis://crm-redis:6379/0
+      CELERY_RESULT_BACKEND: redis://crm-redis:6379/0
     networks:
       - loomie-network
 
