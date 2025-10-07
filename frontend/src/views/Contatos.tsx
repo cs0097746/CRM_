@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Spinner, Button  } from 'react-bootstrap';
+import { Alert, Spinner, Button } from 'react-bootstrap';
 import axios from 'axios';
 import backend_url from "../config/env.ts";
 
-// Reutilizando a configuração da API e autenticação
 const api = axios.create({ baseURL:`${backend_url}` });
 
 const USERNAME = "admin";
@@ -15,7 +14,7 @@ interface Contato {
   id: number;
   nome: string;
   telefone: string;
-  email: string;
+  email: string | null;
   criado_em: string;
 }
 
@@ -35,7 +34,6 @@ const getToken = async () => {
     }
 };
 
-// CSS profissional - Adaptado do Atendimento.tsx para uma lista simples
 const styles = `
     .professional-layout {
       height: 100vh;
@@ -78,7 +76,6 @@ const styles = `
     .contact-item {
       border-bottom: 1px solid #f0f2f5;
       padding: 15px 20px;
-      cursor: pointer;
       transition: background 0.2s ease;
       display: flex;
       justify-content: space-between;
@@ -92,6 +89,13 @@ const styles = `
     .contact-item:hover {
       background: #f8f9fa;
     }
+    
+    .contact-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-grow: 1; /* Ocupa o espaço disponível */
+    }
 
     .contact-info strong {
         font-weight: 600;
@@ -104,6 +108,22 @@ const styles = `
         color: #65676b;
         font-size: 13px;
         margin-top: 2px;
+    }
+
+    .contact-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px; /* Espaço entre a data e o botão */
+        flex-shrink: 0; /* Não deixa as ações encolherem */
+    }
+
+    .contact-actions small {
+        color: #8a8d91; 
+        font-size: 11px;
+    }
+    
+    .remove-btn {
+        margin-left: 10px;
     }
 
     .search-input {
@@ -129,6 +149,7 @@ export default function Contatos() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const [deleteStatus, setDeleteStatus] = useState<{ id: number; loading: boolean } | null>(null);
 
     const fetchContatos = useCallback(async () => {
         try {
@@ -141,7 +162,6 @@ export default function Contatos() {
                 return;
             }
 
-            // Assumindo que o endpoint para contatos seja 'contatos/'
             const response = await api.get<{ results: Contato[] }>('contatos/', {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -162,16 +182,54 @@ export default function Contatos() {
         fetchContatos();
     }, [fetchContatos]);
 
-    // Filtrar contatos
+    const removeContato = async (id: number) => {
+        if (!window.confirm("Tem certeza que deseja remover este contato?")) {
+            return;
+        }
+
+        setDeleteStatus({ id, loading: true });
+
+        try {
+            const token = await getToken();
+            if (!token) {
+                setError("Não foi possível autenticar para deletar.");
+                setDeleteStatus(null);
+                return;
+            }
+
+            await api.delete(`contatos/${id}/`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            setContatos(contatos.filter(c => c.id !== id));
+            alert("Contato removido com sucesso! 🗑️");
+
+        } catch (err) {
+            setError('Não foi possível remover o contato.');
+            console.error('Erro ao remover contato:', err);
+        } finally {
+            setDeleteStatus(null);
+        }
+    };
+
+    // Filtrar contatos (CORREÇÃO APLICADA AQUI)
     const contatosFiltrados = contatos.filter(contato => {
         if (!searchTerm) return true;
 
         const searchLower = searchTerm.toLowerCase();
-        return (
-            contato.nome.toLowerCase().includes(searchLower) ||
-            contato.telefone.includes(searchTerm) ||
-            contato.email.toLowerCase().includes(searchLower)
-        );
+
+        // Verifica o nome
+        const nomeMatch = contato.nome.toLowerCase().includes(searchLower);
+
+        // Verifica o telefone (busca a substring diretamente)
+        const telefoneMatch = contato.telefone.includes(searchTerm);
+
+        // CORREÇÃO: Verifica se o email existe (não é null/undefined) antes de tentar o toLowerCase()
+        const emailMatch = contato.email && contato.email.toLowerCase().includes(searchLower);
+
+        return nomeMatch || telefoneMatch || emailMatch;
     });
 
     return (
@@ -179,7 +237,7 @@ export default function Contatos() {
             <style>{styles}</style>
 
             <div className="professional-layout">
-                {/* Barra superior - Replicada do Atendimento.tsx */}
+                {/* Barra superior */}
                 <div className="top-bar">
                     <div className="d-flex justify-content-between align-items-center">
                         <div className="d-flex align-items-center gap-3">
@@ -202,9 +260,9 @@ export default function Contatos() {
                     </div>
                 </div>
 
-                {/* Conteúdo principal */}
                 <div className="main-content">
                     <div className="card-list" style={{ maxWidth: '800px', margin: '0 auto' }}>
+
                         <div className="list-header">
                             <h5 className="mb-0" style={{ fontWeight: 600 }}>Contatos Cadastrados ({contatos.length})</h5>
                             <input
@@ -260,10 +318,29 @@ export default function Contatos() {
                                                     {contato.email && ` | E-mail: ${contato.email}`}
                                                 </small>
                                             </div>
-                                            <div className="text-end">
-                                                <small style={{ color: '#8a8d91', fontSize: '11px' }}>
+
+                                            <div className="contact-actions">
+                                                <small>
                                                     Criado em: {new Date(contato.criado_em).toLocaleDateString('pt-BR')}
                                                 </small>
+
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={() => removeContato(contato.id)}
+                                                    disabled={deleteStatus?.loading && deleteStatus.id === contato.id}
+                                                    className="remove-btn"
+                                                >
+                                                    {deleteStatus?.loading && deleteStatus.id === contato.id ? (
+                                                        <Spinner
+                                                            as="span"
+                                                            animation="border"
+                                                            size="sm"
+                                                            role="status"
+                                                            aria-hidden="true"
+                                                        />
+                                                    ) : 'Remover'}
+                                                </Button>
                                             </div>
                                         </div>
                                     ))
@@ -276,5 +353,3 @@ export default function Contatos() {
         </>
     );
 }
-
-// Lembre-se de criar o arquivo Contatos.tsx e incluí-lo no roteamento do seu aplicativo (ex: em App.tsx)
