@@ -53,6 +53,7 @@ urlpatterns = [
     path('funil/stats/', negocio_views.FunilStatsView.as_view(), name='funil_stats'),
     path('kanban/<int:kanban_id>/estagio/<int:estagio_id>/negocios/', kanban_views.NegociosPorEstagioView.as_view(),
          name='negocios-por-estagio'),
+    path('buscar-por-telefone/', negocio_views.buscar_negocio_por_telefone, name='buscar_negocio_por_telefone'),
 
     # ===== RESPOSTAS RÁPIDAS =====
     path('respostas-rapidas/', atendimento_views.RespostasRapidasListView.as_view(), name='respostas_rapidas_list'),
