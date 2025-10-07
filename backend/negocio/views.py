@@ -112,7 +112,7 @@ def buscar_negocio_por_telefone(request):
             negocios = negocios.filter(estagio_id=estagio_id)
 
         if not negocios.exists():
-            return Response({'error': 'Nenhum negócio encontrado com os filtros informados.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response([], status=status.HTTP_200_OK)
 
         serializer = NegocioSerializer(negocios, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

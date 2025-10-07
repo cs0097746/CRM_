@@ -259,7 +259,7 @@ def buscar_contato_por_telefone(request):
         ).first()
 
         if not contato:
-            return Response({'error': 'Contato não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({}, status=status.HTTP_200_OK)
 
         serializer = ContatoSerializer(contato)
         return Response(serializer.data, status=status.HTTP_200_OK)

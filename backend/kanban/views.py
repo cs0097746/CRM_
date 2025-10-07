@@ -53,8 +53,15 @@ class NegociosPorEstagioView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, kanban_id, estagio_id):
-        kanban = get_object_or_404(Kanban, id=kanban_id)
-        estagio = get_object_or_404(Estagio, id=estagio_id, kanban=kanban)
+        try:
+            kanban = Kanban.objects.get(id=kanban_id)
+        except Kanban.DoesNotExist:
+            return Response([], status=200)
+
+        try:
+            estagio = Estagio.objects.get(id=estagio_id, kanban=kanban)
+        except Estagio.DoesNotExist:
+            return Response([], status=200)
         negocios = Negocio.objects.filter(estagio=estagio)
         serializer = NegocioSerializer(negocios, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
