@@ -340,6 +340,9 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           }}
         >
           <Modal.Title>Editar Negócio</Modal.Title>
+            <small className="text-muted" style={{ color: "#e0e0e0", fontSize: "0.85rem" }}>
+              #{negocio.id}
+            </small>
         </Modal.Header>
 
         <Modal.Body

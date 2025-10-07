@@ -156,6 +156,7 @@ export default function Kanbans() {
             >
               <div className="card-body d-flex flex-column">
                 <h5 className="card-title fw-bold">{kanban.nome}</h5>
+                <small className="text-muted">#{kanban.id}</small>
                 <p className="card-text text-muted flex-grow-1">{kanban.descricao}</p>
                 <div className="d-flex gap-2 mt-auto">
                   <Link
