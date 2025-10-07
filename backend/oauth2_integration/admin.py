@@ -6,6 +6,11 @@ import secrets
 from oauth2_provider.models import Application, AccessToken
 from .models import CrmApplication, ApiUsageLog
 
+try:
+    admin.site.unregister(AccessToken)
+except admin.sites.NotRegistered:
+    pass
+
 @admin.register(CrmApplication)
 class CrmApplicationAdmin(admin.ModelAdmin):
     list_display = ['name', 'application', 'is_active', 'created_by', 'created_at']
