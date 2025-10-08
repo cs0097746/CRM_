@@ -49,7 +49,7 @@ class NegocioDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         try:
             return super().get_object()
-        except self.queryset.model.DoesNotExist:
+        except (Http404, NotFound):
             return None
 
     def retrieve(self, request, *args, **kwargs):
