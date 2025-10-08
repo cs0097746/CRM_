@@ -41,6 +41,7 @@ urlpatterns = [
     
     # ===== INTERAÇÕES/MENSAGENS =====
     path('conversas/<int:conversa_pk>/interacoes/', atendimento_views.InteracaoCreateView.as_view(), name='interacao_create'),
+    path('mensagens/buscar/', atendimento_views.BuscarMensagensView.as_view(), name='buscar-mensagens'),
     
     # ===== CRM/KANBAN =====
     path('estagios/<int:kanban_id>/', kanban_views.EstagioListView.as_view(), name='estagio_list'),
@@ -84,7 +85,7 @@ urlpatterns = [
     # ===== WEBHOOKS =====
     path('webhook/evolution/', atendimento_views.evolution_webhook, name='evolution_webhook'),
     path('webhook/n8n/lead/', core_views.webhook_n8n_lead, name='webhook_n8n_lead'),
-    
+
     # ===== ESTATÍSTICAS AVANÇADAS =====
     path('stats/tempo-resposta/', contato_views.TempoRespostaStatsView.as_view(), name='tempo_resposta_stats'),
 

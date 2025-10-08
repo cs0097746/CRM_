@@ -38,7 +38,7 @@ from atendimento.serializers import (
 )
 from kanban.serializers import EstagioSerializer, KanbanSerializer
 from negocio.serializers import NegocioSerializer
-from core.utils import get_user_operador
+from atendimento.utils import get_instance_config
 # ===== VIEWS DE API - CONTATOS =====
 
 class ContatoListCreateView(generics.ListCreateAPIView):

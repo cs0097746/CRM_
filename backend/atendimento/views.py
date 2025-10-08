@@ -16,6 +16,7 @@ from django.core.files.storage import default_storage
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, filters, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -341,22 +342,107 @@ class InteracaoCreateView(generics.CreateAPIView):
 # ===== CONVERSAS E INTERAÇÕES =====
 
 class ConversaListView(generics.ListAPIView):
-    """API: Lista conversas"""
-    queryset = Conversa.objects.all().select_related('contato', 'operador').prefetch_related('interacoes')
+    """
+    ✅ API: Lista conversas com URLs locais
+    """
     serializer_class = ConversaListSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'operador']
     search_fields = ['contato__nome', 'contato__telefone']
+    ordering_fields = ['criado_em', 'atualizado_em']
     ordering = ['-atualizado_em']
+    
+    def get_queryset(self):
+        return Conversa.objects.select_related('contato', 'operador__user').prefetch_related(
+            'interacoes'
+        )
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class ConversaDetailView(generics.RetrieveUpdateAPIView):
-    """API: Detalha e atualiza conversa"""
-    queryset = Conversa.objects.all()
+    """
+    ✅ API: Detalha conversa com URLs locais nas interações
+    """
+    queryset = Conversa.objects.all().prefetch_related(
+        'interacoes__operador__user'
+    )
     serializer_class = ConversaDetailSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
 
-
+class InteracaoListView(generics.ListAPIView):
+    """
+    ✅ API: Lista interações com URLs locais
+    """
+    serializer_class = InteracaoSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['remetente', 'tipo', 'conversa']
+    search_fields = ['mensagem']
+    ordering_fields = ['criado_em']
+    ordering = ['-criado_em']
+    
+    def get_queryset(self):
+        return Interacao.objects.select_related(
+            'conversa__contato',
+            'operador__user'
+        )
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+class BuscarMensagensView(generics.ListAPIView):
+    """
+    ✅ API: Busca mensagens com URLs locais
+    """
+    serializer_class = InteracaoSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['mensagem', 'conversa__contato__nome', 'conversa__contato__telefone']
+    filterset_fields = ['tipo', 'remetente']
+    
+    def get_queryset(self):
+        queryset = Interacao.objects.select_related(
+            'conversa__contato',
+            'operador__user'
+        ).order_by('-criado_em')
+        
+        # ✅ FILTROS adicionais
+        conversa_id = self.request.query_params.get('conversa', None)
+        if conversa_id:
+            queryset = queryset.filter(conversa_id=conversa_id)
+            
+        data_inicio = self.request.query_params.get('data_inicio', None)
+        if data_inicio:
+            queryset = queryset.filter(criado_em__gte=data_inicio)
+            
+        data_fim = self.request.query_params.get('data_fim', None)
+        if data_fim:
+            queryset = queryset.filter(criado_em__lte=data_fim)
+        
+        return queryset
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
 # ===== RESPOSTAS RÁPIDAS =====
 
 class RespostasRapidasListView(generics.ListCreateAPIView):
@@ -1069,212 +1155,125 @@ def processar_mensagem_media(message_data):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """Webhook Evolution API - VERSÃO COMPLETA COM SUPORTE A BASE64 E URL"""
-    
-    # ✅ LOG INICIAL SEMPRE:
+    """Webhook Evolution API - SUPORTE COMPLETO BASE64 E URL"""
     print("🚀 WEBHOOK EVOLUTION CHAMADO!")
     logger.info("🚀 WEBHOOK EVOLUTION CHAMADO!")
-    
+
     try:
-        # ✅ LOG DOS DADOS RECEBIDOS:
         payload = request.data
         print(f"📦 Payload recebido: {payload}")
-        print("--- DEBUG INÍCIO DO PAYLOAD RAW ---")
-        print(json.dumps(payload, indent=2))
-        print("--- DEBUG FIM DO PAYLOAD RAW ---")
         logger.info(f"📦 Payload completo: {json.dumps(payload, indent=2, ensure_ascii=False)}")
-        
-        # ✅ VERIFICAR ESTRUTURA BÁSICA:
+
         if not payload:
-            print("❌ PAYLOAD VAZIO")
             logger.error("❌ PAYLOAD VAZIO")
             return Response({'status': 'empty_payload'}, status=400)
-            
+
         event_type = payload.get('event')
         data = payload.get('data', {})
-        
-        print(f"📡 Event: {event_type}")
-        logger.info(f"📡 Event: {event_type}")
-        
-        # ✅ PROCESSAR APENAS MENSAGENS:
         if event_type != 'messages.upsert':
-            print(f"ℹ️ Evento ignorado: {event_type}")
             logger.info(f"ℹ️ Evento ignorado: {event_type}")
             return Response({'status': f'event_ignored_{event_type}'}, status=200)
 
-        # ✅ EXTRAIR DADOS DA MENSAGEM:
+        # Extração dos dados principais
         key = data.get('key', {})
-        # A nova lógica vai procurar o base64 no corpo da mensagem
         message = data.get('message', {})
         if body := data.get('body'):
             message['body'] = body
-
         push_name = data.get('pushName', 'Usuário')
-        
         remote_jid = key.get('remoteJid', '')
         from_me = key.get('fromMe', False)
         message_id = key.get('id', '')
-        
-        print(f"📞 JID: {remote_jid} | From me: {from_me}")
+
         logger.info(f"📞 Remote JID: {remote_jid} | From me: {from_me} | ID: {message_id}")
-        
+
         if from_me:
-            print("📤 Mensagem própria ignorada")
             logger.info("📤 Mensagem própria ignorada")
             return Response({'status': 'own_message_ignored'}, status=200)
 
-        # ✅ PROCESSAR CONTATO:
+        # Buscar ou criar contato
         numero_contato = remote_jid.split('@')[0]
-        print(f"📱 Número: {numero_contato}")
-        
-        contato, created = Contato.objects.get_or_create(
+        contato, _ = Contato.objects.get_or_create(
             telefone=numero_contato,
             defaults={'nome': push_name}
         )
-        print(f"👤 Contato ID: {contato.id} (criado: {created})")
-        logger.info(f"👤 Contato: {contato.id} | Nome: {contato.nome} | Criado: {created}")
-
-        # ✅ PROCESSAR CONVERSA:
-        conversa, created = Conversa.objects.get_or_create(
+        conversa, _ = Conversa.objects.get_or_create(
             contato=contato,
             defaults={'status': 'entrada'}
         )
-        print(f"💬 Conversa ID: {conversa.id} (criada: {created})")
-        logger.info(f"💬 Conversa: {conversa.id} | Status: {conversa.status} | Criada: {created}")
 
-        # ====================================================================
-        # AQUI COMEÇA O NOVO BLOCO DE PROCESSAMENTO DE MÍDIA
-        # ====================================================================
-        
-        # ✅ PROCESSAR TIPO DE MENSAGEM E EXTRAIR DADOS:
-        (texto_mensagem, tipo_mensagem, dados_midia, media_filename, 
-         media_size, media_duration, media_mimetype,base64Text) = processar_mensagem_media(message)
-        
-        print(f"📝 Mensagem: {texto_mensagem[:50]}...")
-        print(f"🎯 Tipo: {tipo_mensagem}")
-        print(f"🎨 Dados de Mídia: {'Sim' if dados_midia else 'Não'}")
-        
+        # Processar mensagem e mídia (usando função utilitária)
+        texto_mensagem, tipo_mensagem, dados_midia, media_filename, media_size, media_duration, media_mimetype, base64Text = processar_mensagem_media(message)
+
         logger.info(f"📝 Texto: {texto_mensagem}")
         logger.info(f"🎯 Tipo: {tipo_mensagem}")
         logger.info(f"🎨 Dados de Mídia recebidos: {'Sim' if dados_midia else 'Não'}")
 
-        media_types_to_save = ['imagem', 'audio', 'video', 'documento', 'sticker']
         media_local_path = None
-        
-        if tipo_mensagem == "imagem" and base64Text is not None and media_mimetype is not None:
-            try:
-                # Limpa o prefixo do base64 se existir
-                base64_clean = base64Text
-                if ',' in base64Text:
-                    base64_clean = base64Text.split(',')[1]
-                
-                # Decodifica o base64
+
+        try:
+            # Caso IMAGEM em Base64
+            if tipo_mensagem == "imagem" and base64Text and media_mimetype:
+                base64_clean = base64Text.split(',')[-1] if ',' in base64Text else base64Text
                 file_data = base64.b64decode(base64_clean)
-                
-                # Valida se a imagem foi decodificada corretamente
                 if len(file_data) < 100:
-                    logger.error(f"⚠️ Arquivo muito pequeno: {len(file_data)} bytes")
-                    raise ValueError("Arquivo de imagem inválido")
-                
-                # Gera um caminho para salvar o arquivo
+                    raise ValueError("Arquivo de imagem inválido (muito pequeno).")
                 subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
-                
-                # Use a extensão correta baseada no mimetype
                 ext = mimetypes.guess_extension(media_mimetype) or '.jpg'
                 if not media_filename or not media_filename.endswith(ext):
                     media_filename = f"{tipo_mensagem}_{uuid.uuid4().hex}{ext}"
-
                 path = os.path.join(subfolder, media_filename)
-                logger.info(f"📁 Path completo: {path}")
-                logger.info(f"📊 Tamanho do arquivo: {len(file_data)} bytes")
-                
-                # Salva o arquivo (SEM o parâmetro name)
                 saved_path = default_storage.save(path, ContentFile(file_data))
                 media_local_path = default_storage.url(saved_path)
                 media_size = default_storage.size(saved_path)
-                
                 logger.info(f"✅ Imagem salva: {media_local_path} ({media_size} bytes)")
 
-            except Exception as e:
-                logger.error(f"💥 Erro ao salvar imagem: {str(e)}")
-                logger.error(f"📊 Base64 length: {len(base64Text) if base64Text else 0}")
-                logger.error(f"📊 Mimetype: {media_mimetype}")
-                media_local_path = None
-                media_size = None
-        # ✅ SALVAR MÍDIA SE HOUVER DADOS (URL OU BASE64):
-        # if dados_midia and tipo_mensagem in media_types_to_save:
-        #     try:
-        #         # CASO 1: É UMA URL (começa com http) - usa a função de download
-        #         if isinstance(dados_midia, str) and dados_midia.startswith('http'):
-        #             logger.info(f"⬇️ Baixando mídia da URL: {dados_midia}")
-        #             resultado_download = baixar_e_salvar_media(dados_midia, tipo_mensagem, media_filename)
-        #             if resultado_download['success']:
-        #                 media_local_path = resultado_download['local_path']
-        #                 media_filename = resultado_download['filename']
-        #                 media_size = resultado_download.get('size')
-        #                 logger.info(f"✅ Mídia de URL salva em: {media_local_path}")
-        #             else:
-        #                 logger.error(f"❌ Erro no download da URL: {resultado_download['error']}")
+            # Caso mídia seja URL ou base64 (mantém lógica descomentada para outros tipos)
+            elif dados_midia and tipo_mensagem in ["imagem", "audio", "video", "documento", "sticker"]:
+                if isinstance(dados_midia, str) and dados_midia.startswith('http'):  # URL
+                    resultado_download = baixar_e_salvar_media(dados_midia, tipo_mensagem, media_filename)
+                    if resultado_download['success']:
+                        media_local_path = resultado_download['local_path']
+                        media_filename = resultado_download['filename']
+                        media_size = resultado_download.get('size')
+                        logger.info(f"✅ Mídia de URL salva em: {media_local_path}")
+                    else:
+                        logger.error(f"❌ Erro no download da URL: {resultado_download['error']}")
+                else:  # Base64 "genérico"
+                    base64_string = dados_midia.split(',')[-1] if ',' in dados_midia else dados_midia
+                    file_data = base64.b64decode(base64_string)
+                    subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
+                    ext = mimetypes.guess_extension(media_mimetype) or '.bin'
+                    if not media_filename:
+                        media_filename = f"{tipo_mensagem}_{uuid.uuid4().hex}{ext}"
+                    path = os.path.join(subfolder, media_filename)
+                    saved_path = default_storage.save(path, ContentFile(file_data))
+                    media_local_path = default_storage.url(saved_path)
+                    media_size = default_storage.size(saved_path)
+                    logger.info(f"✅ Mídia Base64 salva em: {media_local_path}")
 
-        #         # CASO 2: É UM BASE64 - decodifica e salva diretamente
-        #         else:
-        #             logger.info(f"🖋️ Decodificando mídia de Base64...")
-                    
-        #             base64_string = dados_midia
-        #             # Limpa o cabeçalho do base64 (ex: "data:image/jpeg;base64,") se existir
-        #             if ',' in base64_string:
-        #                 base64_string = base64_string.split(',')[1]
+        except Exception as e:
+            logger.error(f"💥 Erro ao salvar mídia: {str(e)}")
+            media_local_path = None
+            media_size = None
 
-        #             file_data = base64.b64decode(base64_string)
-                    
-        #             # Gera um caminho para salvar o arquivo
-        #             subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
-                    
-        #             if not media_filename:
-        #                 ext = mimetypes.guess_extension(media_mimetype) or '.bin'
-        #                 media_filename = f"{tipo_mensagem}_{uuid.uuid4().hex}{ext}"
-
-        #             path = os.path.join(subfolder, media_filename)
-                    
-        #             saved_path = default_storage.save(path, ContentFile(file_data))
-        #             media_local_path = default_storage.url(saved_path)
-        #             media_size = default_storage.size(saved_path)
-                    
-        #             logger.info(f"✅ Mídia Base64 salva em: {media_local_path}")
-
-        #     except Exception as e:
-        #         print(f"💥 Erro CRÍTICO ao processar mídia: {str(e)}")
-        #         logger.error(f"💥 Erro CRÍTICO ao processar mídia: {str(e)}", exc_info=True)
-        
-        # ====================================================================
-        # FIM DO NOVO BLOCO
-        # ====================================================================
-
-        # ✅ SALVAR INTERAÇÃO:
+        # Salva a interação
         if texto_mensagem and texto_mensagem.strip():
-            print("💾 Salvando interação...")
-            
             interacao = Interacao.objects.create(
                 conversa=conversa,
                 mensagem=texto_mensagem,
                 remetente='cliente',
                 tipo=tipo_mensagem,
                 whatsapp_id=message_id,
-                media_url=media_local_path,  # ✅ URL LOCAL SALVA CORRETAMENTE
+                media_url=media_local_path,
                 media_filename=media_filename,
                 media_size=media_size,
                 media_duration=media_duration
             )
-            
-            print(f"✅ Interação salva: ID {interacao.pk}")
             logger.info(f"✅ Interação criada: ID {interacao.pk}")
-            
-            # ✅ ATUALIZAR STATUS DA CONVERSA:
             if conversa.status == 'finalizada':
                 conversa.status = 'entrada'
                 conversa.save()
-                print("📝 Status conversa atualizado para 'entrada'")
-                logger.info("📝 Conversa reativada")
+                logger.info("📝 Conversa reativada.")
 
         return Response({
             'status': 'processed',
@@ -1285,7 +1284,6 @@ def evolution_webhook(request):
         }, status=200)
 
     except Exception as e:
-        print(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
         logger.error(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
         logger.error(f"💥 TRACEBACK: {traceback.format_exc()}")
         return Response({'status': 'error', 'error': str(e)}, status=500)
