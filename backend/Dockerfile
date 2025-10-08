@@ -1,6 +1,9 @@
 FROM python:3.13.7
 
-RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
+# instalar netcat, cliente PostgreSQL e cliente Redis
+RUN apt-get update && \
+    apt-get install -y netcat-openbsd postgresql-client redis-tools && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
