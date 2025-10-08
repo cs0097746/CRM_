@@ -17,11 +17,15 @@ class NegocioListCreateView(generics.ListCreateAPIView):
     serializer_class = NegocioSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        kanban_id = self.kwargs.get("kanban_id")
-        if not kanban_id:
-            return Negocio.objects.none()
-        return Negocio.objects.filter(estagio__kanban_id=kanban_id)
+    def get(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except self.queryset.model.DoesNotExist:
+            return Response({}, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({}, status=status.HTTP_200_OK)
 
     def post(self, request, *args, **kwargs):
         data = request.data.copy()

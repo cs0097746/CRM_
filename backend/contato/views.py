@@ -253,7 +253,8 @@ def buscar_contato_por_telefone(request):
         return Response({'error': 'Informe o parâmetro telefone.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Buscar contato correspondente
+        telefone = telefone.strip()
+
         contato = Contato.objects.filter(
             Q(telefone=telefone) | Q(whatsapp_id=telefone)
         ).first()
@@ -264,5 +265,5 @@ def buscar_contato_por_telefone(request):
         serializer = ContatoSerializer(contato)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        return Response({}, status=status.HTTP_200_OK)
