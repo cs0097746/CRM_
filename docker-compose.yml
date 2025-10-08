@@ -35,7 +35,7 @@ services:
     entrypoint: >
         sh -c "python manage.py migrate &&
                python manage.py createsuperuser --noinput 2>/dev/null || true &&
-               exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+               exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 1"
     depends_on:
       - db
       - redis
@@ -72,7 +72,7 @@ services:
       dockerfile: Dockerfile
     image: crm_backend:latest
     container_name: crm_backend_celery
-    command: celery -A backend worker -l info
+    command: celery -A backend worker -l info --concurrency=1
     environment:
       POSTGRES_DB: crmdb
       POSTGRES_USER: crmuser
