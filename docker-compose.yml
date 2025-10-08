@@ -52,6 +52,26 @@ services:
     networks:
       - loomie-network
 
+  crm_backend_celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: crm_backend:latest
+    container_name: crm_backend_celery
+    command: celery -A backend worker -l info
+    environment:
+      POSTGRES_DB: crmdb
+      POSTGRES_USER: crmuser
+      POSTGRES_PASSWORD: crmpassword
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/2
+    depends_on:
+      - db
+#      - redis
+    networks:
+      - loomie-network
+
 volumes:
   postgres-data:
 
