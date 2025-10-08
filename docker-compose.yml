@@ -39,8 +39,10 @@ services:
              python manage.py createsuperuser --noinput 2>/dev/null || true &&
              exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 2 --timeout 60"
     depends_on:
-      - db
-      - redis
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     expose:
       - "8000"
     ports:
@@ -74,6 +76,11 @@ services:
     mem_limit: 150m
     networks:
       - loomie-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   crm_backend_celery:
     build:
