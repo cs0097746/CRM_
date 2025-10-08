@@ -255,15 +255,15 @@ def buscar_contato_por_telefone(request):
     try:
         telefone = telefone.strip()
 
-        contato = Contato.objects.filter(
+        contatos = Contato.objects.filter(
             Q(telefone=telefone) | Q(whatsapp_id=telefone)
-        ).first()
+        )
 
-        if not contato:
-            return Response({}, status=status.HTTP_200_OK)
+        if not contatos.exists():
+            return Response([], status=status.HTTP_200_OK)
 
-        serializer = ContatoSerializer(contato)
+        serializer = ContatoSerializer(contatos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    except Exception:
-        return Response({}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response([], status=status.HTTP_200_OK)
