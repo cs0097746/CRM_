@@ -1,5 +1,4 @@
 from django.shortcuts import render
-from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -10,6 +9,9 @@ from django.shortcuts import get_object_or_404
 from contato.models import Contato
 from .models import Negocio
 from .serializers import NegocioSerializer, ComentarioSerializer
+from rest_framework.exceptions import NotFound
+from django.http import Http404
+
 
 class NegocioListCreateView(generics.ListCreateAPIView):
     """API: Lista e cria negócios"""
