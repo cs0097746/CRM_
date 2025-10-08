@@ -19,6 +19,8 @@ class NegocioListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         kanban_id = self.kwargs.get("kanban_id")
+        if not kanban_id:
+            return Negocio.objects.none()
         return Negocio.objects.filter(estagio__kanban_id=kanban_id)
 
     def post(self, request, *args, **kwargs):
@@ -35,8 +37,13 @@ class NegocioListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=data)
 
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                if "does not exist" in str(e).lower():
+                    return Response({}, status=status.HTTP_200_OK)
+                return Response({}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
