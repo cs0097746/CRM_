@@ -1116,7 +1116,7 @@ def processar_mensagem_media(message_data):
     """
     try:
         logger.info(f"🔍 Processando mensagem com chaves: {list(message_data.keys())}")
-        
+        base64:str = message_data.get('base64', '') 
         # --- IMAGEM ---
         if msg := message_data.get('imageMessage'):
             media_url = msg.get('url')
@@ -1124,7 +1124,6 @@ def processar_mensagem_media(message_data):
             filename = f"imagem_{uuid.uuid4().hex}.jpg"
             size = msg.get('fileLength')
             caption = msg.get('caption', '')
-            base64:str = message_data.get('base64', '') 
             texto = f"📷 Imagem enviada{': ' + caption if caption else ''}"
             return (texto, 'imagem', media_url, filename, size, None, mimetype,base64)
 
@@ -1136,7 +1135,7 @@ def processar_mensagem_media(message_data):
             size = msg.get('fileLength')
             duration = msg.get('seconds', 0)
             texto = f"🎵 Áudio enviado ({duration}s)"
-            return (texto, 'audio', media_url, filename, size, duration, mimetype,None)
+            return (texto, 'audio', media_url, filename, size, duration, mimetype,base64)
         
         
         # --- TEXTO ---
@@ -1144,12 +1143,12 @@ def processar_mensagem_media(message_data):
             return (text, 'texto', None, None, None, None, None,None)
         
         else:
-            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
+            logger.warning(f"⚠ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
             return ("[Mensagem não suportada]", 'outros', None, None, None, None, None,None)
 
     except Exception as e:
         logger.error(f"💥 Erro ao processar mensagem: {str(e)}", exc_info=True)
-        return ("[Erro ao processar mensagem]", 'erro', None, None, None, None, None,None)
+        return ("[Erro ao processar mensagem]", 'erro', None, None, None, None, None, None)
     
 
 @api_view(['POST'])
