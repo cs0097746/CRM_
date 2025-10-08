@@ -95,41 +95,32 @@ class ComentarioCreateView(generics.CreateAPIView):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def buscar_negocio_por_telefone(request):
-    """
-    Buscar negócios pelo telefone ou whatsapp_id do contato,
-    com opção de filtrar por kanban_id e/ou estagio_id.
-    """
-    telefone = request.GET.get('telefone')
+
+    telefone = (request.GET.get('telefone') or '').strip()
     kanban_id = request.GET.get('kanban_id')
     estagio_id = request.GET.get('estagio_id')
 
     if not telefone:
-        return Response({'error': 'Informe o parâmetro telefone.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response([], status=status.HTTP_200_OK)
 
     try:
-        # Buscar contato correspondente
         contato = Contato.objects.filter(
             Q(telefone=telefone) | Q(whatsapp_id=telefone)
         ).first()
 
         if not contato:
-            return Response({'error': 'Contato não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response([], status=status.HTTP_200_OK)
 
-        # Buscar negócios relacionados
         negocios = Negocio.objects.filter(contato=contato)
 
-        # Filtros opcionais
         if kanban_id:
             negocios = negocios.filter(estagio__kanban_id=kanban_id)
 
         if estagio_id:
             negocios = negocios.filter(estagio_id=estagio_id)
 
-        if not negocios.exists():
-            return Response([], status=status.HTTP_200_OK)
-
         serializer = NegocioSerializer(negocios, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response([], status=status.HTTP_200_OK)

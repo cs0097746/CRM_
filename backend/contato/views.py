@@ -259,13 +259,8 @@ def buscar_contato_por_telefone(request):
             Q(telefone=telefone) | Q(whatsapp_id=telefone)
         )
 
-        print("Contatos", contatos)
-
         if not contatos.exists():
-            print("Não existe contato")
             return Response([], status=status.HTTP_200_OK)
-
-        print("Existe contato")
 
         serializer = ContatoSerializer(contatos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
