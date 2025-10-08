@@ -17,15 +17,9 @@ class NegocioListCreateView(generics.ListCreateAPIView):
     serializer_class = NegocioSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except self.queryset.model.DoesNotExist:
-            return Response({}, status=status.HTTP_200_OK)
-        except Exception:
-            return Response({}, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        kanban_id = self.kwargs.get("kanban_id")
+        return Negocio.objects.filter(estagio__kanban_id=kanban_id)
 
     def post(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -41,13 +35,8 @@ class NegocioListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=data)
 
         if serializer.is_valid():
-            try:
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                if "does not exist" in str(e).lower():
-                    return Response({}, status=status.HTTP_200_OK)
-                return Response({}, status=status.HTTP_200_OK)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -57,6 +46,18 @@ class NegocioDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = NegocioSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_object(self):
+        try:
+            return super().get_object()
+        except self.queryset.model.DoesNotExist:
+            return None
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance is None:
+            return Response({}, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 # ===== ESTATÍSTICAS =====
 
