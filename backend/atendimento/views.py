@@ -1241,7 +1241,7 @@ def evolution_webhook(request):
                     base64_string = dados_midia.split(',')[-1] if ',' in dados_midia else dados_midia
                     file_data = base64.b64decode(base64_string)
                     subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
-                    ext = mimetypes.guess_extension(media_mimetype) or '.bin'
+                    ext = mimetypes.guess_extension(media_mimetype) if media_mimetype else '.bin'
                     if not media_filename:
                         media_filename = f"{tipo_mensagem}_{uuid.uuid4().hex}{ext}"
                     path = os.path.join(subfolder, media_filename)

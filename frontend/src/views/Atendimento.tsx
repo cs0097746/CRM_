@@ -35,6 +35,21 @@ const api = axios.create({
   }
 });
 
+// Interceptor para adicionar token automaticamente
+api.interceptors.request.use(async (config) => {
+  try {
+    const token = await getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.error('Erro ao obter token:', error);
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 export default function Atendimento() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [conversaAtiva, setConversaAtiva] = useState<Conversa | null>(null);
@@ -283,13 +298,7 @@ export default function Atendimento() {
   };
 
 
-  useEffect(() => {
-    const main = async () => {
-      const token = await getToken();
-      if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    }
-    main()
-  }, [])
+  // Token será adicionado automaticamente pelo interceptor
 
 
 
@@ -297,17 +306,7 @@ export default function Atendimento() {
     try {
       setLoadingList(true);
 
-      const token = await getToken();
-      if (!token) {
-        setError("Não foi possível autenticar.");
-        return;
-      }
-
-      const response = await api.get<Conversa[]>('conversas/', {
-        headers: {
-
-        }
-      });
+      const response = await api.get<Conversa[]>('conversas/');
 
       // @ts-ignore
       setConversas(response.data.results);
@@ -715,7 +714,7 @@ export default function Atendimento() {
                                 marginTop: '4px',
                                 fontWeight: 500
                               }}>
-                                {conversa.operador.user.username}
+                                {conversa.operador.user?.username || 'Operador'}
                               </div>
                             )}
                           </div>
