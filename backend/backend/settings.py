@@ -352,6 +352,7 @@ LOGGING = {
 # =========================
 # CACHE (REDIS PARA PRODUÇÃO)
 # =========================
+REDIS_PORT = config('REDIS_PORT', default='6380')
 
 if DEBUG:
     CACHES = {
@@ -363,7 +364,7 @@ else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': 'redis://redis:6379/1',
+            'LOCATION': f'redis://redis:{REDIS_PORT}/1',
         }
     }
 
@@ -397,8 +398,8 @@ if DEBUG:
         'localhost',
     ]
 
-CELERY_BROKER_URL = 'redis://redis:6379/2'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/2'
+CELERY_BROKER_URL = f'redis://redis:{REDIS_PORT}/2'
+CELERY_RESULT_BACKEND = f'redis://redis:{REDIS_PORT}/2'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
