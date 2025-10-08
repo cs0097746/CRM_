@@ -9,6 +9,7 @@ services:
       POSTGRES_PASSWORD: crmpassword
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    mem_limit: 500m
     networks:
       - loomie-network
 
@@ -18,29 +19,31 @@ services:
       dockerfile: Dockerfile
     image: crm_backend:latest
     container_name: crm_backend
+    restart: unless-stopped
     environment:
       POSTGRES_DB: crmdb
       POSTGRES_USER: crmuser
       POSTGRES_PASSWORD: crmpassword
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      ALLOWED_HOSTS: "crm.backend.localhost"
+      ALLOWED_HOSTS: "backend.loomiecrm.com,crm.backend.localhost"
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
-#      REDIS_URL: redis://redis:6380/0
-#      CELERY_BROKER_URL: redis://redis:6380/2
-#      CELERY_RESULT_BACKEND: redis://redis:6380/2
+      REDIS_URL: redis://redis:6380/0
+      CELERY_BROKER_URL: redis://redis:6380/2
+      CELERY_RESULT_BACKEND: redis://redis:6380/2
       DJANGO_SETTINGS_MODULE: backend.settings
     entrypoint: >
-        sh -c "python manage.py migrate &&
-               python manage.py createsuperuser --noinput 2>/dev/null || true &&
-               exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 1"
+      sh -c "python manage.py migrate &&
+             python manage.py createsuperuser --noinput 2>/dev/null || true &&
+             exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 60"
     depends_on:
       - db
-#      - redis
+      - redis
     expose:
       - "8000"
+    mem_limit: 700m
     networks:
       - loomie-network
 
@@ -50,44 +53,49 @@ services:
       dockerfile: Dockerfile
     image: crm_frontend:latest
     container_name: crm_frontend
+    restart: unless-stopped
     depends_on:
       - backend
     expose:
       - "80"
+    mem_limit: 300m
     networks:
       - loomie-network
 
-#  redis:
-#    image: redis:7
-#    container_name: crm_redis
-#    command: redis-server --port 6380
-#    ports:
-#      - "6380:6380"
-#    networks:
-#      - loomie-network
-#
-#  crm_backend_celery:
-#    build:
-#      context: ./backend
-#      dockerfile: Dockerfile
-#    image: crm_backend:latest
-#    container_name: crm_backend_celery
-#    command: celery -A backend worker -l info --concurrency=1
-#    environment:
-#      POSTGRES_DB: crmdb
-#      POSTGRES_USER: crmuser
-#      POSTGRES_PASSWORD: crmpassword
-#      POSTGRES_HOST: db
-#      POSTGRES_PORT: 5432
-#      REDIS_URL: redis://redis:6380/2
-#      CELERY_BROKER_URL: redis://redis:6380/2
-#      CELERY_RESULT_BACKEND: redis://redis:6380/2
-#      DJANGO_SETTINGS_MODULE: backend.settings
-#    depends_on:
-#      - db
-#      - redis
-#    networks:
-#      - loomie-network
+  redis:
+    image: redis:7
+    container_name: crm_redis
+    restart: unless-stopped
+    command: redis-server --port 6380 --maxmemory 100mb --maxmemory-policy allkeys-lru
+    mem_limit: 150m
+    networks:
+      - loomie-network
+
+  crm_backend_celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: crm_backend:latest
+    container_name: crm_backend_celery
+    restart: unless-stopped
+    command: celery -A backend worker -l info --concurrency=1 --pool=solo
+    environment:
+      POSTGRES_DB: crmdb
+      POSTGRES_USER: crmuser
+      POSTGRES_PASSWORD: crmpassword
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6380/2
+      CELERY_BROKER_URL: redis://redis:6380/2
+      CELERY_RESULT_BACKEND: redis://redis:6380/2
+      DJANGO_SETTINGS_MODULE: backend.settings
+      CELERYD_MAX_TASKS_PER_CHILD: 50
+    depends_on:
+      - db
+      - redis
+    mem_limit: 250m
+    networks:
+      - loomie-network
 
 volumes:
   postgres-data:
