@@ -40,7 +40,7 @@ services:
              exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 2 --timeout 60"
     depends_on:
       - db
-      - redis
+#      - redis
     expose:
       - "8000"
     ports:
