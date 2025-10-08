@@ -21,8 +21,6 @@ urlpatterns = [
     # ===== MAIN API =====
     path('', include('contato.urls')),
     path('', include('core.urls')),  # Mantém sem prefixo como estava
-
-    path('webhook/debug/', atendimento_views.debug_webhook, name='debug_webhook'),
 ]
 
 # ===== STATIC/MEDIA FILES =====

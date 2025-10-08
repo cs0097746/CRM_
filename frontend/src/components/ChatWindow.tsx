@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from 'react-bootstrap';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
-import type { Conversa, Interacao } from '../types/Conversa'; // ✅ IMPORT CORRETO
+import type { Conversa, Interacao } from '../types/Conversa';
 import type { ChatMensagem } from '../types/Chat';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
@@ -36,6 +36,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   // ✅ FUNÇÃO PARA ADAPTAR MENSAGEM (CORRIGIDA):
   const adaptarMensagem = (interacao: Interacao): ChatMensagem => {
+    console.log("🚀 ~ adaptarMensagem ~ interacao:", interacao)
     const remetente = interacao.remetente || interacao.autor || 'cliente';
     
     return {

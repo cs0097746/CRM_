@@ -1,67 +1,54 @@
-from django.shortcuts import render
-import traceback
+# Python Standard Library
+import base64
 import json
-import requests
-import time
 import logging
+import mimetypes
+import os
+import time
+import traceback
+import uuid
+
+# Third-Party Libraries (Django, DRF, Requests)
+import requests
 from django.conf import settings
-from django.utils import timezone
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from rest_framework import generics, filters, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .utils import baixar_e_salvar_media
 
+# Imports de outros apps do seu projeto
 from core.models import ConfiguracaoSistema
+from core.utils import get_user_operador
 from contato.models import Contato, Operador
+
+from .utils import baixar_e_salvar_media, get_instance_config
+# Imports do app atual ('atendimento')
 from .models import (
     Conversa,
     Interacao,
-    RespostasRapidas,
     NotaAtendimento,
+    RespostasRapidas,
     TarefaAtendimento,
 )
-
 from .serializers import (
-    InteracaoSerializer,
-    ConversaListSerializer,
     ConversaDetailSerializer,
-    RespostasRapidasSerializer,
+    ConversaListSerializer,
+    InteracaoSerializer,
     NotaAtendimentoSerializer,
+    RespostasRapidasSerializer,
     TarefaAtendimentoSerializer,
     TarefaCreateSerializer,
 )
+from .utils import baixar_e_salvar_media
 
-from core.utils import get_user_operador
-
+# Configuração do Logger
 logger = logging.getLogger(__name__)
-
-
-# ===== INTEGRAÇÃO EVOLUTION API COMPLETA =====
-def get_instance_config():
-    """Obtém configuração dinâmica do banco ou fallback para settings"""
-    try:
-        from core.models import ConfiguracaoSistema
-        config = ConfiguracaoSistema.objects.first()
-        
-        if config and config.evolution_api_key:  # ✅ Só usa se tiver API key configurada
-            return {
-                'url': config.evolution_api_url,
-                'api_key': config.evolution_api_key,
-                'instance_name': config.whatsapp_instance_name
-            }
-    except Exception as e:
-        logger.warning(f"⚠️ Erro ao buscar config do banco: {e}")
-    
-    # ✅ Fallback para settings.py se não tiver config no banco
-    return {
-        'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evolution-api.local'),
-        'api_key': getattr(settings, 'API_KEY', ''),
-        'instance_name': getattr(settings, 'INSTANCE_NAME', 'main')
-    }
 
 
 def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api_url=None, api_key=None):
@@ -1036,333 +1023,272 @@ def enviar_presenca_view(request):
             'error': f'Erro interno: {str(e)}'
         }, status=500)
 
+def processar_mensagem_media(message_data):
+    """
+    Processa mensagens e extrai a URL da mídia para download.
+    Retorna: (texto_msg, tipo_msg, media_url, nome_arquivo, tamanho, duracao, mimetype)
+    """
+    try:
+        logger.info(f"🔍 Processando mensagem com chaves: {list(message_data.keys())}")
+        
+        # --- IMAGEM ---
+        if msg := message_data.get('imageMessage'):
+            media_url = msg.get('url')
+            mimetype = msg.get('mimetype')
+            filename = f"imagem_{uuid.uuid4().hex}.jpg"
+            size = msg.get('fileLength')
+            caption = msg.get('caption', '')
+            base64:str = message_data.get('base64', '') 
+            texto = f"📷 Imagem enviada{': ' + caption if caption else ''}"
+            return (texto, 'imagem', media_url, filename, size, None, mimetype,base64)
+
+        # --- ÁUDIO ---
+        elif msg := message_data.get('audioMessage'):
+            media_url = msg.get('url')
+            mimetype = msg.get('mimetype')
+            filename = f"audio_{uuid.uuid4().hex}.ogg"
+            size = msg.get('fileLength')
+            duration = msg.get('seconds', 0)
+            texto = f"🎵 Áudio enviado ({duration}s)"
+            return (texto, 'audio', media_url, filename, size, duration, mimetype,None)
+        
+        
+        # --- TEXTO ---
+        elif text := message_data.get('conversation') or message_data.get('extendedTextMessage', {}).get('text'):
+            return (text, 'texto', None, None, None, None, None,None)
+        
+        else:
+            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
+            return ("[Mensagem não suportada]", 'outros', None, None, None, None, None,None)
+
+    except Exception as e:
+        logger.error(f"💥 Erro ao processar mensagem: {str(e)}", exc_info=True)
+        return ("[Erro ao processar mensagem]", 'erro', None, None, None, None, None,None)
+    
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """Webhook Evolution API - VERSÃO CORRIGIDA"""
+    """Webhook Evolution API - VERSÃO COMPLETA COM SUPORTE A BASE64 E URL"""
+    
+    # ✅ LOG INICIAL SEMPRE:
+    print("🚀 WEBHOOK EVOLUTION CHAMADO!")
+    logger.info("🚀 WEBHOOK EVOLUTION CHAMADO!")
+    
     try:
-        event_type = request.data.get('event')
-        event_data = request.data.get('data', {})
+        # ✅ LOG DOS DADOS RECEBIDOS:
+        payload = request.data
+        print(f"📦 Payload recebido: {payload}")
+        print("--- DEBUG INÍCIO DO PAYLOAD RAW ---")
+        print(json.dumps(payload, indent=2))
+        print("--- DEBUG FIM DO PAYLOAD RAW ---")
+        logger.info(f"📦 Payload completo: {json.dumps(payload, indent=2, ensure_ascii=False)}")
         
-        logger.info(f"📥 Webhook recebido: {event_type}")
-        
-        if event_type == 'messages.upsert':
-            key_data = event_data.get('key', {})
-            message_data = event_data.get('message', {})
+        # ✅ VERIFICAR ESTRUTURA BÁSICA:
+        if not payload:
+            print("❌ PAYLOAD VAZIO")
+            logger.error("❌ PAYLOAD VAZIO")
+            return Response({'status': 'empty_payload'}, status=400)
             
-            # Verificar se é mensagem recebida (não enviada por nós)
-            if not key_data.get('fromMe', True):
-                numero_remetente = key_data.get('remoteJid', '').replace('@s.whatsapp.net', '')
-                message_id = key_data.get('id')
-                push_name = event_data.get('pushName', f'Contato {numero_remetente}')
-                
-                logger.info(f"📱 Nova mensagem de: {numero_remetente}")
-                
-                # ✅ USAR FUNÇÃO EXISTENTE processar_mensagem_media:
-                texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration = processar_mensagem_media(message_data)
-                
-                logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem or '[Mídia sem texto]'}")
-                if media_url:
-                    logger.info(f"🔗 Media URL: {media_url}")
-                
-                # ✅ BUSCAR OU CRIAR CONTATO:
-                contato, created = Contato.objects.get_or_create(
-                    telefone=numero_remetente,
-                    defaults={
-                        'nome': push_name,
-                        'observacoes': 'Criado automaticamente via webhook'
-                    }
-                )
-                
-                if created:
-                    logger.info(f"👤 Novo contato criado: {contato.nome}")
-                
-                # ✅ BUSCAR OU CRIAR CONVERSA:
-                conversa, conv_created = Conversa.objects.get_or_create(
-                    contato=contato,
-                    status__in=['entrada', 'atendimento'],
-                    defaults={
-                        'status': 'entrada',
-                        'origem': 'whatsapp',
-                        'assunto': 'Conversa WhatsApp'
-                    }
-                )
-                
-                if conv_created:
-                    logger.info(f"💬 Nova conversa criada: ID {conversa.pk}")
+        event_type = payload.get('event')
+        data = payload.get('data', {})
+        
+        print(f"📡 Event: {event_type}")
+        logger.info(f"📡 Event: {event_type}")
+        
+        # ✅ PROCESSAR APENAS MENSAGENS:
+        if event_type != 'messages.upsert':
+            print(f"ℹ️ Evento ignorado: {event_type}")
+            logger.info(f"ℹ️ Evento ignorado: {event_type}")
+            return Response({'status': f'event_ignored_{event_type}'}, status=200)
 
-                # Só processa se houver conteúdo de texto ou mídia para salvar
-                if texto_mensagem or media_url:
-                    arquivo_local_url = None # Usar um nome de variável diferente para clareza
-                    
-                    if media_url and tipo_mensagem in ['imagem', 'audio', 'video', 'documento']:
-                        arquivo_salvo, sucesso, erro = baixar_e_salvar_media(
-                            media_url, 
-                            media_filename or f"{tipo_mensagem}_{int(time.time())}.bin",
-                            tipo_mensagem
-                        )
-                        
-                        if sucesso:
-                            logger.info(f"📁 Arquivo salvo localmente: {arquivo_salvo}")
-                            # URL para ser acessada pelo sistema
-                            arquivo_local_url = request.build_absolute_uri(arquivo_salvo)
-                        else:
-                            logger.warning(f"⚠️ Falha ao baixar mídia: {erro}")
-                            # Salva a URL temporária como fallback
-                            arquivo_local_url = media_url
-                    
-                    # Cria a interação no banco de dados
-                    interacao = Interacao.objects.create(
-                        conversa=conversa,
-                        mensagem=texto_mensagem,
-                        remetente='cliente',
-                        tipo=tipo_mensagem,
-                        whatsapp_id=message_id,
-                        media_url=arquivo_local_url,
-                        media_filename=media_filename,
-                        media_size=media_size,
-                        media_duration=media_duration
-                    )
-                    
-                    logger.info(f"💾 Mensagem salva: ID {interacao.pk} | Tipo: {tipo_mensagem}")
-                    if arquivo_local_url: 
-                        logger.info(f"🔗 MÍDIA SALVA: {arquivo_local_url}")
-                        
-                    # Atualizar timestamp da conversa
-                    conversa.atualizado_em = timezone.now()
-                    conversa.save()
-                
-                    return Response({
-                        'status': 'processed',
-                        'contato_id': contato.pk,
-                        'conversa_id': conversa.pk,
-                        'interacao_id': interacao.pk,
-                        'has_media': bool(arquivo_local_url),
-                        'message': f'Mensagem {tipo_mensagem} processada com sucesso'
-                    })
-                else:
-                    logger.info("ℹ️ Mensagem ignorada (sem texto ou mídia).")
+        # ✅ EXTRAIR DADOS DA MENSAGEM:
+        key = data.get('key', {})
+        # A nova lógica vai procurar o base64 no corpo da mensagem
+        message = data.get('message', {})
+        if body := data.get('body'):
+            message['body'] = body
 
-        # Processar outros eventos
-        elif event_type == 'connection.update':
-            connection_state = event_data.get('state')
-            logger.info(f"🔌 Estado da conexão: {connection_state}")
+        push_name = data.get('pushName', 'Usuário')
         
-        # Resposta padrão para eventos recebidos mas não processados (ou mensagens 'fromMe')
-        return Response({
-            'status': 'received_ok',
-            'event': event_type,
-            'message': 'Event received but no action taken.'
-        })
+        remote_jid = key.get('remoteJid', '')
+        from_me = key.get('fromMe', False)
+        message_id = key.get('id', '')
         
-    except Exception as e:
-        logger.error(f"💥 Erro no webhook: {str(e)}", exc_info=True) # exc_info=True para logar o traceback
-        return Response({'status': 'error', 'error': str(e)}, status=500)
+        print(f"📞 JID: {remote_jid} | From me: {from_me}")
+        logger.info(f"📞 Remote JID: {remote_jid} | From me: {from_me} | ID: {message_id}")
+        
+        if from_me:
+            print("📤 Mensagem própria ignorada")
+            logger.info("📤 Mensagem própria ignorada")
+            return Response({'status': 'own_message_ignored'}, status=200)
 
-def processar_mensagem_media(message_data):
-    """
-    Processa diferentes tipos de mensagem e extrai mídia
-    Retorna: (texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration)
-    """
-    try:
-        logger.info(f"🔍 Processando mensagem: {list(message_data.keys())}")
+        # ✅ PROCESSAR CONTATO:
+        numero_contato = remote_jid.split('@')[0]
+        print(f"📱 Número: {numero_contato}")
         
-        # ✅ TEXTO SIMPLES
-        if message_data.get('conversation'):
-            return (
-                message_data.get('conversation'),
-                'texto',
-                None, None, None, None
-            )
-        
-        # ✅ TEXTO EXTENDIDO (com formatação)
-        elif message_data.get('extendedTextMessage'):
-            return (
-                message_data.get('extendedTextMessage', {}).get('text', ''),
-                'texto',
-                None, None, None, None
-            )
-        
-        # ✅ IMAGEM - VERSÃO MELHORADA
-        elif message_data.get('imageMessage'):
-            image_msg = message_data.get('imageMessage', {})
-            caption = image_msg.get('caption', '')
-            
-            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
-            media_url = (
-                image_msg.get('url') or 
-                image_msg.get('directPath') or 
-                image_msg.get('mediaUrl') or
-                image_msg.get('thumbnail')
-            )
-            
-            # ✅ OUTROS DADOS DA IMAGEM:
-            filename = image_msg.get('fileName') or f"imagem_{int(time.time())}.jpg"
-            file_size = image_msg.get('fileLength') or image_msg.get('size')
-            
-            logger.info(f"📷 Imagem detectada - URL: {media_url}")
-            logger.info(f"📷 Dados da imagem: {image_msg}")
-            
-            return (
-                f"📷 Imagem enviada{': ' + caption if caption else ''}",
-                'imagem',
-                media_url,
-                filename,
-                file_size,
-                None
-            )
-        
-        # ✅ ÁUDIO - VERSÃO MELHORADA
-        elif message_data.get('audioMessage'):
-            audio_msg = message_data.get('audioMessage', {})
-            
-            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
-            media_url = (
-                audio_msg.get('url') or 
-                audio_msg.get('directPath') or 
-                audio_msg.get('mediaUrl')
-            )
-            
-            # ✅ OUTROS DADOS DO ÁUDIO:
-            duration = audio_msg.get('seconds', 0)
-            filename = audio_msg.get('fileName') or f"audio_{int(time.time())}.ogg"
-            file_size = audio_msg.get('fileLength') or audio_msg.get('size')
-            
-            logger.info(f"🎵 Áudio detectado - URL: {media_url} - Duração: {duration}s")
-            logger.info(f"🎵 Dados do áudio: {audio_msg}")
-            
-            return (
-                f"🎵 Áudio enviado ({duration}s)",
-                'audio',
-                media_url,
-                filename,
-                file_size,
-                duration
-            )
-        
-        # ✅ VÍDEO - VERSÃO MELHORADA
-        elif message_data.get('videoMessage'):
-            video_msg = message_data.get('videoMessage', {})
-            caption = video_msg.get('caption', '')
-            
-            media_url = (
-                video_msg.get('url') or 
-                video_msg.get('directPath') or 
-                video_msg.get('mediaUrl')
-            )
-            
-            filename = video_msg.get('fileName') or f"video_{int(time.time())}.mp4"
-            file_size = video_msg.get('fileLength') or video_msg.get('size')
-            duration = video_msg.get('seconds', 0)
-            
-            logger.info(f"🎥 Vídeo detectado - URL: {media_url}")
-            
-            return (
-                f"🎥 Vídeo enviado{': ' + caption if caption else ''}",
-                'video',
-                media_url,
-                filename,
-                file_size,
-                duration
-            )
-        
-        # ✅ STICKER/FIGURINHA
-        elif message_data.get('stickerMessage'):
-            sticker_msg = message_data.get('stickerMessage', {})
-            
-            media_url = (
-                sticker_msg.get('url') or 
-                sticker_msg.get('directPath') or 
-                sticker_msg.get('mediaUrl')
-            )
-            
-            filename = f"sticker_{int(time.time())}.webp"
-            
-            logger.info(f"😄 Sticker detectado - URL: {media_url}")
-            
-            return (
-                "😄 Figurinha enviada",
-                'sticker',
-                media_url,
-                filename,
-                None,
-                None
-            )
-        
-        # ✅ DOCUMENTO
-        elif message_data.get('documentMessage'):
-            doc_msg = message_data.get('documentMessage', {})
-            
-            media_url = (
-                doc_msg.get('url') or 
-                doc_msg.get('directPath') or 
-                doc_msg.get('mediaUrl')
-            )
-            
-            filename = doc_msg.get('fileName', 'documento')
-            file_size = doc_msg.get('fileLength') or doc_msg.get('size')
-            
-            return (
-                f"📄 Documento: {filename}",
-                'documento',
-                media_url,
-                filename,
-                file_size,
-                None
-            )
-        
-        # ✅ LOCALIZAÇÃO
-        elif message_data.get('locationMessage'):
-            location_msg = message_data.get('locationMessage', {})
-            lat = location_msg.get('degreesLatitude', 0)
-            lng = location_msg.get('degreesLongitude', 0)
-            
-            return (
-                f"📍 Localização: {lat}, {lng}",
-                'localizacao',
-                f"https://maps.google.com/maps?q={lat},{lng}",
-                None,
-                None,
-                None
-            )
-        
-        # ✅ CONTATO
-        elif message_data.get('contactMessage'):
-            contact_msg = message_data.get('contactMessage', {})
-            name = contact_msg.get('displayName', 'Contato')
-            
-            return (
-                f"👤 Contato compartilhado: {name}",
-                'contato',
-                None,
-                None,
-                None,
-                None
-            )
-        
-        # ✅ MENSAGEM NÃO SUPORTADA
-        else:
-            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
-            return (
-                "[Mensagem não suportada]",
-                'outros',
-                None,
-                None,
-                None,
-                None
-            )
-            
-    except Exception as e:
-        logger.error(f"💥 Erro ao processar mídia: {str(e)}")
-        return (
-            "[Erro ao processar mensagem]",
-            'erro',
-            None,
-            None,
-            None,
-            None
+        contato, created = Contato.objects.get_or_create(
+            telefone=numero_contato,
+            defaults={'nome': push_name}
         )
+        print(f"👤 Contato ID: {contato.id} (criado: {created})")
+        logger.info(f"👤 Contato: {contato.id} | Nome: {contato.nome} | Criado: {created}")
+
+        # ✅ PROCESSAR CONVERSA:
+        conversa, created = Conversa.objects.get_or_create(
+            contato=contato,
+            defaults={'status': 'entrada'}
+        )
+        print(f"💬 Conversa ID: {conversa.id} (criada: {created})")
+        logger.info(f"💬 Conversa: {conversa.id} | Status: {conversa.status} | Criada: {created}")
+
+        # ====================================================================
+        # AQUI COMEÇA O NOVO BLOCO DE PROCESSAMENTO DE MÍDIA
+        # ====================================================================
+        
+        # ✅ PROCESSAR TIPO DE MENSAGEM E EXTRAIR DADOS:
+        (texto_mensagem, tipo_mensagem, dados_midia, media_filename, 
+         media_size, media_duration, media_mimetype,base64Text) = processar_mensagem_media(message)
+        
+        print(f"📝 Mensagem: {texto_mensagem[:50]}...")
+        print(f"🎯 Tipo: {tipo_mensagem}")
+        print(f"🎨 Dados de Mídia: {'Sim' if dados_midia else 'Não'}")
+        
+        logger.info(f"📝 Texto: {texto_mensagem}")
+        logger.info(f"🎯 Tipo: {tipo_mensagem}")
+        logger.info(f"🎨 Dados de Mídia recebidos: {'Sim' if dados_midia else 'Não'}")
+
+        media_types_to_save = ['imagem', 'audio', 'video', 'documento', 'sticker']
+        media_local_path = None
+        
+        if tipo_mensagem == "imagem" and base64Text is not None and media_mimetype is not None:
+            try:
+                # Limpa o prefixo do base64 se existir
+                base64_clean = base64Text
+                if ',' in base64Text:
+                    base64_clean = base64Text.split(',')[1]
+                
+                # Decodifica o base64
+                file_data = base64.b64decode(base64_clean)
+                
+                # Valida se a imagem foi decodificada corretamente
+                if len(file_data) < 100:
+                    logger.error(f"⚠️ Arquivo muito pequeno: {len(file_data)} bytes")
+                    raise ValueError("Arquivo de imagem inválido")
+                
+                # Gera um caminho para salvar o arquivo
+                subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
+                
+                # Use a extensão correta baseada no mimetype
+                ext = mimetypes.guess_extension(media_mimetype) or '.jpg'
+                if not media_filename or not media_filename.endswith(ext):
+                    media_filename = f"{tipo_mensagem}_{uuid.uuid4().hex}{ext}"
+
+                path = os.path.join(subfolder, media_filename)
+                logger.info(f"📁 Path completo: {path}")
+                logger.info(f"📊 Tamanho do arquivo: {len(file_data)} bytes")
+                
+                # Salva o arquivo (SEM o parâmetro name)
+                saved_path = default_storage.save(path, ContentFile(file_data))
+                media_local_path = default_storage.url(saved_path)
+                media_size = default_storage.size(saved_path)
+                
+                logger.info(f"✅ Imagem salva: {media_local_path} ({media_size} bytes)")
+
+            except Exception as e:
+                logger.error(f"💥 Erro ao salvar imagem: {str(e)}")
+                logger.error(f"📊 Base64 length: {len(base64Text) if base64Text else 0}")
+                logger.error(f"📊 Mimetype: {media_mimetype}")
+                media_local_path = None
+                media_size = None
+        # ✅ SALVAR MÍDIA SE HOUVER DADOS (URL OU BASE64):
+        # if dados_midia and tipo_mensagem in media_types_to_save:
+        #     try:
+        #         # CASO 1: É UMA URL (começa com http) - usa a função de download
+        #         if isinstance(dados_midia, str) and dados_midia.startswith('http'):
+        #             logger.info(f"⬇️ Baixando mídia da URL: {dados_midia}")
+        #             resultado_download = baixar_e_salvar_media(dados_midia, tipo_mensagem, media_filename)
+        #             if resultado_download['success']:
+        #                 media_local_path = resultado_download['local_path']
+        #                 media_filename = resultado_download['filename']
+        #                 media_size = resultado_download.get('size')
+        #                 logger.info(f"✅ Mídia de URL salva em: {media_local_path}")
+        #             else:
+        #                 logger.error(f"❌ Erro no download da URL: {resultado_download['error']}")
+
+        #         # CASO 2: É UM BASE64 - decodifica e salva diretamente
+        #         else:
+        #             logger.info(f"🖋️ Decodificando mídia de Base64...")
+                    
+        #             base64_string = dados_midia
+        #             # Limpa o cabeçalho do base64 (ex: "data:image/jpeg;base64,") se existir
+        #             if ',' in base64_string:
+        #                 base64_string = base64_string.split(',')[1]
+
+        #             file_data = base64.b64decode(base64_string)
+                    
+        #             # Gera um caminho para salvar o arquivo
+        #             subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
+                    
+        #             if not media_filename:
+        #                 ext = mimetypes.guess_extension(media_mimetype) or '.bin'
+        #                 media_filename = f"{tipo_mensagem}_{uuid.uuid4().hex}{ext}"
+
+        #             path = os.path.join(subfolder, media_filename)
+                    
+        #             saved_path = default_storage.save(path, ContentFile(file_data))
+        #             media_local_path = default_storage.url(saved_path)
+        #             media_size = default_storage.size(saved_path)
+                    
+        #             logger.info(f"✅ Mídia Base64 salva em: {media_local_path}")
+
+        #     except Exception as e:
+        #         print(f"💥 Erro CRÍTICO ao processar mídia: {str(e)}")
+        #         logger.error(f"💥 Erro CRÍTICO ao processar mídia: {str(e)}", exc_info=True)
+        
+        # ====================================================================
+        # FIM DO NOVO BLOCO
+        # ====================================================================
+
+        # ✅ SALVAR INTERAÇÃO:
+        if texto_mensagem and texto_mensagem.strip():
+            print("💾 Salvando interação...")
+            
+            interacao = Interacao.objects.create(
+                conversa=conversa,
+                mensagem=texto_mensagem,
+                remetente='cliente',
+                tipo=tipo_mensagem,
+                whatsapp_id=message_id,
+                media_url=media_local_path,  # ✅ URL LOCAL SALVA CORRETAMENTE
+                media_filename=media_filename,
+                media_size=media_size,
+                media_duration=media_duration
+            )
+            
+            print(f"✅ Interação salva: ID {interacao.pk}")
+            logger.info(f"✅ Interação criada: ID {interacao.pk}")
+            
+            # ✅ ATUALIZAR STATUS DA CONVERSA:
+            if conversa.status == 'finalizada':
+                conversa.status = 'entrada'
+                conversa.save()
+                print("📝 Status conversa atualizado para 'entrada'")
+                logger.info("📝 Conversa reativada")
+
+        return Response({
+            'status': 'processed',
+            'contato_id': contato.id,
+            'conversa_id': conversa.id,
+            'tipo': tipo_mensagem,
+            'media_downloaded': bool(media_local_path)
+        }, status=200)
+
+    except Exception as e:
+        print(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
+        logger.error(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
+        logger.error(f"💥 TRACEBACK: {traceback.format_exc()}")
+        return Response({'status': 'error', 'error': str(e)}, status=500)
     
 @api_view(['POST'])
 @permission_classes([AllowAny])

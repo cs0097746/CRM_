@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [
     "crm.loomiecrm.com",
     "localhost",
     "127.0.0.1",
-    "792d38fa1167.ngrok-free.app",
+    "577da0e3de41.ngrok-free.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -243,7 +243,7 @@ REST_FRAMEWORK = {
 # =========================
 # CORS (Cross-Origin Resource Sharing)
 # =========================
-
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",

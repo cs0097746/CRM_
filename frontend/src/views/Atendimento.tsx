@@ -6,8 +6,33 @@ import ChatWindow from '../components/ChatWindow';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
 
-const api = axios.create({ 
-  baseURL: backend_url
+
+const USERNAME = "admin";
+const PASSWORD = "admin";
+const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
+const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
+
+const getToken = async () => {
+  const params = new URLSearchParams();
+  params.append("grant_type", "password");
+  params.append("username", USERNAME);
+  params.append("password", PASSWORD);
+  params.append("client_id", CLIENT_ID);
+  params.append("client_secret", CLIENT_SECRET);
+
+  try {
+    const res = await axios.post(`${backend_url}o/token/`, params);
+    return res.data.access_token;
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const api = axios.create({
+  baseURL: backend_url,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 export default function Atendimento() {
@@ -251,71 +276,57 @@ export default function Atendimento() {
     setToastMessage(message);
     setToastVariant(variant);
     setShowToast(true);
-    
+
     if (soundType) {
       playSound(soundType);
     }
   };
 
-    const USERNAME = "admin";
-    const PASSWORD = "admin";
-    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
-    const getToken = async () => {
-      const params = new URLSearchParams();
-      params.append("grant_type", "password");
-      params.append("username", USERNAME);
-      params.append("password", PASSWORD);
-      params.append("client_id", CLIENT_ID);
-      params.append("client_secret", CLIENT_SECRET);
+  useEffect(() => {
+    const main = async () => {
+      const token = await getToken();
+      if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    }
+    main()
+  }, [])
 
-      try {
-        const res = await axios.post(`${backend_url}o/token/`, params);
-        return res.data.access_token;
-      } catch (err) {
-        console.error(err);
-      }
-    };
+
 
   const fetchConversas = useCallback(async () => {
-      try {
-        setLoadingList(true);
+    try {
+      setLoadingList(true);
 
-        const token = await getToken();
-        if (!token) {
-          setError("Não foi possível autenticar.");
-          return;
-        }
-
-        const response = await api.get<Conversa[]>('conversas/', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        // @ts-ignore
-        setConversas(response.data.results);
-        setError(null);
-
-      } catch (err) {
-        setError('Não foi possível carregar as conversas.');
-        console.error('Erro ao buscar conversas:', err);
-      } finally {
-        setLoadingList(false);
+      const token = await getToken();
+      if (!token) {
+        setError("Não foi possível autenticar.");
+        return;
       }
-    }, []);
+
+      const response = await api.get<Conversa[]>('conversas/', {
+        headers: {
+
+        }
+      });
+
+      // @ts-ignore
+      setConversas(response.data.results);
+      setError(null);
+
+    } catch (err) {
+      setError('Não foi possível carregar as conversas.');
+      console.error('Erro ao buscar conversas:', err);
+    } finally {
+      setLoadingList(false);
+    }
+  }, []);
 
   const criarChamadoTeste = async () => {
     try {
-      const token = await getToken();
-      if (!token) throw new Error("Não foi possível autenticar.");
 
       await api.patch('conversas/1/', {
         operador_id: null,
         status: 'entrada'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       showToastWithSound('Chamado de teste criado', 'success', 'success');
@@ -352,7 +363,7 @@ export default function Atendimento() {
         status: 'atendimento',
         operador_id: 1
       }, {
-        headers: { Authorization: `Bearer ${token}` }
+
       });
 
       if (response.status === 200) {
@@ -377,7 +388,7 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       const response = await api.get<Conversa>(`conversas/${conversa.id}/`, {
-        headers: { Authorization: `Bearer ${token}` }
+
       });
 
       setConversaAtiva(response.data);
@@ -391,7 +402,7 @@ export default function Atendimento() {
     }
   };
 
- const handleNewMessageSent = useCallback(async () => {
+  const handleNewMessageSent = useCallback(async () => {
     if (!conversaAtiva) return;
 
     try {
@@ -399,8 +410,8 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
-        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, {}),
+        api.get<Conversa[]>('conversas/', {})
       ]);
 
       setConversaAtiva(conversaResponse.data);
@@ -412,7 +423,7 @@ export default function Atendimento() {
   }, [conversaAtiva]);
 
 
- const handleStatusChange = async (novoStatus: StatusConversa) => {
+  const handleStatusChange = async (novoStatus: StatusConversa) => {
     if (!conversaAtiva) return;
 
     try {
@@ -420,12 +431,12 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       await api.patch(`conversas/${conversaAtiva.id}/`, { status: novoStatus }, {
-        headers: { Authorization: `Bearer ${token}` }
+
       });
 
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
-        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, {}),
+        api.get<Conversa[]>('conversas/', {})
       ]);
 
       setConversaAtiva(conversaResponse.data);
@@ -471,7 +482,7 @@ export default function Atendimento() {
         const token = await getToken();
         if (!token) return;
 
-        const response = await api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } });
+        const response = await api.get<Conversa[]>('conversas/', {});
 
         // @ts-ignore
         const novasConversas = response.data.results;
@@ -486,7 +497,7 @@ export default function Atendimento() {
         setConversas(novasConversas);
 
         if (conversaAtiva) {
-          const updatedConversa = await api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+          const updatedConversa = await api.get<Conversa>(`conversas/${conversaAtiva.id}/`, {});
           setConversaAtiva(updatedConversa.data);
         }
       } catch (error) {
@@ -502,27 +513,27 @@ export default function Atendimento() {
   // Filtrar conversas
   const conversasFiltradas = conversas.filter(conversa => {
     const matchStatus = filtroStatus === 'todos' || conversa.status === filtroStatus;
-    
+
     if (!searchTerm) return matchStatus;
-    
+
     const searchLower = searchTerm.toLowerCase();
-    const matchSearch = 
+    const matchSearch =
       conversa.contato?.nome?.toLowerCase().includes(searchLower) ||
       conversa.contato?.telefone?.includes(searchTerm) ||
       conversa.contato?.email?.toLowerCase().includes(searchLower) ||
       conversa.ultima_mensagem?.mensagem?.toLowerCase().includes(searchLower);
-      
+
     return matchStatus && matchSearch;
   });
 
-  const chamadosAguardando = conversas.filter(conv => 
+  const chamadosAguardando = conversas.filter(conv =>
     conv.status === 'entrada' && !conv.operador
   ).length;
 
   return (
     <>
       <style>{styles}</style>
-      
+
       <div className="professional-layout">
         {/* Barra superior */}
         <div className="top-bar">
@@ -576,7 +587,7 @@ export default function Atendimento() {
                   </button>
                 </div>
               </div>
-              
+
               <input
                 type="text"
                 className="search-input w-100"
@@ -584,28 +595,28 @@ export default function Atendimento() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              
+
               <div className="filter-tabs">
-                <button 
+                <button
                   className={`filter-tab ${filtroStatus === 'todos' ? 'active' : ''}`}
                   onClick={() => setFiltroStatus('todos')}
                 >
                   Todos
                 </button>
-                <button 
+                <button
                   className={`filter-tab ${filtroStatus === 'entrada' ? 'active' : ''}`}
                   onClick={() => setFiltroStatus('entrada')}
                 >
                   Aguardando
                   {chamadosAguardando > 0 && <span style={{ marginLeft: '4px' }}>({chamadosAguardando})</span>}
                 </button>
-                <button 
+                <button
                   className={`filter-tab ${filtroStatus === 'atendimento' ? 'active' : ''}`}
                   onClick={() => setFiltroStatus('atendimento')}
                 >
                   Atendimento
                 </button>
-                <button 
+                <button
                   className={`filter-tab ${filtroStatus === 'resolvida' ? 'active' : ''}`}
                   onClick={() => setFiltroStatus('resolvida')}
                 >
@@ -624,9 +635,9 @@ export default function Atendimento() {
               {error && (
                 <Alert variant="danger" className="m-3">
                   {error}
-                  <Button 
-                    variant="link" 
-                    size="sm" 
+                  <Button
+                    variant="link"
+                    size="sm"
                     onClick={() => {
                       setError(null);
                       fetchConversas();
@@ -650,7 +661,7 @@ export default function Atendimento() {
                     <div className="text-center p-4" style={{ color: '#8a8d91' }}>
                       <div style={{ fontSize: '14px' }}>Nenhuma conversa encontrada</div>
                       <small style={{ fontSize: '12px' }}>
-                        {searchTerm || filtroStatus !== 'todos' 
+                        {searchTerm || filtroStatus !== 'todos'
                           ? 'Ajuste os filtros para ver mais resultados'
                           : 'As conversas aparecerão aqui quando chegarem'
                         }
@@ -660,11 +671,9 @@ export default function Atendimento() {
                     conversasFiltradas.map((conversa) => (
                       <div
                         key={conversa.id}
-                        className={`conversation-item ${
-                          conversaAtiva?.id === conversa.id ? 'active' : ''
-                        } ${
-                          conversa.status === 'entrada' && !conversa.operador ? 'urgent' : ''
-                        }`}
+                        className={`conversation-item ${conversaAtiva?.id === conversa.id ? 'active' : ''
+                          } ${conversa.status === 'entrada' && !conversa.operador ? 'urgent' : ''
+                          }`}
                         onClick={() => handleConversaSelect(conversa)}
                       >
                         <div className="d-flex justify-content-between align-items-start">
@@ -674,11 +683,11 @@ export default function Atendimento() {
                                 {conversa.contato.nome}
                               </strong>
                               {conversa.status === 'entrada' && !conversa.operador && (
-                                <span style={{ 
+                                <span style={{
                                   marginLeft: '8px',
-                                  width: '6px', 
-                                  height: '6px', 
-                                  background: '#fa7970', 
+                                  width: '6px',
+                                  height: '6px',
+                                  background: '#fa7970',
                                   borderRadius: '50%',
                                   display: 'inline-block'
                                 }} />
@@ -688,8 +697,8 @@ export default function Atendimento() {
                               {conversa.contato.telefone}
                             </div>
                             {conversa.ultima_mensagem && (
-                              <div style={{ 
-                                fontSize: '13px', 
+                              <div style={{
+                                fontSize: '13px',
                                 color: '#65676b',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -700,9 +709,9 @@ export default function Atendimento() {
                               </div>
                             )}
                             {conversa.operador && (
-                              <div style={{ 
-                                fontSize: '11px', 
-                                color: '#1877f2', 
+                              <div style={{
+                                fontSize: '11px',
+                                color: '#1877f2',
                                 marginTop: '4px',
                                 fontWeight: 500
                               }}>
@@ -714,16 +723,16 @@ export default function Atendimento() {
                             <span className={`status-badge status-${conversa.status}`}>
                               {getStatusText(conversa.status)}
                             </span>
-                            <div style={{ 
-                              fontSize: '11px', 
+                            <div style={{
+                              fontSize: '11px',
                               color: '#8a8d91',
                               marginTop: '4px'
                             }}>
                               {conversa.atualizado_em
                                 ? new Date(conversa.atualizado_em).toLocaleTimeString('pt-BR', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
                                 : '-'}
                             </div>
                           </div>
@@ -761,21 +770,21 @@ export default function Atendimento() {
                     </div>
                     <div>
                       <ButtonGroup size="sm">
-                        <Button 
+                        <Button
                           variant={conversaAtiva.status === 'entrada' ? 'danger' : 'outline-danger'}
                           onClick={() => handleStatusChange('entrada')}
                           style={{ fontSize: '12px' }}
                         >
                           Aguardando
                         </Button>
-                        <Button 
+                        <Button
                           variant={conversaAtiva.status === 'atendimento' ? 'warning' : 'outline-warning'}
                           onClick={() => handleStatusChange('atendimento')}
                           style={{ fontSize: '12px' }}
                         >
                           Atendimento
                         </Button>
-                        <Button 
+                        <Button
                           variant={conversaAtiva.status === 'resolvida' ? 'success' : 'outline-success'}
                           onClick={() => handleStatusChange('resolvida')}
                           style={{ fontSize: '12px' }}
@@ -786,7 +795,7 @@ export default function Atendimento() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div style={{ flex: 1, overflow: 'hidden' }}>
                   <ChatWindow
                     conversa={conversaAtiva}
@@ -798,10 +807,10 @@ export default function Atendimento() {
             ) : (
               <div className="empty-chat">
                 <div>
-                  <div style={{ 
-                    width: '80px', 
-                    height: '80px', 
-                    background: '#f0f2f5', 
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    background: '#f0f2f5',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',

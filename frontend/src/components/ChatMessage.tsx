@@ -28,6 +28,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ mensagem, onCopiar }) => {
 
   // ✅ RENDERIZAR DIFERENTES TIPOS DE MÍDIA:
   const renderMedia = () => {
+    console.log("🚀 ~ renderMedia ~ mensagem:", mensagem)
     if (!mensagem.media_url) return null;
 
     const commonStyle = {
