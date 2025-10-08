@@ -23,6 +23,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [estagio, setEstagio] = useState(negocio.estagio.nome);
   const [comentarios, setComentarios] = useState<Comentario[]>(negocio.comentarios ?? []);
   const [novoComentario, setNovoComentario] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // p criar campo person
   const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
@@ -75,6 +76,44 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     } catch (error) {
       console.error("Erro ao salvar:", error);
       alert("Falha ao salvar os dados.");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Tem certeza que deseja excluir o negócio "${negocio.titulo}"? Esta ação é irreversível.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const token = await getToken();
+
+    if (!token) {
+      setIsDeleting(false);
+      alert("Erro de autenticação. Não foi possível excluir o negócio.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 204) {
+        console.log("Negócio excluído com sucesso:", negocio.id);
+        alert("Negócio excluído com sucesso! Pode ser necessário recarregar a página.");
+        setShow(false);
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Falha ao excluir o negócio. Status: ${response.status}. Mensagem: ${errorText}`);
+      }
+    } catch (error) {
+      console.error("Erro ao excluir:", error);
+      alert(`Falha ao excluir o negócio: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -529,14 +568,29 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           <div>
             <Button
               variant="danger"
-              onClick={() => setShow(false)}
+              onClick={handleDelete}
+              disabled={isDeleting}
               style={{
                 borderRadius: "0.5rem",
                 fontWeight: 500,
                 marginRight: "0.5rem",
               }}
             >
-              Excluir
+              {isDeleting ? (
+                  <>
+                      <Spinner
+                          as="span"
+                          animation="border"
+                          size="sm"
+                          role="status"
+                          aria-hidden="true"
+                          className="me-2"
+                      />
+                      Excluindo...
+                  </>
+              ) : (
+                  "Excluir"
+              )}
             </Button>
 
             <Button
