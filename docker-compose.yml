@@ -30,9 +30,9 @@ services:
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
-      REDIS_URL: redis://redis:6380/0
-      CELERY_BROKER_URL: redis://redis:6380/2
-      CELERY_RESULT_BACKEND: redis://redis:6380/2
+#      REDIS_URL: redis://redis:6380/0
+#      CELERY_BROKER_URL: redis://redis:6380/2
+#      CELERY_RESULT_BACKEND: redis://redis:6380/2
       DJANGO_SETTINGS_MODULE: backend.settings
     entrypoint: >
       sh -c "python manage.py migrate &&
@@ -66,40 +66,40 @@ services:
     networks:
       - loomie-network
 
-  redis:
-    image: redis:7
-    container_name: crm_redis
-    restart: unless-stopped
-    command: redis-server --port 6380 --maxmemory 100mb --maxmemory-policy allkeys-lru
-    mem_limit: 150m
-    networks:
-      - loomie-network
-
-  crm_backend_celery:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    image: crm_backend:latest
-    container_name: crm_backend_celery
-    restart: unless-stopped
-    command: celery -A backend worker -l info --concurrency=1 --pool=solo
-    environment:
-      POSTGRES_DB: crmdb
-      POSTGRES_USER: crmuser
-      POSTGRES_PASSWORD: crmpassword
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      REDIS_URL: redis://redis:6380/2
-      CELERY_BROKER_URL: redis://redis:6380/2
-      CELERY_RESULT_BACKEND: redis://redis:6380/2
-      DJANGO_SETTINGS_MODULE: backend.settings
-      CELERYD_MAX_TASKS_PER_CHILD: 50
-    depends_on:
-      - db
-      - redis
-    mem_limit: 250m
-    networks:
-      - loomie-network
+#  redis:
+#    image: redis:7
+#    container_name: crm_redis
+#    restart: unless-stopped
+#    command: redis-server --port 6380 --maxmemory 100mb --maxmemory-policy allkeys-lru
+#    mem_limit: 150m
+#    networks:
+#      - loomie-network
+#
+#  crm_backend_celery:
+#    build:
+#      context: ./backend
+#      dockerfile: Dockerfile
+#    image: crm_backend:latest
+#    container_name: crm_backend_celery
+#    restart: unless-stopped
+#    command: celery -A backend worker -l info --concurrency=1 --pool=solo
+#    environment:
+#      POSTGRES_DB: crmdb
+#      POSTGRES_USER: crmuser
+#      POSTGRES_PASSWORD: crmpassword
+#      POSTGRES_HOST: db
+#      POSTGRES_PORT: 5432
+#      REDIS_URL: redis://redis:6380/2
+#      CELERY_BROKER_URL: redis://redis:6380/2
+#      CELERY_RESULT_BACKEND: redis://redis:6380/2
+#      DJANGO_SETTINGS_MODULE: backend.settings
+#      CELERYD_MAX_TASKS_PER_CHILD: 50
+#    depends_on:
+#      - db
+#      - redis
+#    mem_limit: 250m
+#    networks:
+#      - loomie-network
 
 volumes:
   postgres-data:
