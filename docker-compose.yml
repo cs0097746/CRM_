@@ -1,5 +1,5 @@
 services:
-  db:
+  crm_postgres:
     image: postgres:15
     container_name: crm_postgres
     restart: unless-stopped
@@ -12,27 +12,29 @@ services:
     mem_limit: 500m
     networks:
       - loomie-network
+      - crm-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U crmuser -d crmdb"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  redis:
+  crm_redis:
     image: redis:7-alpine
     container_name: crm_redis
     restart: unless-stopped
-    command: redis-server --port 6380 --maxmemory 100mb --maxmemory-policy allkeys-lru
+    command: redis-server --port 6380 --maxmemory 150mb --maxmemory-policy allkeys-lru
     mem_limit: 200m
     networks:
+      - crm-network
       - loomie-network
     healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "6380", "ping" ]
+      test: ["CMD-SHELL", "redis-cli -p 6380 ping || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  backend:
+  crm_backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -43,26 +45,26 @@ services:
       POSTGRES_DB: crmdb
       POSTGRES_USER: crmuser
       POSTGRES_PASSWORD: crmpassword
-      POSTGRES_HOST: db
+      POSTGRES_HOST: crm_postgres
       POSTGRES_PORT: 5432
       ALLOWED_HOSTS: "backend.loomiecrm.com,crm.backend.localhost"
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
-      REDIS_URL: redis://redis:6380/0
-      CELERY_BROKER_URL: redis://redis:6380/2
-      CELERY_RESULT_BACKEND: redis://redis:6380/2
+      REDIS_URL: redis://crm_redis:6380/0
+      CELERY_BROKER_URL: redis://crm_redis:6380/2
+      CELERY_RESULT_BACKEND: redis://crm_redis:6380/2
       DJANGO_SETTINGS_MODULE: backend.settings
     entrypoint: >
-      sh -c "until pg_isready -h db -U crmuser; do echo 'Aguardando Postgres...'; sleep 2; done;
-             until redis-cli -h redis -p 6380 ping; do echo 'Aguardando Redis...'; sleep 2; done;
+      sh -c "until pg_isready -h crm_postgres -U crmuser; do echo 'Aguardando Postgres...'; sleep 2; done;
+             until redis-cli -h crm_redis -p 6380 ping; do echo 'Aguardando Redis...'; sleep 2; done;
              python manage.py migrate &&
              python manage.py createsuperuser --noinput 2>/dev/null || true &&
-             exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 1 --threads 1 --timeout 60"
+             exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 2 --timeout 60"
     depends_on:
-      db:
+      crm_postgres:
         condition: service_healthy
-      redis:
+      crm_redis:
         condition: service_healthy
     expose:
       - "8000"
@@ -71,8 +73,9 @@ services:
     mem_limit: 700m
     networks:
       - loomie-network
+      - crm-network
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,23 +92,24 @@ services:
       POSTGRES_DB: crmdb
       POSTGRES_USER: crmuser
       POSTGRES_PASSWORD: crmpassword
-      POSTGRES_HOST: db
+      POSTGRES_HOST: crm_postgres
       POSTGRES_PORT: 5432
-      REDIS_URL: redis://redis:6380/2
-      CELERY_BROKER_URL: redis://redis:6380/2
-      CELERY_RESULT_BACKEND: redis://redis:6380/2
+      REDIS_URL: redis://crm_redis:6380/2
+      CELERY_BROKER_URL: redis://crm_redis:6380/2
+      CELERY_RESULT_BACKEND: redis://crm_redis:6380/2
       DJANGO_SETTINGS_MODULE: backend.settings
       CELERYD_MAX_TASKS_PER_CHILD: 50
     depends_on:
-      db:
+      crm_postgres:
         condition: service_healthy
-      redis:
+      crm_redis:
         condition: service_healthy
     mem_limit: 250m
     networks:
       - loomie-network
+      - crm-network
 
-  frontend:
+  crm_frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -113,7 +117,7 @@ services:
     container_name: crm_frontend
     restart: unless-stopped
     depends_on:
-      backend:
+      crm_backend:
         condition: service_healthy
     expose:
       - "80"
@@ -129,3 +133,5 @@ volumes:
 networks:
   loomie-network:
     external: true
+  crm-network:
+    driver: bridge
