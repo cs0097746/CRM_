@@ -3,6 +3,7 @@
 import requests
 import os
 import uuid
+import traceback
 from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -42,10 +43,11 @@ def get_instance_config():
 # ==============================================================================
 # FUNÇÃO DE DOWNLOAD QUE USA A CONFIGURAÇÃO ACIMA
 # ==============================================================================
-def baixar_e_salvar_media(media_url, tipo_mensagem, nome_original):
+def baixar_e_salvar_media(media_url, tipo_mensagem, nome_original, media_key=None, file_enc_sha256=None):
     """
     Baixa a mídia da URL fornecida pela Evolution API e salva localmente.
-    VERSÃO COM DEBUG ADICIONAL.
+    Para arquivos WhatsApp criptografados (.enc), descriptografa automaticamente.
+    VERSÃO COM DESCRIPTOGRAFIA WHATSAPP.
     """
     print("\n--- INÍCIO DO DOWNLOAD DE MÍDIA ---")
     try:
@@ -72,8 +74,37 @@ def baixar_e_salvar_media(media_url, tipo_mensagem, nome_original):
             file_data = response.content
             print(f"✅ Download bem-sucedido. Tamanho do arquivo: {len(file_data)} bytes.")
 
+            # Definir nome do arquivo inicial
             subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
             filename = nome_original or f"{tipo_mensagem}_{uuid.uuid4().hex}"
+            
+            # Detectar se é arquivo WhatsApp criptografado (.enc na URL)
+            is_encrypted = '.enc' in media_url and media_key is not None
+            
+            if is_encrypted and tipo_mensagem == 'audio':
+                print(f"🔐 Detectado arquivo WhatsApp criptografado - iniciando descriptografia...")
+                print(f"🔑 MediaKey disponível: {'SIM' if media_key else 'NÃO'}")
+                
+                try:
+                    from core.whatsapp_decrypt import WhatsAppDecryption
+                    decrypted_data = WhatsAppDecryption.decrypt_media(file_data, str(media_key), 'audio')
+                    
+                    if decrypted_data:
+                        print(f"✅ Arquivo descriptografado com sucesso: {len(decrypted_data)} bytes")
+                        file_data = decrypted_data
+                        
+                        # Mudar extensão para .ogg já que foi descriptografado
+                        if filename.endswith('.enc'):
+                            filename = filename.replace('.enc', '.ogg')
+                        elif '.ogg' not in filename:
+                            filename = filename + '.ogg'
+                        
+                    else:
+                        print("❌ Descriptografia falhou - salvando arquivo original criptografado")
+                        
+                except Exception as e:
+                    print(f"❌ Erro na descriptografia: {e}")
+                    print("⚠️ Salvando arquivo original criptografado como fallback")
             path = os.path.join(subfolder, filename)
             
             print(f"💾 Salvando arquivo em: {path}")

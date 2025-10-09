@@ -1182,8 +1182,12 @@ def processar_mensagem_media(message_data):
             duration = msg.get('seconds', 0)
             texto = f"🎵 Áudio enviado ({duration}s)"
             
-            # Log para debug - verificar se o base64 está chegando
-            logger.info(f"🎵 Processando áudio - base64 disponível: {'SIM (' + str(len(base64)) + ' chars)' if base64 else 'NÃO'}")
+            # Log para debug - verificar dados disponíveis para descriptografia
+            media_key = msg.get('mediaKey')
+            logger.info(f"🎵 Processando áudio - dados disponíveis:")
+            logger.info(f"  - base64: {'SIM (' + str(len(base64)) + ' chars)' if base64 else 'NÃO'}")
+            logger.info(f"  - mediaKey: {'SIM' if media_key else 'NÃO'}")
+            logger.info(f"  - URL: {'SIM' if media_url else 'NÃO'}")
             
             return (texto, 'audio', media_url, filename, size, duration, mimetype, base64)
         
@@ -1279,44 +1283,73 @@ def evolution_webhook(request):
                 media_size = default_storage.size(saved_path)
                 logger.info(f"✅ Imagem salva: {media_local_path} ({media_size} bytes)")
 
-            # Caso ÁUDIO - Processar com FFmpeg para garantir compatibilidade
+            # Caso ÁUDIO - Processar com descriptografia WhatsApp + FFmpeg
             elif tipo_mensagem == "audio":
+                from core.whatsapp_decrypt import WhatsAppDecryption
+                
                 file_data = None
                 
                 logger.info(f"🎵 Processando áudio - fontes disponíveis:")
                 logger.info(f"  - base64Text: {'PRESENTE (' + str(len(base64Text)) + ' chars)' if base64Text else 'AUSENTE'}")  
                 logger.info(f"  - dados_midia: {'PRESENTE (' + str(len(dados_midia)) + ' chars)' if dados_midia else 'AUSENTE'}")
                 
-                # PRIORIDADE 1: base64Text (vem direto da função processar_mensagem_media)
-                if base64Text:
-                    try:
-                        file_data = base64.b64decode(base64Text)
-                        logger.info(f"✅ Áudio decodificado do base64Text: {len(file_data)} bytes")
-                        
-                        # Verificar se é um arquivo OGG válido
-                        if file_data.startswith(b'OggS'):
-                            logger.info("🎵 Arquivo OGG válido detectado!")
-                        else:
-                            logger.warning(f"⚠️ Arquivo pode não ser OGG válido. Primeiros 20 bytes: {file_data[:20]}")
-                            
-                    except Exception as e:
-                        logger.error(f"❌ Erro ao decodificar base64Text: {e}")
-                        file_data = None
+                # Extrair mediaKey do payload para descriptografia
+                message_audio = message.get('audioMessage', {})
+                media_key = message_audio.get('mediaKey')
                 
-                # PRIORIDADE 2: dados_midia (URL para download)
-                elif dados_midia and isinstance(dados_midia, str) and dados_midia.startswith('http'):
-                    resultado_download = baixar_e_salvar_media(dados_midia, tipo_mensagem, media_filename)
+                logger.info(f"🔑 MediaKey disponível: {'SIM' if media_key else 'NÃO'}")
+                
+                # MÉTODO MAIS SIMPLES: sempre tentar baixar da URL primeiro
+                if dados_midia and isinstance(dados_midia, str) and dados_midia.startswith('http'):
+                    logger.info(f"📡 Baixando áudio da URL: {dados_midia[:100]}...")
+                    
+                    # Extrair parâmetros adicionais para descriptografia
+                    file_enc_sha256 = message_audio.get('fileEncSha256')
+                    
+                    resultado_download = baixar_e_salvar_media(
+                        dados_midia, 
+                        tipo_mensagem, 
+                        media_filename,
+                        media_key=media_key,
+                        file_enc_sha256=file_enc_sha256
+                    )
                     if resultado_download['success']:
-                        # Ler arquivo baixado para conversão
+                        # Ler arquivo baixado/descriptografado para conversão
                         file_path = resultado_download['local_path'].replace('/media/', '')
                         full_path = os.path.join(settings.MEDIA_ROOT, file_path)
                         with open(full_path, 'rb') as f:
                             file_data = f.read()
-                        logger.info(f"✅ Áudio baixado da URL: {len(file_data)} bytes")
+                        logger.info(f"✅ Áudio baixado/descriptografado: {len(file_data)} bytes")
                     else:
                         logger.error(f"❌ Erro no download do áudio: {resultado_download['error']}")
                 
-                # PRIORIDADE 3: dados_midia como base64 (fallback)        
+                # FALLBACK: usar base64Text se URL não funcionou
+                elif base64Text:
+                    try:
+                        encrypted_data = base64.b64decode(base64Text)
+                        logger.info(f"✅ Dados criptografados decodificados: {len(encrypted_data)} bytes")
+                        
+                        # Verificar se é um arquivo criptografado (NÃO deve começar com OggS)
+                        if encrypted_data.startswith(b'OggS'):
+                            logger.warning("⚠️ Arquivo parece já estar descriptografado")
+                            file_data = encrypted_data
+                        elif media_key:
+                            # Descriptografar usando mediaKey
+                            logger.info("🔐 Iniciando descriptografia com mediaKey...")
+                            file_data = WhatsAppDecryption.decrypt_media(encrypted_data, media_key, 'audio')
+                            if file_data:
+                                logger.info(f"✅ Arquivo descriptografado: {len(file_data)} bytes")
+                            else:
+                                logger.error("❌ Descriptografia retornou None")
+                        else:
+                            logger.error("❌ MediaKey não disponível para descriptografia")
+                            file_data = encrypted_data  # Tentar usar dados brutos como fallback
+                            
+                    except Exception as e:
+                        logger.error(f"❌ Erro no processamento do áudio: {e}")
+                        file_data = None
+                
+                # ÚLTIMO RECURSO: dados_midia como base64
                 elif dados_midia:
                     try:
                         base64_string = dados_midia.split(',')[-1] if ',' in dados_midia else dados_midia
@@ -1324,6 +1357,8 @@ def evolution_webhook(request):
                         logger.info(f"✅ Áudio decodificado do dados_midia: {len(file_data)} bytes")
                     except Exception as e:
                         logger.error(f"❌ Erro ao decodificar dados_midia: {e}")
+                else:
+                    logger.error("❌ Nenhuma fonte de áudio encontrada!")
                 
                 if file_data:
                     # Debug dos primeiros bytes do áudio
@@ -1336,7 +1371,7 @@ def evolution_webhook(request):
                         logger.warning(f"⚠️ Arquivo de áudio muito pequeno: {len(file_data)} bytes")
                         
                     # Converter para MP3 usando FFmpeg
-                    success, mp3_data, message = FFmpegService.convert_to_mp3(file_data)
+                    success, mp3_data, conversion_message = FFmpegService.convert_to_mp3(file_data)
                     
                     if success and mp3_data:
                         # Salvar arquivo MP3 convertido
@@ -1350,7 +1385,7 @@ def evolution_webhook(request):
                         logger.info(f"🎵 Áudio convertido para MP3: {media_local_path} ({media_size} bytes)")
                     else:
                         # Se conversão falhar, salvar arquivo original
-                        logger.warning(f"⚠️ Conversão FFmpeg falhou: {message}. Salvando original.")
+                        logger.warning(f"⚠️ Conversão FFmpeg falhou: {conversion_message}. Salvando original.")
                         subfolder = f"whatsapp_media/audio/{timezone.now().year}/{timezone.now().month:02d}"
                         original_ext = mimetypes.guess_extension(media_mimetype or 'audio/ogg') or '.ogg'
                         original_filename = f"audio_original_{uuid.uuid4().hex}{original_ext}"
@@ -1360,6 +1395,8 @@ def evolution_webhook(request):
                         media_size = len(file_data)
                         media_filename = original_filename
                         logger.info(f"📁 Áudio original salvo: {media_local_path}")
+                else:
+                    logger.error("❌ Não foi possível obter dados de áudio para processar!")
 
             # Caso mídia seja URL ou base64 (outros tipos)
             elif dados_midia and tipo_mensagem in ["imagem", "video", "documento", "sticker"]:
