@@ -103,6 +103,7 @@ urlpatterns = [
     path('notificacoes/criar/', notificacao_views.CriarNotificacaoView.as_view(), name='notificacoes'),
 
     # ===== ROUTER URLS =====
+    path("health/", core_views.health),
     path('', include(router.urls)),
 ]
 
