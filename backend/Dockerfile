@@ -2,7 +2,7 @@ FROM python:3.13.7
 
 # instalar netcat, cliente PostgreSQL e cliente Redis
 RUN apt-get update && \
-    apt-get install -y netcat-openbsd postgresql-client redis-tools && \
+    apt-get install -y netcat-openbsd postgresql-client redis-tools ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
