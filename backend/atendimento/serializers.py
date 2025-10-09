@@ -93,6 +93,7 @@ class ConversaDetailSerializer(serializers.ModelSerializer):
         return None
        
 class ConversaListSerializer(serializers.ModelSerializer):
+    contato = serializers.SerializerMethodField()
     contato_nome = serializers.CharField(source='contato.nome', read_only=True)
     contato_telefone = serializers.CharField(source='contato.telefone', read_only=True)
     ultima_mensagem = serializers.SerializerMethodField()
@@ -105,6 +106,11 @@ class ConversaListSerializer(serializers.ModelSerializer):
             'status', 'criado_em', 'atualizado_em',
             'operador', 'operador_nome', 'ultima_mensagem'
         ]
+    
+    def get_contato(self, obj):
+        """Garante que os dados do contato sejam sempre incluídos"""
+        from contato.serializers import ContatoSerializer
+        return ContatoSerializer(obj.contato).data
     
     def get_ultima_mensagem(self, obj):
         """

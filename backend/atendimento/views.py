@@ -26,6 +26,7 @@ from rest_framework.views import APIView
 # Imports de outros apps do seu projeto
 from core.models import ConfiguracaoSistema
 from core.utils import get_user_operador
+from core.ffmpeg_service import FFmpegService
 from contato.models import Contato, Operador
 
 from .utils import baixar_e_salvar_media, get_instance_config
@@ -1025,14 +1026,54 @@ def whatsapp_status(request):
 def enviar_mensagem_view(request):
     """API para enviar mensagem via WhatsApp"""
     try:
-        numero = request.data.get('numero')
-        mensagem = request.data.get('mensagem')
-        conversa_id = request.data.get('conversa_id')
+        logger.info(f"📤 Recebendo requisição para enviar mensagem")
+        logger.info(f"📋 Headers: {dict(request.headers)}")
+        logger.info(f"📋 Method: {request.method}")
+        logger.info(f"📋 Content-Type: {request.content_type}")
+        logger.info(f"📋 Raw body: {request.body}")
+        logger.info(f"📋 Request.data: {request.data}")
+        logger.info(f"📋 Request.POST: {request.POST}")
+        
+        # Tentar diferentes formas de acessar os dados
+        data_sources = {
+            'request.data': request.data,
+            'request.POST': request.POST,
+            'json.loads(request.body)': None
+        }
+        
+        try:
+            import json
+            data_sources['json.loads(request.body)'] = json.loads(request.body.decode('utf-8'))
+        except:
+            pass
+            
+        logger.info(f"📋 Fontes de dados disponíveis: {data_sources}")
+        
+        # Usar request.data como padrão, mas com fallback
+        data = request.data or {}
+        if not data and request.body:
+            try:
+                data = json.loads(request.body.decode('utf-8'))
+                logger.info(f"📋 Usando dados do body JSON: {data}")
+            except:
+                pass
+        
+        numero = data.get('numero')
+        mensagem = data.get('mensagem')
+        conversa_id = data.get('conversa_id')
+        
+        logger.info(f"🔍 Campos extraídos - numero: '{numero}', mensagem: '{mensagem[:50] if mensagem else None}...', conversa_id: {conversa_id}")
 
         if not numero or not mensagem:
+            logger.error(f"❌ Campos obrigatórios faltando - numero: {bool(numero)} ('{numero}'), mensagem: {bool(mensagem)} ('{mensagem[:50] if mensagem else None}...')")
             return Response({
                 'success': False,
-                'error': 'Campos obrigatórios: numero, mensagem'
+                'error': 'Campos obrigatórios: numero, mensagem',
+                'debug': {
+                    'received_data': data,
+                    'numero_present': bool(numero),
+                    'mensagem_present': bool(mensagem)
+                }
             }, status=400)
 
         # ✅ Enviar para WhatsApp
@@ -1052,7 +1093,12 @@ def enviar_mensagem_view(request):
                         tipo='texto',
                         operador=operador
                     )
-                    logger.info("💾 Interação salva no CRM")
+                    
+                    # ✅ ATUALIZAR timestamp da conversa para ordenação correta
+                    conversa.atualizado_em = timezone.now()
+                    conversa.save()
+                    
+                    logger.info("💾 Interação salva no CRM e conversa atualizada")
                 except Exception as e:
                     logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
 
@@ -1135,7 +1181,11 @@ def processar_mensagem_media(message_data):
             size = msg.get('fileLength')
             duration = msg.get('seconds', 0)
             texto = f"🎵 Áudio enviado ({duration}s)"
-            return (texto, 'audio', media_url, filename, size, duration, mimetype,base64)
+            
+            # Log para debug - verificar se o base64 está chegando
+            logger.info(f"🎵 Processando áudio - base64 disponível: {'SIM (' + str(len(base64)) + ' chars)' if base64 else 'NÃO'}")
+            
+            return (texto, 'audio', media_url, filename, size, duration, mimetype, base64)
         
         
         # --- TEXTO ---
@@ -1201,7 +1251,10 @@ def evolution_webhook(request):
         )
 
         # Processar mensagem e mídia (usando função utilitária)
-        texto_mensagem, tipo_mensagem, dados_midia, media_filename, media_size, media_duration, media_mimetype, base64Text = processar_mensagem_media(message)
+        # Passar o base64 do payload principal para a função
+        message_with_base64 = message.copy()
+        message_with_base64['base64'] = data.get('base64', '')
+        texto_mensagem, tipo_mensagem, dados_midia, media_filename, media_size, media_duration, media_mimetype, base64Text = processar_mensagem_media(message_with_base64)
 
         logger.info(f"📝 Texto: {texto_mensagem}")
         logger.info(f"🎯 Tipo: {tipo_mensagem}")
@@ -1226,8 +1279,90 @@ def evolution_webhook(request):
                 media_size = default_storage.size(saved_path)
                 logger.info(f"✅ Imagem salva: {media_local_path} ({media_size} bytes)")
 
-            # Caso mídia seja URL ou base64 (mantém lógica descomentada para outros tipos)
-            elif dados_midia and tipo_mensagem in ["imagem", "audio", "video", "documento", "sticker"]:
+            # Caso ÁUDIO - Processar com FFmpeg para garantir compatibilidade
+            elif tipo_mensagem == "audio":
+                file_data = None
+                
+                logger.info(f"🎵 Processando áudio - fontes disponíveis:")
+                logger.info(f"  - base64Text: {'PRESENTE (' + str(len(base64Text)) + ' chars)' if base64Text else 'AUSENTE'}")  
+                logger.info(f"  - dados_midia: {'PRESENTE (' + str(len(dados_midia)) + ' chars)' if dados_midia else 'AUSENTE'}")
+                
+                # PRIORIDADE 1: base64Text (vem direto da função processar_mensagem_media)
+                if base64Text:
+                    try:
+                        file_data = base64.b64decode(base64Text)
+                        logger.info(f"✅ Áudio decodificado do base64Text: {len(file_data)} bytes")
+                        
+                        # Verificar se é um arquivo OGG válido
+                        if file_data.startswith(b'OggS'):
+                            logger.info("🎵 Arquivo OGG válido detectado!")
+                        else:
+                            logger.warning(f"⚠️ Arquivo pode não ser OGG válido. Primeiros 20 bytes: {file_data[:20]}")
+                            
+                    except Exception as e:
+                        logger.error(f"❌ Erro ao decodificar base64Text: {e}")
+                        file_data = None
+                
+                # PRIORIDADE 2: dados_midia (URL para download)
+                elif dados_midia and isinstance(dados_midia, str) and dados_midia.startswith('http'):
+                    resultado_download = baixar_e_salvar_media(dados_midia, tipo_mensagem, media_filename)
+                    if resultado_download['success']:
+                        # Ler arquivo baixado para conversão
+                        file_path = resultado_download['local_path'].replace('/media/', '')
+                        full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+                        with open(full_path, 'rb') as f:
+                            file_data = f.read()
+                        logger.info(f"✅ Áudio baixado da URL: {len(file_data)} bytes")
+                    else:
+                        logger.error(f"❌ Erro no download do áudio: {resultado_download['error']}")
+                
+                # PRIORIDADE 3: dados_midia como base64 (fallback)        
+                elif dados_midia:
+                    try:
+                        base64_string = dados_midia.split(',')[-1] if ',' in dados_midia else dados_midia
+                        file_data = base64.b64decode(base64_string)
+                        logger.info(f"✅ Áudio decodificado do dados_midia: {len(file_data)} bytes")
+                    except Exception as e:
+                        logger.error(f"❌ Erro ao decodificar dados_midia: {e}")
+                
+                if file_data:
+                    # Debug dos primeiros bytes do áudio
+                    audio_preview = file_data[:50] if len(file_data) >= 50 else file_data
+                    logger.info(f"🎵 Primeiros bytes do áudio: {audio_preview}")
+                    logger.info(f"🎵 Tamanho total: {len(file_data)} bytes")
+                    
+                    # Verificar se parece ser um arquivo de áudio válido
+                    if len(file_data) < 100:
+                        logger.warning(f"⚠️ Arquivo de áudio muito pequeno: {len(file_data)} bytes")
+                        
+                    # Converter para MP3 usando FFmpeg
+                    success, mp3_data, message = FFmpegService.convert_to_mp3(file_data)
+                    
+                    if success and mp3_data:
+                        # Salvar arquivo MP3 convertido
+                        subfolder = f"whatsapp_media/audio/{timezone.now().year}/{timezone.now().month:02d}"
+                        mp3_filename = f"audio_{uuid.uuid4().hex}.mp3"
+                        path = os.path.join(subfolder, mp3_filename)
+                        saved_path = default_storage.save(path, ContentFile(mp3_data))
+                        media_local_path = default_storage.url(saved_path)
+                        media_size = len(mp3_data)
+                        media_filename = mp3_filename
+                        logger.info(f"🎵 Áudio convertido para MP3: {media_local_path} ({media_size} bytes)")
+                    else:
+                        # Se conversão falhar, salvar arquivo original
+                        logger.warning(f"⚠️ Conversão FFmpeg falhou: {message}. Salvando original.")
+                        subfolder = f"whatsapp_media/audio/{timezone.now().year}/{timezone.now().month:02d}"
+                        original_ext = mimetypes.guess_extension(media_mimetype or 'audio/ogg') or '.ogg'
+                        original_filename = f"audio_original_{uuid.uuid4().hex}{original_ext}"
+                        path = os.path.join(subfolder, original_filename)
+                        saved_path = default_storage.save(path, ContentFile(file_data))
+                        media_local_path = default_storage.url(saved_path)
+                        media_size = len(file_data)
+                        media_filename = original_filename
+                        logger.info(f"📁 Áudio original salvo: {media_local_path}")
+
+            # Caso mídia seja URL ou base64 (outros tipos)
+            elif dados_midia and tipo_mensagem in ["imagem", "video", "documento", "sticker"]:
                 if isinstance(dados_midia, str) and dados_midia.startswith('http'):  # URL
                     resultado_download = baixar_e_salvar_media(dados_midia, tipo_mensagem, media_filename)
                     if resultado_download['success']:
@@ -1269,10 +1404,15 @@ def evolution_webhook(request):
                 media_duration=media_duration
             )
             logger.info(f"✅ Interação criada: ID {interacao.pk}")
+            
+            # ✅ ATUALIZAR timestamp da conversa para ordenação correta
+            conversa.atualizado_em = timezone.now()
+            
             if conversa.status == 'finalizada':
                 conversa.status = 'entrada'
-                conversa.save()
-                logger.info("📝 Conversa reativada.")
+            
+            conversa.save()
+            logger.info("📝 Conversa atualizada para ordenação correta.")
 
         return Response({
             'status': 'processed',

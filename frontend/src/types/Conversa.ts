@@ -68,6 +68,11 @@ export interface Conversa {
   ultima_mensagem?: Mensagem | null;
   total_mensagens?: number;
   
+  // Campos adicionais do serializer:
+  contato_nome?: string;
+  contato_telefone?: string;
+  operador_nome?: string;
+  
   // Relacionamentos:
   interacoes?: Interacao[];
 }

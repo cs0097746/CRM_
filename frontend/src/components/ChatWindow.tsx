@@ -69,17 +69,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     try {
       const token = localStorage.getItem('token');
       
+      // Debug: verificar dados antes do envio
+      console.log('🔍 Debug envio mensagem:');
+      console.log('  - Conversa:', conversa);
+      console.log('  - Contato:', conversa.contato);
+      console.log('  - Telefone:', conversa.contato?.telefone);
+      console.log('  - Mensagem:', novaMensagem);
+      console.log('  - ID Conversa:', conversa.id);
+      
+      const payload = {
+        numero: conversa.contato?.telefone || conversa.contato_telefone,
+        mensagem: novaMensagem,
+        conversa_id: conversa.id
+      };
+      
+      console.log('📦 Payload final:', payload);
+      
       const response = await fetch(`${backend_url}whatsapp/enviar/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          numero: conversa.contato.telefone,
-          mensagem: novaMensagem,
-          conversa_id: conversa.id
-        })
+        body: JSON.stringify(payload)
       });
   
       const result = await response.json();
