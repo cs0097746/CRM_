@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import AtributoPersonalizavel
 from .serializers import AtributoPersonalizavelSerializer
 from negocio.models import Negocio
+from rest_framework.exceptions import NotFound
 
 class AtributoPersonalizavelCreateView(generics.CreateAPIView):
     queryset = AtributoPersonalizavel.objects.all()
