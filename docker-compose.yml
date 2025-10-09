@@ -76,8 +76,7 @@ services:
       context: ./backend
     container_name: crm_celery_beat
     restart: unless-stopped
-    command: >
-      celery -A backend.celery beat -l info
+    command: celery -A backend.celery beat -l info
     environment:
       - CELERY_BROKER_URL=redis://redis_crm:6379/0
       - DJANGO_SETTINGS_MODULE=backend.settings
@@ -85,9 +84,6 @@ services:
       - POSTGRES_USER=crmuser
       - POSTGRES_PASSWORD=crmpassword
       - POSTGRES_HOST=db
-    depends_on:
-      backend:
-        condition: service_started
     networks:
       - crm-network
 
