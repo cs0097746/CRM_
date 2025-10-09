@@ -42,10 +42,7 @@ services:
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
       CELERY_BROKER_URL: redis://redis_crm:6379/0
-    entrypoint: >
-        sh -c "python manage.py migrate &&
-               python manage.py createsuperuser --noinput 2>/dev/null || true &&
-               exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    entrypoint: ["/app/entrypoint.sh"]
     depends_on:
       - db
       - redis_crm
@@ -74,6 +71,26 @@ services:
     networks:
       - crm-network
 
+  celery_beat:
+    build:
+      context: ./backend
+    container_name: crm_celery_beat
+    restart: unless-stopped
+    command: >
+      celery -A backend.celery beat -l info
+    environment:
+      - CELERY_BROKER_URL=redis://redis_crm:6379/0
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - POSTGRES_DB=crmdb
+      - POSTGRES_USER=crmuser
+      - POSTGRES_PASSWORD=crmpassword
+      - POSTGRES_HOST=db
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - crm-network
+
   frontend:
     build:
       context: ./frontend
@@ -90,7 +107,9 @@ services:
 
 volumes:
   postgres-data:
+    name: crm_postgres-data
   redis-crm-data:
+    name: crm_redis-crm-data
 
 networks:
   loomie-network:

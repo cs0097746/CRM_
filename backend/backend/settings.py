@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,6 +34,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "792d38fa1167.ngrok-free.app",
+    "backend.localhost"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -65,6 +67,7 @@ THIRD_PARTY_APPS = [
     'oauth2_provider',
     'corsheaders',
     'drf_spectacular',
+    'django_celery_beat',
 ]
 
 LOCAL_APPS = [
@@ -399,8 +402,25 @@ if DEBUG:
 
 CELERY_BROKER_URL = 'redis://redis_crm:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis_crm:6379/0'
-
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Sao_Paulo'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_ENABLE_UTC = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'contatoloomie@gmail.com'
+EMAIL_HOST_PASSWORD = config("EMAIL_APP_PASSWORD")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# CELERY_BEAT_SCHEDULE = {
+#     'send-email-every-minute': {
+#         'task': 'core.tasks.enviar_email',
+#         'schedule': crontab(minute='*'), # A cada minuto
+#         'args': ('teste_manual@debug.com',),
+#     },
+# }
