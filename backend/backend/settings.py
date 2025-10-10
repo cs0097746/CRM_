@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [
     "crm.loomiecrm.com",
     "localhost",
     "127.0.0.1",
-    "be2b36433829.ngrok-free.app",
+    "a5ad08236761.ngrok-free.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [

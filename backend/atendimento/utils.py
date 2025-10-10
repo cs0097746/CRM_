@@ -81,23 +81,30 @@ def baixar_e_salvar_media(media_url, tipo_mensagem, nome_original, media_key=Non
             # Detectar se é arquivo WhatsApp criptografado (.enc na URL)
             is_encrypted = '.enc' in media_url and media_key is not None
             
-            if is_encrypted and tipo_mensagem == 'audio':
+            if is_encrypted and tipo_mensagem in ['audio', 'imagem']:
                 print(f"🔐 Detectado arquivo WhatsApp criptografado - iniciando descriptografia...")
                 print(f"🔑 MediaKey disponível: {'SIM' if media_key else 'NÃO'}")
                 
                 try:
                     from core.whatsapp_decrypt import WhatsAppDecryption
-                    decrypted_data = WhatsAppDecryption.decrypt_media(file_data, str(media_key), 'audio')
+                    # Usar o tipo correto para a descriptografia
+                    media_type = 'audio' if tipo_mensagem == 'audio' else 'image'
+                    decrypted_data = WhatsAppDecryption.decrypt_media(file_data, str(media_key), media_type)
                     
                     if decrypted_data:
                         print(f"✅ Arquivo descriptografado com sucesso: {len(decrypted_data)} bytes")
                         file_data = decrypted_data
                         
-                        # Mudar extensão para .ogg já que foi descriptografado
+                        # Mudar extensão apropriada já que foi descriptografado
                         if filename.endswith('.enc'):
-                            filename = filename.replace('.enc', '.ogg')
-                        elif '.ogg' not in filename:
+                            if tipo_mensagem == 'audio':
+                                filename = filename.replace('.enc', '.ogg')
+                            elif tipo_mensagem == 'imagem':
+                                filename = filename.replace('.enc', '.jpg')
+                        elif tipo_mensagem == 'audio' and '.ogg' not in filename:
                             filename = filename + '.ogg'
+                        elif tipo_mensagem == 'imagem' and not any(ext in filename.lower() for ext in ['.jpg', '.jpeg', '.png']):
+                            filename = filename + '.jpg'
                         
                     else:
                         print("❌ Descriptografia falhou - salvando arquivo original criptografado")
