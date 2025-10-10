@@ -78,8 +78,20 @@ def baixar_e_salvar_media(media_url, tipo_mensagem, nome_original, media_key=Non
             subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
             filename = nome_original or f"{tipo_mensagem}_{uuid.uuid4().hex}"
             
-            # Detectar se é arquivo WhatsApp criptografado (.enc na URL)
-            is_encrypted = '.enc' in media_url and media_key is not None
+            # Garantir que o arquivo tenha extensão adequada
+            if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.mp3', '.ogg', '.mp4', '.pdf', '.doc', '.docx']):
+                if tipo_mensagem == 'imagem':
+                    filename += '.jpg'
+                elif tipo_mensagem == 'audio':
+                    filename += '.ogg'
+                elif tipo_mensagem == 'video':
+                    filename += '.mp4'
+                else:
+                    filename += '.bin'
+            
+            # Detectar se é arquivo WhatsApp criptografado 
+            # URLs do mmg.whatsapp.net são sempre criptografadas, mesmo sem .enc
+            is_encrypted = ('mmg.whatsapp.net' in media_url or '.enc' in media_url) and media_key is not None
             
             if is_encrypted and tipo_mensagem in ['audio', 'imagem']:
                 print(f"🔐 Detectado arquivo WhatsApp criptografado - iniciando descriptografia...")
