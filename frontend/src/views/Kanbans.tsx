@@ -4,6 +4,7 @@ import axios from "axios";
 import type { Kanban } from "../types/Kanban.ts";
 import backend_url from "../config/env.ts";
 import { Container, Row, Col, Card, Button, Modal, Form, Badge, Spinner } from 'react-bootstrap';
+import {getToken} from "../function/validateToken.tsx";
 
 // Estilos Profissionais
 const styles = `
@@ -75,41 +76,16 @@ export default function Kanbans() {
   const [editingKanban, setEditingKanban] = useState<Kanban | null>(null);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [token, setToken] = useState<string | null>(null);
-
-  const USERNAME = "admin";
-  const PASSWORD = "admin";
-  const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-  const CLIENT_SECRET =
-    "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
   const api = axios.create({ baseURL: `${backend_url}` });
 
-  const getToken = async () => {
-    if (token) return token;
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    try {
-      const res = await axios.post(`${backend_url}o/token/`, params);
-      setToken(res.data.access_token);
-      return res.data.access_token;
-    } catch (err) {
-      console.error("Erro ao buscar token:", err);
-    }
-  };
-
   const fetchKanbans = async () => {
     try {
-      const t = await getToken();
-      if (!t) return;
+      const token = await getToken();
+      if (!token) throw new Error("Autenticação falhou.");
 
       const res = await api.get<Kanban[]>("kanbans/", {
-        headers: { Authorization: `Bearer ${t}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       // @ts-ignore
@@ -139,21 +115,21 @@ export default function Kanbans() {
   };
 
   const saveKanban = async () => {
-    const t = await getToken();
-    if (!t) return;
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       if (editingKanban) {
         await api.put(
           `kanbans/${editingKanban.id}/`,
           { nome, descricao },
-          { headers: { Authorization: `Bearer ${t}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         await api.post(
           "kanbans/",
           { nome, descricao },
-          { headers: { Authorization: `Bearer ${t}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       }
       fetchKanbans();
@@ -165,12 +141,12 @@ export default function Kanbans() {
 
   const deleteKanban = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este kanban?")) return;
-    const t = await getToken();
-    if (!t) return;
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       await api.delete(`kanbans/${id}/`, {
-        headers: { Authorization: `Bearer ${t}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setKanbans((prev) => prev.filter((k) => k.id !== id));
     } catch (err) {

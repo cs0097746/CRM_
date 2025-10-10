@@ -8,40 +8,23 @@ import type { DropResult } from "@hello-pangea/dnd";
 import backend_url from "../config/env.ts";
 import { useParams } from "react-router-dom";
 import {CriarEstagioModal} from "../components/modal/CriarEstagio.tsx";
+import {getToken} from "../function/validateToken.tsx";
 
 export default function Kanban() {
   const { id } = useParams<{ id: string }>();
   const [estagios, setEstagios] = useState<Estagio[]>([]);
   const [negocios, setNegocios] = useState<Negocio[]>([]);
-  const [token, setToken] = useState<string | null>();
-
-   const USERNAME = "admin";
-    const PASSWORD = "admin";
-    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
-
-    const getToken = async () => {
-      const params = new URLSearchParams();
-      params.append("grant_type", "password");
-      params.append("username", USERNAME);
-      params.append("password", PASSWORD);
-      params.append("client_id", CLIENT_ID);
-      params.append("client_secret", CLIENT_SECRET);
-
-      try {
-        const res = await axios.post(`${backend_url}o/token/`, params);
-        return res.data.access_token;
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  const [token, setToken] = useState<string | null>(null);
 
   const api = axios.create({ baseURL: `${backend_url}` });
 
   const fetchData = async () => {
     try {
 
-        const token = await getToken();
+      const token = await getToken();
+      if (!token) throw new Error("Autenticação falhou.");
+      setToken(token);
+
       const [estagiosRes, negociosRes] = await Promise.all([
         api.get<Estagio[]>(`estagios/${id}`, {
                 headers: {
@@ -68,11 +51,7 @@ export default function Kanban() {
 
   useEffect(() => {
     (async () => {
-      const t = await getToken();
-      if (t) {
-        setToken(t);
         fetchData();
-      }
     })();
   }, []);
 
@@ -103,8 +82,6 @@ export default function Kanban() {
 
       console.log("Negócio id", negocioId);
         console.log("Estágio final ", novoEstagioId);
-
-      const token = await getToken();
 
       try {
         await api.patch(`negocios/${negocioId}/`, {

@@ -3,6 +3,7 @@ import { Container, Row, Col, Button, Card, Badge, Alert, ListGroup, Spinner } f
 import axios from 'axios';
 import type { Conversa } from "../types/Conversa.ts";
 import backend_url from "../config/env.ts";
+import { getToken} from "../function/validateToken.tsx";
 
 const styles = `
     .professional-layout {
@@ -105,11 +106,6 @@ const Home = () => {
   // como no código original. Mantendo a definição dentro do Home para simplificar.
   const api = axios.create({ baseURL: `${backend_url}` });
 
-    const USERNAME = "admin";
-    const PASSWORD = "admin";
-    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
-
     // --- Tipos e Funções de Notificação ---
     interface Notificacao {
         id: number;
@@ -127,22 +123,6 @@ const Home = () => {
             default: return { variant: 'secondary', cor: '#6c757d', icone: 'ℹ️' };
         }
     };
-
-    const getToken = async () => {
-      const params = new URLSearchParams();
-      params.append("grant_type", "password");
-      params.append("username", USERNAME);
-      params.append("password", PASSWORD);
-      params.append("client_id", CLIENT_ID);
-      params.append("client_secret", CLIENT_SECRET);
-
-      try {
-        const res = await axios.post(`${backend_url}o/token/`, params);
-        return res.data.access_token;
-      } catch (err) {
-        console.error("Erro ao obter token:", err);
-      }
-    };
     // ------------------------------------
 
     const handleMarcarTodasLidas = async () => {
@@ -151,6 +131,7 @@ const Home = () => {
         try {
             setMarkingLidas(true);
             const token = await getToken();
+            console.log("Token", token);
             if (!token) throw new Error("Autenticação falhou.");
 
             await api.patch('notificacoes/marcar-todas-lidas/', {}, {
@@ -178,10 +159,8 @@ const Home = () => {
     const fetchResumoRapido = useCallback(async () => {
       try {
         const token = await getToken();
-        if (!token) {
-            setLoading(false);
-            return;
-        }
+        console.log("Token", token);
+        if (!token) throw new Error("Autenticação falhou.");
 
         const [resumoResponse, notifResponse] = await Promise.all([
              api.get<Conversa[]>('conversas/', {

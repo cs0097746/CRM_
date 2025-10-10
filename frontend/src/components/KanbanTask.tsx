@@ -3,8 +3,8 @@ import type {Comentario} from "../types/Comentario.ts";
 import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
 import { Modal, Button, Form, Badge, Spinner, Alert } from "react-bootstrap";
-import axios from "axios";
 import backend_url from "../config/env.ts";
+import {getToken} from "../function/validateToken.tsx";
 
 interface KanbanCardProps {
   negocio: Negocio;
@@ -33,30 +33,10 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [isSavingField, setIsSavingField] = useState(false);
   const [fieldCreationError, setFieldCreationError] = useState<string | null>(null);
 
-  const USERNAME = "admin";
-  const PASSWORD = "admin";
-  const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-  const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
-
-  const getToken = async () => {
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    try {
-      const res = await axios.post(`${backend_url}o/token/`, params);
-      return res.data.access_token;
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const handleSave = async () => {
     const payload = { titulo, valor, contato, estagio };
     const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
@@ -85,13 +65,9 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     }
 
     setIsDeleting(true);
-    const token = await getToken();
 
-    if (!token) {
-      setIsDeleting(false);
-      alert("Erro de autenticação. Não foi possível excluir o negócio.");
-      return;
-    }
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
@@ -126,12 +102,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     setIsSavingField(true);
     setFieldCreationError(null);
     const token = await getToken();
-
-    if (!token) {
-        setIsSavingField(false);
-        setFieldCreationError("Erro de autenticação. Tente novamente.");
-        return;
-    }
+    if (!token) throw new Error("Autenticação falhou.");
 
     const payload = {
         label: newFieldLabel.trim(),
@@ -263,10 +234,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     if (!novoComentario.trim()) return;
 
     const token = await getToken();
-    if (!token) {
-      alert("Erro de autenticação. Tente novamente.");
-      return;
-    }
+    if (!token) throw new Error("Autenticação falhou.");
 
     const payload = {
         mensagem: novoComentario.trim(),

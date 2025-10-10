@@ -2,13 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert, Spinner, Button } from 'react-bootstrap';
 import axios from 'axios';
 import backend_url from "../config/env.ts";
+import {getToken} from "../function/validateToken.tsx";
 
 const api = axios.create({ baseURL:`${backend_url}` });
-
-const USERNAME = "admin";
-const PASSWORD = "admin";
-const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
 interface Contato {
   id: number;
@@ -17,22 +13,6 @@ interface Contato {
   email: string | null;
   criado_em: string;
 }
-
-const getToken = async () => {
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    try {
-        const res = await axios.post(`${backend_url}o/token/`, params);
-        return res.data.access_token;
-    } catch (err) {
-        console.error("Erro ao obter token:", err);
-    }
-};
 
 const styles = `
     .professional-layout {
@@ -157,10 +137,7 @@ export default function Contatos() {
             setError(null);
 
             const token = await getToken();
-            if (!token) {
-                setError("Não foi possível autenticar.");
-                return;
-            }
+            if (!token) throw new Error("Autenticação falhou.");
 
             const response = await api.get<{ results: Contato[] }>('contatos/', {
                 headers: {
@@ -191,11 +168,7 @@ export default function Contatos() {
 
         try {
             const token = await getToken();
-            if (!token) {
-                setError("Não foi possível autenticar para deletar.");
-                setDeleteStatus(null);
-                return;
-            }
+            if (!token) throw new Error("Autenticação falhou.");
 
             await api.delete(`contatos/${id}/`, {
                 headers: {
@@ -214,19 +187,15 @@ export default function Contatos() {
         }
     };
 
-    // Filtrar contatos (CORREÇÃO APLICADA AQUI)
     const contatosFiltrados = contatos.filter(contato => {
         if (!searchTerm) return true;
 
         const searchLower = searchTerm.toLowerCase();
 
-        // Verifica o nome
         const nomeMatch = contato.nome.toLowerCase().includes(searchLower);
 
-        // Verifica o telefone (busca a substring diretamente)
         const telefoneMatch = contato.telefone.includes(searchTerm);
 
-        // CORREÇÃO: Verifica se o email existe (não é null/undefined) antes de tentar o toLowerCase()
         const emailMatch = contato.email && contato.email.toLowerCase().includes(searchLower);
 
         return nomeMatch || telefoneMatch || emailMatch;
@@ -237,7 +206,6 @@ export default function Contatos() {
             <style>{styles}</style>
 
             <div className="professional-layout">
-                {/* Barra superior */}
                 <div className="top-bar">
                     <div className="d-flex justify-content-between align-items-center">
                         <div className="d-flex align-items-center gap-3">
