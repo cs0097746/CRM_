@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Spinner, Button } from 'react-bootstrap';
+import { Alert, Spinner, Button, Modal, Form } from 'react-bootstrap';
 import axios from 'axios';
 import backend_url from "../config/env.ts";
 import {getToken} from "../function/validateToken.tsx";
@@ -12,6 +12,14 @@ interface Contato {
   telefone: string;
   email: string | null;
   criado_em: string;
+  empresa: string | null;
+  cargo: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  estado: string | null;
+  cep: string | null;
+  data_nascimento: string | null;
+  observacoes: string | null;
 }
 
 const styles = `
@@ -52,6 +60,13 @@ const styles = `
         align-items: center;
         background: #f8f9fa;
     }
+    
+    .list-header-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+
 
     .contact-item {
       border-bottom: 1px solid #f0f2f5;
@@ -74,7 +89,7 @@ const styles = `
         display: flex;
         justify-content: space-between;
         align-items: center;
-        flex-grow: 1; /* Ocupa o espaço disponível */
+        flex-grow: 1;
     }
 
     .contact-info strong {
@@ -93,8 +108,8 @@ const styles = `
     .contact-actions {
         display: flex;
         align-items: center;
-        gap: 15px; /* Espaço entre a data e o botão */
-        flex-shrink: 0; /* Não deixa as ações encolherem */
+        gap: 15px;
+        flex-shrink: 0;
     }
 
     .contact-actions small {
@@ -123,6 +138,252 @@ const styles = `
     }
 `;
 
+interface CreateContactModalProps {
+    show: boolean;
+    onHide: () => void;
+    onContactCreated: (newContact: Contato) => void;
+}
+
+function CreateContactModal({ show, onHide, onContactCreated }: CreateContactModalProps) {
+    const [formData, setFormData] = useState({
+        nome: '',
+        telefone: '',
+        email: '',
+        empresa: '',
+        cargo: '',
+        endereco: '',
+        cidade: '',
+        estado: '',
+        cep: '',
+        data_nascimento: '',
+        observacoes: '',
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
+        if (error) setError(null);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        if (!formData.nome || !formData.telefone) {
+            setError('Nome e Telefone são campos obrigatórios.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const token = await getToken();
+            if (!token) throw new Error("Autenticação falhou.");
+
+            const payload = {
+                nome: formData.nome,
+                telefone: formData.telefone,
+                email: formData.email || null,
+                empresa: formData.empresa || null,
+                cargo: formData.cargo || null,
+                endereco: formData.endereco || null,
+                cidade: formData.cidade || null,
+                estado: formData.estado || null,
+                cep: formData.cep || null,
+                data_nascimento: formData.data_nascimento || null,
+                observacoes: formData.observacoes || null,
+            };
+
+            const response = await api.post<Contato>('contatos/', payload, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            onContactCreated(response.data);
+            handleHide();
+            alert(`Contato "${response.data.nome}" criado com sucesso! 🎉`);
+
+        } catch (err) {
+            const errorMessage = axios.isAxiosError(err) && err.response?.data?.detail
+                ? err.response.data.detail
+                : 'Não foi possível criar o contato. Verifique os dados e a conexão com a API.';
+            setError(errorMessage);
+            console.error('Erro ao criar contato:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleHide = () => {
+        setFormData({
+            nome: '', telefone: '', email: '', empresa: '', cargo: '', endereco: '',
+            cidade: '', estado: '', cep: '', data_nascimento: '', observacoes: '',
+        });
+        setError(null);
+        setLoading(false);
+        onHide();
+    }
+
+
+    return (
+        <Modal show={show} onHide={handleHide} centered size="lg">
+            <Modal.Header closeButton>
+                <Modal.Title style={{ fontSize: '1.25rem', fontWeight: 600 }}>Criar Novo Contato</Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleSubmit}>
+                <Modal.Body>
+                    {error && <Alert variant="danger">{error}</Alert>}
+
+                    <div className="row">
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactName">
+                            <Form.Label style={{ fontWeight: 500 }}>Nome Completo <span className="text-danger">*</span></Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="Nome do Cliente/Contato"
+                                name="nome"
+                                value={formData.nome}
+                                onChange={handleChange}
+                                required
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactPhone">
+                            <Form.Label style={{ fontWeight: 500 }}>Telefone <span className="text-danger">*</span></Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="(99) 99999-9999"
+                                name="telefone"
+                                value={formData.telefone}
+                                onChange={handleChange}
+                                required
+                            />
+                        </Form.Group>
+                    </div>
+
+                    <div className="row">
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactEmail">
+                            <Form.Label style={{ fontWeight: 500 }}>E-mail</Form.Label>
+                            <Form.Control
+                                type="email"
+                                placeholder="email@exemplo.com"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactBirthDate">
+                            <Form.Label style={{ fontWeight: 500 }}>Data de Nascimento</Form.Label>
+                            <Form.Control
+                                type="date"
+                                name="data_nascimento"
+                                value={formData.data_nascimento}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                    </div>
+
+                    <div className="row">
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactCompany">
+                            <Form.Label style={{ fontWeight: 500 }}>Empresa</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="Nome da empresa"
+                                name="empresa"
+                                value={formData.empresa}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactPosition">
+                            <Form.Label style={{ fontWeight: 500 }}>Cargo</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="Ex: Gerente, Vendedor"
+                                name="cargo"
+                                value={formData.cargo}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                    </div>
+
+                    <Form.Group className="mb-3" controlId="formContactAddress">
+                        <Form.Label style={{ fontWeight: 500 }}>Endereço</Form.Label>
+                        <Form.Control
+                            as="textarea"
+                            rows={2}
+                            placeholder="Rua, número, complemento..."
+                            name="endereco"
+                            value={formData.endereco}
+                            onChange={handleChange}
+                        />
+                    </Form.Group>
+
+                    <div className="row">
+                        <Form.Group className="mb-3 col-md-6" controlId="formContactCity">
+                            <Form.Label style={{ fontWeight: 500 }}>Cidade</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="cidade"
+                                value={formData.cidade}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3 col-md-3" controlId="formContactState">
+                            <Form.Label style={{ fontWeight: 500 }}>Estado</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="estado"
+                                placeholder="Ex: SP, RJ"
+                                value={formData.estado}
+                                onChange={handleChange}
+                                maxLength={2}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3 col-md-3" controlId="formContactZip">
+                            <Form.Label style={{ fontWeight: 500 }}>CEP</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="cep"
+                                value={formData.cep}
+                                onChange={handleChange}
+                            />
+                        </Form.Group>
+                    </div>
+
+                    <Form.Group className="mb-3" controlId="formContactNotes">
+                        <Form.Label style={{ fontWeight: 500 }}>Observações</Form.Label>
+                        <Form.Control
+                            as="textarea"
+                            rows={3}
+                            placeholder="Notas importantes sobre o contato, preferências, etc."
+                            name="observacoes"
+                            value={formData.observacoes}
+                            onChange={handleChange}
+                        />
+                    </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleHide} disabled={loading}>
+                        Cancelar
+                    </Button>
+                    <Button variant="success" type="submit" disabled={loading}>
+                        {loading ? (
+                            <>
+                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                <span className="ms-2">Salvando...</span>
+                            </>
+                        ) : (
+                            'Salvar Contato'
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Form>
+        </Modal>
+    );
+}
 
 export default function Contatos() {
     const [contatos, setContatos] = useState<Contato[]>([]);
@@ -130,6 +391,7 @@ export default function Contatos() {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [deleteStatus, setDeleteStatus] = useState<{ id: number; loading: boolean } | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const fetchContatos = useCallback(async () => {
         try {
@@ -187,6 +449,10 @@ export default function Contatos() {
         }
     };
 
+    const handleContactCreated = (newContact: Contato) => {
+        setContatos([newContact, ...contatos]);
+    };
+
     const contatosFiltrados = contatos.filter(contato => {
         if (!searchTerm) return true;
 
@@ -233,13 +499,19 @@ export default function Contatos() {
 
                         <div className="list-header">
                             <h5 className="mb-0" style={{ fontWeight: 600 }}>Contatos Cadastrados ({contatos.length})</h5>
-                            <input
-                                type="text"
-                                className="search-input"
-                                placeholder="Buscar por nome, tel ou e-mail..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+
+                            <div className="list-header-controls">
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="Buscar por nome, tel ou e-mail..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                                    + Novo Contato
+                                </Button>
+                            </div>
                         </div>
 
                         {error && (
@@ -318,6 +590,12 @@ export default function Contatos() {
                     </div>
                 </div>
             </div>
+
+            <CreateContactModal
+                show={showCreateModal}
+                onHide={() => setShowCreateModal(false)}
+                onContactCreated={handleContactCreated}
+            />
         </>
     );
 }
