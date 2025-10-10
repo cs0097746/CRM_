@@ -57,7 +57,7 @@ services:
       context: ./backend
     container_name: crm_celery
     restart: unless-stopped
-    command: celery -A backend worker -l info
+    entrypoint: ["celery", "-A", "backend.celery", "worker", "-l", "info"]
     environment:
       - CELERY_BROKER_URL=redis://redis_crm:6379/0
       - DJANGO_SETTINGS_MODULE=backend.settings
@@ -76,14 +76,18 @@ services:
       context: ./backend
     container_name: crm_celery_beat
     restart: unless-stopped
-    command: celery -A backend.celery beat -l info
+    entrypoint: ["celery", "-A", "backend.celery", "beat", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
     environment:
       - CELERY_BROKER_URL=redis://redis_crm:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_crm:6379/0
       - DJANGO_SETTINGS_MODULE=backend.settings
       - POSTGRES_DB=crmdb
       - POSTGRES_USER=crmuser
       - POSTGRES_PASSWORD=crmpassword
       - POSTGRES_HOST=db
+    volumes:
+      - ./backend:/app
+    working_dir: /app
     networks:
       - crm-network
 

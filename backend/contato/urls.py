@@ -9,6 +9,7 @@ from kanban import views as kanban_views
 from knowledge_base.views import *
 from atributo import views as atributos_views
 from notificacao import views as notificacao_views
+from tarefas import views as tarefas_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -101,6 +102,11 @@ urlpatterns = [
     path('notificacoes/', notificacao_views.NotificacaoListView.as_view(), name='notificacoes'),
     path('notificacoes/marcar-todas-lidas/', notificacao_views.MarcarTodasLidasView.as_view(), name='marcar-todas-lidas'),
     path('notificacoes/criar/', notificacao_views.CriarNotificacaoView.as_view(), name='notificacoes'),
+
+    # api de criar tarefas
+    path('criar_tarefas/', tarefas_views.criar_tarefa, name='criar_tarefa'),
+    path('listar_tarefas/', tarefas_views.listar_tarefas, name='listar_tarefas'),
+    path('excluir_tarefa/<int:tarefa_id>/', tarefas_views.excluir_tarefa, name='excluir_tarefa'),
 
     # ===== ROUTER URLS =====
     path("health/", core_views.health),

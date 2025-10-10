@@ -4,50 +4,26 @@ import {
   Toast, ToastContainer, Spinner, ButtonGroup
 } from 'react-bootstrap';
 import axios from 'axios';
-import backend_url from "../config/env.ts"; // Assumindo que este caminho é válido
+import backend_url from "../config/env.ts";
+import {getToken} from "../function/validateToken.tsx";
 
-// Definições de Tipo (ajuste conforme sua API)
 type TipoTarefa = 'email' | 'whatsapp';
 type RecorrenciaTipo = 'unica' | 'horas' | 'diaria' | 'dias';
 
-interface DadosTarefa {
-  tipo: TipoTarefa;
-  destinatario: string; // Ex: Email para email, Telefone para whatsapp
-  assunto: string;      // Apenas para Email
-  mensagem: string;
-  recorrencia: {
-    tipo: RecorrenciaTipo;
-    valor1: number | string; // Valor principal (Ex: X horas, Dia da semana/hora)
-    valor2?: number | string; // Valor secundário (Ex: Y horas para 'dias')
-  };
+interface RecorrenciaConfig {
+  tipo: RecorrenciaTipo;
+  valor1: number | string; // X horas / Data/Hora / X dias / Hora do dia
+  valor2?: number | string; // Y horas (apenas para 'dias')
 }
 
-// const api = axios.create({
-//   baseURL: backend_url
-// });
-
-// Mock de função de autenticação
-// Você precisará adaptar o getToken do seu Atendimento.tsx aqui ou usar um hook de auth global
-const getToken = async () => {
-    // Implementação de getToken (copiar de Atendimento.tsx ou refatorar para um hook)
-    const USERNAME = "admin";
-    const PASSWORD = "admin";
-    const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-    const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRiie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-    try {
-      const res = await axios.post(`${backend_url}o/token/`, params);
-      return res.data.access_token;
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-};
+interface DadosTarefa {
+  tipo: TipoTarefa;
+  destinatario: string;
+  assunto: string;
+  mensagem: string;
+  linkWebhookN8n: string;
+  recorrencia: RecorrenciaConfig;
+}
 
 const CriarTarefa = () => {
   const [formData, setFormData] = useState<DadosTarefa>({
@@ -55,9 +31,10 @@ const CriarTarefa = () => {
     destinatario: '',
     assunto: '',
     mensagem: '',
+    linkWebhookN8n: '',
     recorrencia: {
       tipo: 'unica',
-      valor1: 1,
+      valor1: '',
       valor2: undefined,
     },
   });
@@ -98,9 +75,10 @@ const CriarTarefa = () => {
         destinatario: '',
         assunto: '',
         mensagem: '',
+        linkWebhookN8n: '',
         recorrencia: {
           tipo: 'unica',
-          valor1: 1,
+          valor1: '',
           valor2: undefined,
         },
     });
@@ -111,43 +89,50 @@ const CriarTarefa = () => {
     setLoading(true);
     setError(null);
 
-    // Simulação da estrutura que a API deve esperar
+    const { recorrencia } = formData;
+
+    const config_recorrencia_formatada = {
+        tipo: recorrencia.tipo,
+        valor1: String(recorrencia.valor1),
+        ...(recorrencia.valor2 !== undefined && { valor2: String(recorrencia.valor2) })
+    };
+
     const payload = {
       tipo_tarefa: formData.tipo,
       destinatario: formData.destinatario,
       assunto: formData.tipo === 'email' ? formData.assunto : undefined,
       mensagem: formData.mensagem,
-      config_recorrencia: formData.recorrencia,
+      link_webhook_n8n: formData.linkWebhookN8n || undefined,
+      config_recorrencia: config_recorrencia_formatada,
     };
 
     console.log("Payload de envio:", payload);
 
     try {
       const token = await getToken();
-      if (!token) throw new Error("Falha na autenticação.");
+      if (!token) throw new Error("Falha na autenticação. Verifique as credenciais no getToken.");
 
-      // Substitua '/tarefas/criar' pelo endpoint real da sua API
-      // const response = await api.post('/tarefas/criar', payload, {
-      //   headers: { Authorization: `Bearer ${token}` }
-      // });
+      const apiUrl = `${backend_url}criar_tarefas/`;
 
-      // Simulação de sucesso
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await axios.post(apiUrl, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      // if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
         showNotification(`Tarefa de ${formData.tipo.toUpperCase()} criada com sucesso!`, 'success');
         resetForm();
-      // }
-    } catch (err) {
+      }
+
+    } catch (err: any) {
       console.error('Erro ao criar tarefa:', err);
-      setError('Erro ao criar tarefa. Verifique o console.');
-      showNotification('Erro ao criar tarefa. Tente novamente.', 'danger');
+      const errorMessage = err.response?.data ? JSON.stringify(err.response.data) : 'Erro de rede ou servidor.';
+      setError(`Erro ao criar tarefa: ${errorMessage}`);
+      showNotification('Erro ao criar tarefa. Verifique o console para detalhes.', 'danger');
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Renderização da Recorrência ---
   const renderRecorrenciaCampos = () => {
     const { tipo, valor1, valor2 } = formData.recorrencia;
 
@@ -155,7 +140,7 @@ const CriarTarefa = () => {
       case 'unica':
         return (
           <Col md={12}>
-            <FloatingLabel label="Data e Hora do Envio">
+            <FloatingLabel label="Data e Hora do Envio (YYYY-MM-DDTHH:MM)">
               <Form.Control
                 type="datetime-local"
                 name="valor1"
@@ -234,7 +219,6 @@ const CriarTarefa = () => {
         📅 Criar Tarefa Recorrente
       </h2>
 
-      {/* Botões de Ação Rápida no topo */}
       <div className="d-flex mb-4">
         <ButtonGroup size="lg">
           <Button
@@ -302,11 +286,23 @@ const CriarTarefa = () => {
                   />
                 </FloatingLabel>
               </Col>
+
+              <Col md={12}>
+                <FloatingLabel label="URL do Webhook (Opcional - p/ n8n ou outro)">
+                  <Form.Control
+                    type="url"
+                    placeholder="https://sua.instancia.n8n/webhook/..."
+                    name="linkWebhookN8n"
+                    value={formData.linkWebhookN8n}
+                    onChange={handleChange}
+                  />
+                </FloatingLabel>
+              </Col>
+
             </Row>
           </Card.Body>
         </Card>
 
-        {/* Configuração de Recorrência */}
         <Card className="shadow-sm mb-4">
           <Card.Header style={{ fontWeight: 600 }}>
             ⏰ Configuração de Recorrência
@@ -321,7 +317,6 @@ const CriarTarefa = () => {
                     onChange={(e) => {
                       const newType = e.target.value as RecorrenciaTipo;
                       handleRecorrenciaChange('tipo', newType);
-                      // Resetar valores ao trocar o tipo
                       handleRecorrenciaChange('valor1', newType === 'unica' ? '' : 1);
                       handleRecorrenciaChange('valor2', undefined);
                     }}
@@ -361,7 +356,6 @@ const CriarTarefa = () => {
         </div>
       </Form>
 
-      {/* Toast de Notificação */}
       <ToastContainer position="top-end" className="p-3">
         <Toast
           show={showToast}

@@ -1,9 +1,8 @@
 import os
 from celery import Celery
+from django.conf import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
-
-from django.conf import settings
 
 app = Celery('backend',
              broker=settings.CELERY_BROKER_URL,

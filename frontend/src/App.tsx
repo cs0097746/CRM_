@@ -15,7 +15,8 @@ const Atendimento = lazy(() => import("./views/Atendimento"));
 const NotFound = lazy(() => import('./views/NotFound'));
 const Kanbans = lazy(() => import('./views/Kanbans'));
 const Contatos = lazy(() => import('./views/Contatos'));
-const Tarefas = lazy(() => import('./views/Tarefas'));
+const CriarTarefas = lazy(() => import('./views/Tarefas'));
+const ListarTarefas = lazy(()=> import('./views/ListarTarefas'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -99,7 +100,8 @@ const AppContent = () => {
             <Route path="/configuracao" element={<ConfiguracaoSistema />} />
             <Route path="/teste" element={<TestePage />} />
             <Route path="/whatsapp-config" element={<ConfiguracaoWhatsApp />} />
-            <Route path="/tarefas" element={<Tarefas />} />
+            <Route path="/criar_tarefas" element={<CriarTarefas />} />
+            <Route path="/tarefas" element={<ListarTarefas />} />
           </Routes>
         </Suspense>
       </div>

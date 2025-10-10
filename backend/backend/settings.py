@@ -71,6 +71,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'drf_spectacular',
     'django_celery_beat',
+    'django_celery_results',
 ]
 
 LOCAL_APPS = [
@@ -83,6 +84,7 @@ LOCAL_APPS = [
     'knowledge_base',
     'core',
     'notificacao',
+    'tarefas'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -151,8 +153,6 @@ else:
             'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         }
     }
-
-print("DATABASES: ", DATABASES)
 
 # =========================
 # VALIDAÇÃO DE SENHAS
