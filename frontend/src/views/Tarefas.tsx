@@ -7,13 +7,14 @@ import axios from 'axios';
 import backend_url from "../config/env.ts";
 import {getToken} from "../function/validateToken.tsx";
 
+
 type TipoTarefa = 'email' | 'whatsapp';
 type RecorrenciaTipo = 'unica' | 'horas' | 'diaria' | 'dias';
 
 interface RecorrenciaConfig {
   tipo: RecorrenciaTipo;
-  valor1: number | string; // X horas / Data/Hora / X dias / Hora do dia
-  valor2?: number | string; // Y horas (apenas para 'dias')
+  valor1: number | string;
+  valor2?: number | string;
 }
 
 interface DadosTarefa {
@@ -23,6 +24,8 @@ interface DadosTarefa {
   mensagem: string;
   linkWebhookN8n: string;
   recorrencia: RecorrenciaConfig;
+  precisarEnviar: boolean;
+  codigo: string;
 }
 
 const CriarTarefa = () => {
@@ -37,6 +40,8 @@ const CriarTarefa = () => {
       valor1: '',
       valor2: undefined,
     },
+    precisarEnviar: true,
+    codigo: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -53,9 +58,18 @@ const CriarTarefa = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    let newValue: string | boolean;
+
+    if ((e.target as HTMLInputElement).type === 'checkbox') {
+        newValue = (e.target as HTMLInputElement).checked;
+    } else {
+        newValue = value;
+    }
+
     setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
   };
 
@@ -81,6 +95,8 @@ const CriarTarefa = () => {
           valor1: '',
           valor2: undefined,
         },
+        precisarEnviar: true,
+        codigo: '',
     });
   };
 
@@ -89,7 +105,7 @@ const CriarTarefa = () => {
     setLoading(true);
     setError(null);
 
-    const { recorrencia } = formData;
+    const { recorrencia, precisarEnviar, codigo } = formData;
 
     const config_recorrencia_formatada = {
         tipo: recorrencia.tipo,
@@ -104,6 +120,9 @@ const CriarTarefa = () => {
       mensagem: formData.mensagem,
       link_webhook_n8n: formData.linkWebhookN8n || undefined,
       config_recorrencia: config_recorrencia_formatada,
+
+      precisar_enviar: precisarEnviar,
+      codigo: codigo || undefined,
     };
 
     console.log("Payload de envio:", payload);
@@ -303,6 +322,7 @@ const CriarTarefa = () => {
           </Card.Body>
         </Card>
 
+        {/* --- Configuração de Recorrência --- */}
         <Card className="shadow-sm mb-4">
           <Card.Header style={{ fontWeight: 600 }}>
             ⏰ Configuração de Recorrência
@@ -331,6 +351,45 @@ const CriarTarefa = () => {
 
               {renderRecorrenciaCampos()}
 
+            </Row>
+          </Card.Body>
+        </Card>
+
+        <Card className="shadow-sm mb-4 border-info">
+          <Card.Header style={{ fontWeight: 600, backgroundColor: '#e9f7fe' }}>
+            ⚙️ Opções Adicionais (Controle de Envio e Código)
+          </Card.Header>
+          <Card.Body>
+            <Row className="g-3 align-items-center">
+              <Col md={6}>
+                <Form.Check
+                  type="switch"
+                  id="precisarEnviarSwitch"
+                  label={
+                    <span style={{ fontWeight: 500 }}>
+                      {formData.precisarEnviar
+                        ? '✅ Envio Habilitado (Envio será pelo próprio CRM)'
+                        : '⏸️ Envio Desabilitado (Envio será apenas pelo N8N)'}
+                    </span>
+                  }
+                  name="precisarEnviar"
+                  checked={formData.precisarEnviar}
+                  onChange={handleChange}
+                  className="pt-2 pb-2"
+                />
+              </Col>
+              <Col md={6}>
+                <FloatingLabel label="Código Opcional (Max 10 caracteres)">
+                  <Form.Control
+                    type="text"
+                    placeholder="Ex: PROJETO_A"
+                    name="codigo"
+                    value={formData.codigo}
+                    onChange={handleChange}
+                    maxLength={10}
+                  />
+                </FloatingLabel>
+              </Col>
             </Row>
           </Card.Body>
         </Card>

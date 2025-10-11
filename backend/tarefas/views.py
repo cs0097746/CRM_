@@ -22,6 +22,8 @@ def criar_tarefa(request):
         "recorrencia_tipo": data["config_recorrencia"]["tipo"],
         "valor1": data["config_recorrencia"]["valor1"],
         "valor2": data["config_recorrencia"].get("valor2"),
+        "precisar_enviar": data.get("precisar_enviar"),
+        "codigo": data.get("codigo") or None,
     })
     serializer.is_valid(raise_exception=True)
     tarefa = serializer.save()
@@ -33,9 +35,22 @@ def criar_tarefa(request):
     webhook_arg = tarefa.link_webhook_n8n if tarefa.link_webhook_n8n else ""
 
     if tipo == "email":
-        task_args = [tarefa.destinatario, tarefa.assunto, tarefa.mensagem, webhook_arg]
+        task_args = [
+            tarefa.destinatario,
+            tarefa.assunto,
+            tarefa.mensagem,
+            tarefa.link_webhook_n8n or "",
+            tarefa.precisar_enviar,
+            tarefa.codigo
+        ]
     else:
-        task_args = [tarefa.destinatario, tarefa.mensagem, webhook_arg]
+        task_args = [
+            tarefa.destinatario,
+            tarefa.mensagem,
+            tarefa.link_webhook_n8n or "",
+            tarefa.precisar_enviar,
+            tarefa.codigo
+        ]
 
     task_args_json = json.dumps(task_args)
 

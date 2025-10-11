@@ -7,7 +7,7 @@ class Tarefa(models.Model):
         ('whatsapp', 'WhatsApp'),
     ]
 
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, blank=False, null=False)
     destinatario = models.CharField(max_length=200)
     assunto = models.CharField(max_length=200, blank=True, null=True)
     mensagem = models.TextField()
@@ -16,6 +16,9 @@ class Tarefa(models.Model):
     valor2 = models.CharField(max_length=100, blank=True, null=True)
     criada_em = models.DateTimeField(auto_now_add=True)
     link_webhook_n8n = models.URLField(blank=True, null=True)
+
+    precisar_enviar = models.BooleanField(default=True)
+    codigo = models.CharField(max_length=10, blank=True, null=True)
 
     def __str__(self):
         return f"{self.tipo} para {self.destinatario}"

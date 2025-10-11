@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import {
   Table, Button, Card, Alert, Spinner, Row, Col
 } from 'react-bootstrap';
-import { LinkContainer } from 'react-router-bootstrap';
-import axios from 'axios';
 import backend_url from "../config/env.ts";
 import {getToken} from "../function/validateToken.tsx";
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 interface Agendamento {
   nome_task: string;
@@ -23,6 +23,8 @@ interface TarefaData {
   assunto: string;
   mensagem: string;
   criada_em: string;
+  precisar_enviar: boolean;
+  codigo: string;
 }
 
 interface ItemLista {
@@ -35,6 +37,7 @@ const ListarTarefas = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const fetchTarefas = async () => {
     setLoading(true);
@@ -62,10 +65,6 @@ const ListarTarefas = () => {
   };
 
   const handleDelete = async (tarefaId: number) => {
-    if (!window.confirm(`Tem certeza que deseja excluir a Tarefa ID ${tarefaId} e todos os seus agendamentos?`)) {
-      return;
-    }
-
     setDeletingId(tarefaId);
     setError(null);
 
@@ -107,6 +106,10 @@ const ListarTarefas = () => {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    navigate(path);
+  };
+
   if (loading) {
     return (
       <div className="p-4 text-center">
@@ -123,11 +126,13 @@ const ListarTarefas = () => {
           <h2 style={{ fontWeight: 600 }}>📋 Tarefas Agendadas</h2>
         </Col>
         <Col xs="auto">
-          <LinkContainer to="/criar_tarefas/">
-            <Button variant="success" size="lg">
-              + Criar Nova Tarefa
-            </Button>
-          </LinkContainer>
+          <Button
+            variant="success"
+            size="lg"
+            onClick={() => handleNavigation('/criar_tarefas/')}
+          >
+            + Criar Nova Tarefa
+          </Button>
         </Col>
       </Row>
 
@@ -149,6 +154,8 @@ const ListarTarefas = () => {
                   <th>Assunto / Mensagem</th>
                   <th>Agendamento (PeriodicTask)</th>
                   <th>Recorrência</th>
+                  <th>Enviar pelo CRM?</th>
+                  <th>Código</th>
                   <th>Ativo</th>
                   <th>Criação</th>
                   <th>Ações</th>
@@ -192,6 +199,20 @@ const ListarTarefas = () => {
                             </span>
                         ) : 'N/A'}
                     </td>
+
+                    {/* EXIBIÇÃO DOS NOVOS DADOS */}
+                    <td>
+                      <span className={`badge ${item.tarefa.precisar_enviar ? 'bg-info' : 'bg-warning'}`}>
+                        {item.tarefa.precisar_enviar ? 'SIM' : 'NÃO'}
+                      </span>
+                    </td>
+                    <td>
+                        <span className="badge bg-light text-dark border">
+                            {item.tarefa.codigo || 'N/A'}
+                        </span>
+                    </td>
+                    {/* FIM EXIBIÇÃO DOS NOVOS DADOS */}
+
                     <td>
                       {item.agendamentos.length > 0 ? (
                         <span className={`badge ${item.agendamentos[0].ativo ? 'bg-success' : 'bg-danger'}`}>
