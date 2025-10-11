@@ -51,6 +51,9 @@ services:
     networks:
       - crm-network
       - loomie-network
+    volumes:
+      - ./backend:/app
+      - crm-media-data:/app/media
 
   celery:
     build:
@@ -110,6 +113,8 @@ volumes:
     name: crm_postgres-data
   redis-crm-data:
     name: crm_redis-crm-data
+  crm-media-data:
+    name: crm_media-data
 
 networks:
   loomie-network:

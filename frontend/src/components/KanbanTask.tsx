@@ -11,8 +11,9 @@ interface KanbanCardProps {
   index: number;
 }
 
+// 1. Adicionar 'file' aos TYPE_CHOICES
 const TYPE_CHOICES = [
-    'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time'
+    'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time', 'file' // <-- Adicionado
 ];
 
 export default function KanbanTask({ negocio, index }: KanbanCardProps) {
@@ -25,10 +26,10 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [novoComentario, setNovoComentario] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // p criar campo person
+  // Estados para criar campo personalizado
   const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldValue, setNewFieldValue] = useState("");
+  const [newFieldValue, setNewFieldValue] = useState<string | File>(""); // Pode ser string ou File
   const [newFieldType, setNewFieldType] = useState("string");
   const [isSavingField, setIsSavingField] = useState(false);
   const [fieldCreationError, setFieldCreationError] = useState<string | null>(null);
@@ -99,25 +100,55 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         return;
     }
 
+    // 3. Lógica para enviar o formulário: JSON vs FormData
+    const isFile = newFieldType === 'file';
+    if (isFile && !(newFieldValue instanceof File)) {
+        setFieldCreationError("Por favor, selecione um arquivo.");
+        return;
+    }
+
     setIsSavingField(true);
     setFieldCreationError(null);
     const token = await getToken();
     if (!token) throw new Error("Autenticação falhou.");
 
-    const payload = {
-        label: newFieldLabel.trim(),
-        valor: newFieldValue.trim(),
-        type: newFieldType,
+    let headers: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
     };
+    let body: BodyInit;
+
+    if (isFile) {
+        const formData = new FormData();
+        formData.append('label', newFieldLabel.trim());
+        formData.append('type', newFieldType);
+        // Anexar o arquivo se for um File
+        if (newFieldValue instanceof File) {
+            formData.append('arquivo', newFieldValue);
+        }
+        // O REST framework espera que o 'valor' (TextField) esteja presente
+        // Se não houver, pode causar um erro. Enviamos uma string vazia ou o valor anterior se houver
+        if (typeof newFieldValue !== 'string' || newFieldValue.trim() !== '') {
+             formData.append('valor', newFieldValue instanceof File ? newFieldValue.name : String(newFieldValue).trim());
+        }
+
+        // Não defina Content-Type ao usar FormData, o navegador faz isso corretamente
+        // e define a boundary necessária.
+        body = formData;
+    } else {
+        headers['Content-Type'] = 'application/json';
+        const payload = {
+            label: newFieldLabel.trim(),
+            valor: String(newFieldValue).trim(), // Envia valor como string para outros tipos
+            type: newFieldType,
+        };
+        body = JSON.stringify(payload);
+    }
 
     try {
         const response = await fetch(`${backend_url}atributos-personalizaveis/${negocio.id}/`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
+            headers: headers,
+            body: body,
         });
 
         if (!response.ok) {
@@ -129,6 +160,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         const data = await response.json();
         console.log("Campo personalizável criado com sucesso:", data);
 
+        // Resetar estados
         setNewFieldLabel("");
         setNewFieldValue("");
         setNewFieldType("string");
@@ -142,13 +174,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     }
   };
 
-
+  // 2. Atualização da função para incluir o tipo 'file'
   const renderValueInput = (currentType: string) => {
     switch (currentType) {
         case 'boolean':
             return (
                 <Form.Select
-                    value={newFieldValue}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 >
@@ -157,23 +189,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 </Form.Select>
             );
         case 'integer':
-            return (
-                <Form.Control
-                    type="number"
-                    step="1"
-                    placeholder="Ex: 42"
-                    value={newFieldValue}
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
         case 'float':
             return (
                 <Form.Control
                     type="number"
-                    step="0.01"
-                    placeholder="Ex: 3.14"
-                    value={newFieldValue}
+                    step={currentType === 'integer' ? '1' : '0.01'}
+                    placeholder={currentType === 'integer' ? "Ex: 42" : "Ex: 3.14"}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 />
@@ -182,7 +204,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             return (
                 <Form.Control
                     type="date"
-                    value={newFieldValue}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 />
@@ -191,7 +213,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             return (
                 <Form.Control
                     type="datetime-local"
-                    value={newFieldValue}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 />
@@ -200,7 +222,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             return (
                 <Form.Control
                     type="time"
-                    value={newFieldValue}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 />
@@ -211,8 +233,19 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                     as="textarea"
                     rows={3}
                     placeholder="Digite o valor do campo (texto longo)"
-                    value={newFieldValue}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
+                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                />
+            );
+        case 'file': // <-- Novo tipo 'file'
+            return (
+                <Form.Control
+                    type="file"
+                    onChange={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        setNewFieldValue(target.files?.[0] || ""); // Define o primeiro arquivo selecionado
+                    }}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 />
             );
@@ -222,7 +255,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 <Form.Control
                     type="text"
                     placeholder="Digite o valor do campo"
-                    value={newFieldValue}
+                    value={newFieldValue as string} // Tipagem para string
                     onChange={(e) => setNewFieldValue(e.target.value)}
                     style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
                 />
@@ -266,6 +299,61 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         alert(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
+
+  // Funções auxiliares para renderizar o valor do atributo personalizado na modal
+  const renderCustomAttributeValue = (atributo: any) => {
+    const { type, valor, arquivo, valor_formatado } = atributo;
+
+    switch (type) {
+        case "boolean":
+            const isTrue = valor_formatado === true; // Usa valor_formatado se for boolean
+            return (
+                <div className="d-flex gap-3 mt-1">
+                    <Form.Check type="checkbox" id={`sim-${atributo.id}`} label="Sim" checked={isTrue} readOnly />
+                    <Form.Check type="checkbox" id={`nao-${atributo.id}`} label="Não" checked={!isTrue} readOnly />
+                </div>
+            );
+        case "file":
+            // valor_formatado deve conter a URL do arquivo se existir
+            const fileUrl = valor_formatado || arquivo;
+
+            // CORREÇÃO: Remove a barra inicial do fileUrl se existir, para evitar // na URL final
+            const cleanFileUrl = fileUrl ? fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl : '';
+
+            return (
+                cleanFileUrl ? (
+                    <Button
+                        variant="link"
+                        // Constrói a URL usando a versão limpa
+                        href={cleanFileUrl.startsWith('http') ? cleanFileUrl : `${backend_url}${cleanFileUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: 0, textDecoration: 'underline' }}
+                    >
+                        Visualizar Arquivo ({valor || 'Sem nome'})
+                    </Button>
+                ) : (
+                    <Form.Control type="text" value="Nenhum arquivo" readOnly style={{ marginBottom: "0.5rem" }} />
+                )
+            );
+        case "integer":
+        case "float":
+            return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
+        case "date":
+            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+        case "datetime":
+            // Assumindo que valor está em formato que new Date aceita, e exibindo formatado
+            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+        case "time":
+            // Precisa de uma data de referência para formatar a hora corretamente
+            return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+        case "text":
+        case "string":
+        default:
+            return <Form.Control as="textarea" rows={3} value={valor || ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+    }
+  }
+
 
   return (
     <>
@@ -421,47 +509,12 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 <Form.Group className="mb-3">
                   <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
                   <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
-                    {negocio.atributos_personalizados?.map((atributo, idx) => {
-                      const { label, valor, type, valor_formatado } = atributo;
-
-                      if (type === "boolean") {
-                        const isTrue = valor_formatado == "true" || valor_formatado == "1";
-                        return (
-                          <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                            <strong>{label}</strong>
-                            <div className="d-flex gap-3 mt-1">
-                              <Form.Check type="checkbox" id={`sim-${idx}`} label="Sim" checked={isTrue} readOnly />
-                              <Form.Check type="checkbox" id={`nao-${idx}`} label="Não" checked={!isTrue} readOnly />
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      const renderInput = () => {
-                        switch (type) {
-                          case "integer":
-                          case "float":
-                            return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
-                          case "date":
-                            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-                          case "datetime":
-                            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-                          case "time":
-                            return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-                          case "text":
-                          case "string":
-                          default:
-                            return <Form.Control type="text" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
-                        }
-                      };
-
-                      return (
-                        <div key={idx} style={{ marginBottom: "0.5rem" }}>
-                          <strong>{label}</strong>
-                          {renderInput()}
+                    {negocio.atributos_personalizados?.map((atributo, idx) => (
+                        <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
+                          <strong>{atributo.label}</strong>
+                          {renderCustomAttributeValue(atributo)}
                         </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 </Form.Group>
               </Form>
@@ -584,6 +637,9 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         onHide={() => {
             setShowCustomFieldModal(false);
             setFieldCreationError(null);
+            setNewFieldLabel("");
+            setNewFieldValue("");
+            setNewFieldType("string");
         }}
         centered
       >
@@ -622,10 +678,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 </Form.Group>
 
                 <Form.Group className="mb-4">
-                    <Form.Label style={{ fontWeight: 600 }}>Valor Inicial</Form.Label>
+                    <Form.Label style={{ fontWeight: 600 }}>Valor Inicial {newFieldType === 'file' && '(Arquivo)'}</Form.Label>
                     {renderValueInput(newFieldType)}
                     <Form.Text className="text-muted">
-                        O valor será armazenado como texto no banco de dados.
+                        {newFieldType === 'file' ?
+                            'O arquivo será enviado para o servidor.' :
+                            'O valor será armazenado como texto no banco de dados.'
+                        }
                     </Form.Text>
                 </Form.Group>
 
@@ -637,7 +696,12 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             </Form>
         </Modal.Body>
         <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowCustomFieldModal(false)}>
+            <Button variant="secondary" onClick={() => {
+              setShowCustomFieldModal(false);
+              setNewFieldLabel("");
+              setNewFieldValue("");
+              setNewFieldType("string");
+            }}>
                 Cancelar
             </Button>
             <Button
