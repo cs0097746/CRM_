@@ -16,6 +16,173 @@ const TYPE_CHOICES = [
     'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time', 'file' // <-- Adicionado
 ];
 
+// =================================================================
+// >>> NOVO COMPONENTE E FUNÇÕES PARA PREVIEW DE ARQUIVOS <<<
+// =================================================================
+
+// Função auxiliar para inferir o tipo de mídia
+const getMediaType = (url: string): 'image' | 'video' | 'pdf' | 'text' | 'unknown' => {
+    // Garante que a URL não tem query params para obter a extensão
+    const cleanUrl = url.split('?')[0];
+    const extension = cleanUrl.split('.').pop()?.toLowerCase();
+    if (!extension) return 'unknown';
+
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
+    // const audioExtensions = ['mp3', 'wav', 'ogg']; // Pode ser adicionado, mas omitido para simplificar
+    const pdfExtensions = ['pdf'];
+    const textExtensions = ['txt', 'json', 'csv']; // Arquivos que o browser pode tentar exibir como texto
+
+    if (imageExtensions.includes(extension)) return 'image';
+    if (videoExtensions.includes(extension)) return 'video';
+    if (pdfExtensions.includes(extension)) return 'pdf';
+    if (textExtensions.includes(extension) || extension.length <= 4) return 'text'; // Tipos genéricos de texto
+
+    return 'unknown';
+};
+
+
+interface FileAttributePreviewProps {
+    atributo: any;
+    backendUrl: string;
+}
+
+const renderPreviewContent = (url: string, type: string, fileName: string) => {
+    switch (type) {
+        case 'image':
+            return (
+                <img
+                    src={url}
+                    alt={fileName}
+                    style={{
+                        maxWidth: '100%',
+                        maxHeight: '400px',
+                        objectFit: 'contain',
+                        marginTop: '0.5rem',
+                        borderRadius: '0.5rem'
+                    }}
+                />
+            );
+        case 'video':
+            return (
+                <video
+                    src={url}
+                    controls
+                    style={{
+                        width: '100%',
+                        maxHeight: '400px',
+                        marginTop: '0.5rem',
+                        borderRadius: '0.5rem'
+                    }}
+                >
+                    Seu navegador não suporta a tag de vídeo.
+                </video>
+            );
+        case 'pdf':
+            // Usa <iframe> para visualização nativa do PDF no navegador.
+            return (
+                <iframe
+                    src={url}
+                    style={{
+                        width: '100%',
+                        height: '500px',
+                        border: '1px solid #ccc',
+                        marginTop: '0.5rem',
+                        borderRadius: '0.5rem'
+                    }}
+                    title={`Preview de PDF: ${fileName}`}
+                />
+            );
+        case 'text':
+            // Usa <iframe> para que o navegador tente exibir o conteúdo como texto (funciona para JSON/TXT)
+            return (
+                 <iframe
+                    src={url}
+                    style={{
+                        width: '100%',
+                        height: '300px',
+                        border: '1px solid #ccc',
+                        marginTop: '0.5rem',
+                        borderRadius: '0.5rem'
+                    }}
+                    title={`Preview de Texto: ${fileName}`}
+                />
+            );
+        default:
+            return <p className="text-muted mt-2">Nenhum preview disponível para este tipo de arquivo. Por favor, utilize o link de download.</p>;
+    }
+};
+
+
+const FileAttributePreview: React.FC<FileAttributePreviewProps> = ({ atributo, backendUrl }) => {
+    // 'valor' geralmente é o nome do arquivo, 'arquivo' ou 'valor_formatado' é a URL
+    const { valor, arquivo, valor_formatado } = atributo;
+    const [showPreview, setShowPreview] = useState(false);
+
+    // Determina a URL final
+    const fileUrl = valor_formatado || arquivo;
+    const cleanFileUrl = fileUrl ? fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl : '';
+    const fullFileUrl = cleanFileUrl.startsWith('http') ? cleanFileUrl : `${backendUrl}${cleanFileUrl}`;
+
+    // Determina o tipo de mídia
+    const mediaType = getMediaType(fullFileUrl);
+    const fileName = valor || 'Arquivo';
+
+    if (!cleanFileUrl) {
+        return <Form.Control type="text" value="Nenhum arquivo" readOnly style={{ marginBottom: "0.5rem" }} />;
+    }
+
+    return (
+        <div style={{ marginBottom: "0.5rem" }}>
+            <div className="d-flex align-items-center gap-2 mt-1">
+                 {/* 1. Botão de Visualizar/Esconder */}
+                 {mediaType !== 'unknown' && (
+                     <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setShowPreview(!showPreview)}
+                        style={{ padding: '0.25rem 0.5rem', borderRadius: '0.3rem' }}
+                    >
+                        {showPreview ? "Esconder Preview" : "Visualizar Arquivo"}
+                    </Button>
+                 )}
+
+                {/* 2. Link de Download (mantido) */}
+                <Button
+                    variant="link"
+                    href={fullFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ padding: 0, textDecoration: 'underline' }}
+                >
+                    Baixar ({fileName})
+                </Button>
+            </div>
+
+            {/* 3. Área do Preview */}
+            {showPreview && (
+                <div
+                    style={{
+                        marginTop: '0.5rem',
+                        border: '1px solid #eee',
+                        padding: '0.5rem',
+                        borderRadius: '0.5rem',
+                        backgroundColor: '#fff',
+                        maxHeight: '600px',
+                        overflowY: 'auto'
+                    }}
+                >
+                    {renderPreviewContent(fullFileUrl, mediaType, fileName)}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// =================================================================
+// >>> COMPONENTE PRINCIPAL KanbanTask <<<
+// =================================================================
+
 export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [show, setShow] = useState(false);
   const [titulo, setTitulo] = useState(negocio.titulo);
@@ -126,10 +293,8 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             formData.append('arquivo', newFieldValue);
         }
         // O REST framework espera que o 'valor' (TextField) esteja presente
-        // Se não houver, pode causar um erro. Enviamos uma string vazia ou o valor anterior se houver
-        if (typeof newFieldValue !== 'string' || newFieldValue.trim() !== '') {
-             formData.append('valor', newFieldValue instanceof File ? newFieldValue.name : String(newFieldValue).trim());
-        }
+        // Se não houver, pode causar um erro. Enviamos uma string vazia ou o nome do arquivo.
+        formData.append('valor', newFieldValue instanceof File ? newFieldValue.name : String(newFieldValue).trim());
 
         // Não defina Content-Type ao usar FormData, o navegador faz isso corretamente
         // e define a boundary necessária.
@@ -302,11 +467,11 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
 
   // Funções auxiliares para renderizar o valor do atributo personalizado na modal
   const renderCustomAttributeValue = (atributo: any) => {
-    const { type, valor, arquivo, valor_formatado } = atributo;
+    const { type, valor } = atributo; // Removido arquivo e valor_formatado daqui, pois o FileAttributePreview usará
 
     switch (type) {
         case "boolean":
-            const isTrue = valor_formatado === true; // Usa valor_formatado se for boolean
+            const isTrue = atributo.valor_formatado === true; // Usa valor_formatado se for boolean
             return (
                 <div className="d-flex gap-3 mt-1">
                     <Form.Check type="checkbox" id={`sim-${atributo.id}`} label="Sim" checked={isTrue} readOnly />
@@ -314,39 +479,19 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 </div>
             );
         case "file":
-            // valor_formatado deve conter a URL do arquivo se existir
-            const fileUrl = valor_formatado || arquivo;
+             // NOVO: Usar o componente dedicado para lidar com o preview e seu estado
+             return <FileAttributePreview atributo={atributo} backendUrl={backend_url} />;
 
-            // CORREÇÃO: Remove a barra inicial do fileUrl se existir, para evitar // na URL final
-            const cleanFileUrl = fileUrl ? fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl : '';
-
-            return (
-                cleanFileUrl ? (
-                    <Button
-                        variant="link"
-                        // Constrói a URL usando a versão limpa
-                        href={cleanFileUrl.startsWith('http') ? cleanFileUrl : `${backend_url}${cleanFileUrl}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ padding: 0, textDecoration: 'underline' }}
-                    >
-                        Visualizar Arquivo ({valor || 'Sem nome'})
-                    </Button>
-                ) : (
-                    <Form.Control type="text" value="Nenhum arquivo" readOnly style={{ marginBottom: "0.5rem" }} />
-                )
-            );
+        // Seus cases existentes (mantidos, mas melhorando a tipagem visual)
         case "integer":
         case "float":
             return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
         case "date":
             return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
         case "datetime":
-            // Assumindo que valor está em formato que new Date aceita, e exibindo formatado
             return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
         case "time":
-            // Precisa de uma data de referência para formatar a hora corretamente
-            return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+            return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false, hour: '2-digit', minute: '2-digit' }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
         case "text":
         case "string":
         default:
@@ -452,6 +597,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
 
             <div style={{ flex: 2 }}>
               <Form>
+                {/* ... (Campos padrão) ... */}
                 <Form.Group className="mb-3">
                   <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
                   <Form.Control
@@ -506,6 +652,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                   />
                 </Form.Group>
 
+                {/* >>> ATRIBUTOS PERSONALIZADOS COM PREVIEW DE ARQUIVO <<< */}
                 <Form.Group className="mb-3">
                   <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
                   <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
@@ -520,6 +667,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               </Form>
             </div>
 
+            {/* ... (Seção de Comentários) ... */}
             <div
               style={{
                 flex: 1,
@@ -572,6 +720,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           </div>
         </Modal.Body>
 
+      {/* ... (Modal Footer com botões Salvar/Excluir/Criar Campo) ... */}
       <Modal.Footer style={{ borderTop: "none", justifyContent: "space-between" }}>
           <Button
             style={{
@@ -632,6 +781,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         </Modal.Footer>
       </Modal>
 
+      {/* ... (Modal de Criar Campo Personalizável) ... */}
       <Modal
         show={showCustomFieldModal}
         onHide={() => {
