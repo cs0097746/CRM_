@@ -50,7 +50,7 @@ class AccessTokenForm(forms.ModelForm):
         token = super().save(commit=False)
 
         if not token.token:
-            token.token = secrets.token_urlsafe(40)
+            token.token = AccessToken.generate_token()
 
         choice = self.cleaned_data.get('expires_in_choice')
         if choice == '1h':
