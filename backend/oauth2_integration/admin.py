@@ -5,6 +5,7 @@ from datetime import timedelta
 import secrets
 from oauth2_provider.models import Application, AccessToken
 from .models import CrmApplication, ApiUsageLog
+from oauthlib.common import generate_token
 
 try:
     admin.site.unregister(AccessToken)
@@ -50,7 +51,7 @@ class AccessTokenForm(forms.ModelForm):
         token = super().save(commit=False)
 
         if not token.token:
-            token.token = AccessToken.generate_token()
+            token.token = generate_token()
 
         choice = self.cleaned_data.get('expires_in_choice')
         if choice == '1h':
