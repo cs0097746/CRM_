@@ -1,8 +1,8 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from .models import AtributoPersonalizavel
-from .serializers import AtributoPersonalizavelSerializer
+from .models import AtributoPersonalizavel, PresetAtributos
+from .serializers import AtributoPersonalizavelSerializer, PresetAtributosSerializer
 from negocio.models import Negocio
 from rest_framework.exceptions import NotFound
 
@@ -28,3 +28,8 @@ class AtributoPersonalizavelCreateView(generics.CreateAPIView):
 
         negocio.atributos_personalizados.add(atributo)
         negocio.save(update_fields=['atualizado_em'])
+
+class PresetAtributosListView(generics.ListAPIView):
+    queryset = PresetAtributos.objects.prefetch_related('atributos').all()
+    serializer_class = PresetAtributosSerializer
+    permission_classes = [IsAuthenticated]

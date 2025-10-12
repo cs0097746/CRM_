@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import AtributoPersonalizavel, TypeChoices
+from .models import AtributoPersonalizavel, TypeChoices, PresetAtributos
 
 class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     arquivo = serializers.FileField(required=False, allow_null=True)
@@ -27,3 +27,10 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
             data['arquivo'] = None
 
         return data
+
+class PresetAtributosSerializer(serializers.ModelSerializer):
+    atributos = AtributoPersonalizavelSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = PresetAtributos
+        fields = ['id', 'nome', 'descricao', 'atributos']

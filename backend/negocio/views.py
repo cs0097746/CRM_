@@ -11,6 +11,8 @@ from .models import Negocio
 from .serializers import NegocioSerializer, ComentarioSerializer
 from rest_framework.exceptions import NotFound
 from django.http import Http404
+from atributo.utils import aplicar_preset_no_negocio
+from atributo.models import PresetAtributos, AtributoPersonalizavel
 
 
 class NegocioListCreateView(generics.ListCreateAPIView):
@@ -28,6 +30,7 @@ class NegocioListCreateView(generics.ListCreateAPIView):
 
         estagio_id = data.get("estagio_id")
         contato_id = data.get("contato_id")
+        preset_id = data.get("preset_id")
 
         if estagio_id:
             data["estagio"] = estagio_id
@@ -37,7 +40,18 @@ class NegocioListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=data)
 
         if serializer.is_valid():
-            serializer.save()
+            negocio = serializer.save()
+
+            if preset_id:
+                try:
+                    preset = PresetAtributos.objects.get(id=preset_id)
+                    aplicar_preset_no_negocio(preset, negocio)
+                except PresetAtributos.DoesNotExist:
+                    return Response(
+                        {"detail": f"Preset com ID {preset_id} não encontrado."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

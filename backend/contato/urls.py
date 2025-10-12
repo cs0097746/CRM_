@@ -94,6 +94,7 @@ urlpatterns = [
 
     # atrib person
     path('atributos-personalizaveis/<int:negocio_id>/', atributos_views.AtributoPersonalizavelCreateView.as_view(), name='atributo-personalizavel-create'),
+    path('presets/', atributos_views.PresetAtributosListView.as_view(), name='presets-list'),
 
     # comentarios do negocio
     path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),
