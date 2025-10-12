@@ -1,188 +1,166 @@
 import type { Negocio } from "../types/Negocio.ts";
-import type {Comentario} from "../types/Comentario.ts";
+import type { Comentario } from "../types/Comentario.ts";
 import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
 import { Modal, Button, Form, Badge, Spinner, Alert } from "react-bootstrap";
 import backend_url from "../config/env.ts";
-import {getToken} from "../function/validateToken.tsx";
+import { getToken } from "../function/validateToken.tsx";
 
 interface KanbanCardProps {
   negocio: Negocio;
   index: number;
 }
 
-// 1. Adicionar 'file' aos TYPE_CHOICES
+// Lista de tipos de dados suportados
 const TYPE_CHOICES = [
-    'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time', 'file' // <-- Adicionado
+  'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time', 'file'
 ];
-
-// =================================================================
-// >>> NOVO COMPONENTE E FUNÇÕES PARA PREVIEW DE ARQUIVOS <<<
-// =================================================================
 
 // Função auxiliar para inferir o tipo de mídia
 const getMediaType = (url: string): 'image' | 'video' | 'pdf' | 'text' | 'unknown' => {
-    // Garante que a URL não tem query params para obter a extensão
-    const cleanUrl = url.split('?')[0];
-    const extension = cleanUrl.split('.').pop()?.toLowerCase();
-    if (!extension) return 'unknown';
+  const cleanUrl = url.split('?')[0];
+  const extension = cleanUrl.split('.').pop()?.toLowerCase();
+  if (!extension) return 'unknown';
 
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-    const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
-    // const audioExtensions = ['mp3', 'wav', 'ogg']; // Pode ser adicionado, mas omitido para simplificar
-    const pdfExtensions = ['pdf'];
-    const textExtensions = ['txt', 'json', 'csv']; // Arquivos que o browser pode tentar exibir como texto
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+  const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
+  const pdfExtensions = ['pdf'];
+  const textExtensions = ['txt', 'json', 'csv'];
 
-    if (imageExtensions.includes(extension)) return 'image';
-    if (videoExtensions.includes(extension)) return 'video';
-    if (pdfExtensions.includes(extension)) return 'pdf';
-    if (textExtensions.includes(extension) || extension.length <= 4) return 'text'; // Tipos genéricos de texto
-
-    return 'unknown';
+  if (imageExtensions.includes(extension)) return 'image';
+  if (videoExtensions.includes(extension)) return 'video';
+  if (pdfExtensions.includes(extension)) return 'pdf';
+  if (textExtensions.includes(extension) || extension.length <= 4) return 'text';
+  return 'unknown';
 };
 
-
+// Componente para preview de arquivos
 interface FileAttributePreviewProps {
-    atributo: any;
-    backendUrl: string;
+  atributo: any;
+  backendUrl: string;
 }
 
 const renderPreviewContent = (url: string, type: string, fileName: string) => {
-    switch (type) {
-        case 'image':
-            return (
-                <img
-                    src={url}
-                    alt={fileName}
-                    style={{
-                        maxWidth: '100%',
-                        maxHeight: '400px',
-                        objectFit: 'contain',
-                        marginTop: '0.5rem',
-                        borderRadius: '0.5rem'
-                    }}
-                />
-            );
-        case 'video':
-            return (
-                <video
-                    src={url}
-                    controls
-                    style={{
-                        width: '100%',
-                        maxHeight: '400px',
-                        marginTop: '0.5rem',
-                        borderRadius: '0.5rem'
-                    }}
-                >
-                    Seu navegador não suporta a tag de vídeo.
-                </video>
-            );
-        case 'pdf':
-            // Usa <iframe> para visualização nativa do PDF no navegador.
-            return (
-                <iframe
-                    src={url}
-                    style={{
-                        width: '100%',
-                        height: '500px',
-                        border: '1px solid #ccc',
-                        marginTop: '0.5rem',
-                        borderRadius: '0.5rem'
-                    }}
-                    title={`Preview de PDF: ${fileName}`}
-                />
-            );
-        case 'text':
-            // Usa <iframe> para que o navegador tente exibir o conteúdo como texto (funciona para JSON/TXT)
-            return (
-                 <iframe
-                    src={url}
-                    style={{
-                        width: '100%',
-                        height: '300px',
-                        border: '1px solid #ccc',
-                        marginTop: '0.5rem',
-                        borderRadius: '0.5rem'
-                    }}
-                    title={`Preview de Texto: ${fileName}`}
-                />
-            );
-        default:
-            return <p className="text-muted mt-2">Nenhum preview disponível para este tipo de arquivo. Por favor, utilize o link de download.</p>;
-    }
+  switch (type) {
+    case 'image':
+      return (
+        <img
+          src={url}
+          alt={fileName}
+          style={{
+            maxWidth: '100%',
+            maxHeight: '400px',
+            objectFit: 'contain',
+            marginTop: '0.5rem',
+            borderRadius: '0.5rem'
+          }}
+        />
+      );
+    case 'video':
+      return (
+        <video
+          src={url}
+          controls
+          style={{
+            width: '100%',
+            maxHeight: '400px',
+            marginTop: '0.5rem',
+            borderRadius: '0.5rem'
+          }}
+        >
+          Seu navegador não suporta a tag de vídeo.
+        </video>
+      );
+    case 'pdf':
+      return (
+        <iframe
+          src={url}
+          style={{
+            width: '100%',
+            height: '500px',
+            border: '1px solid #ccc',
+            marginTop: '0.5rem',
+            borderRadius: '0.5rem'
+          }}
+          title={`Preview de PDF: ${fileName}`}
+        />
+      );
+    case 'text':
+      return (
+        <iframe
+          src={url}
+          style={{
+            width: '100%',
+            height: '300px',
+            border: '1px solid #ccc',
+            marginTop: '0.5rem',
+            borderRadius: '0.5rem'
+          }}
+          title={`Preview de Texto: ${fileName}`}
+        />
+      );
+    default:
+      return <p className="text-muted mt-2">Nenhum preview disponível para este tipo de arquivo. Por favor, utilize o link de download.</p>;
+  }
 };
-
 
 const FileAttributePreview: React.FC<FileAttributePreviewProps> = ({ atributo, backendUrl }) => {
-    // 'valor' geralmente é o nome do arquivo, 'arquivo' ou 'valor_formatado' é a URL
-    const { valor, arquivo, valor_formatado } = atributo;
-    const [showPreview, setShowPreview] = useState(false);
+  const { valor, arquivo, valor_formatado } = atributo;
+  const [showPreview, setShowPreview] = useState(false);
 
-    // Determina a URL final
-    const fileUrl = valor_formatado || arquivo;
-    const cleanFileUrl = fileUrl ? fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl : '';
-    const fullFileUrl = cleanFileUrl.startsWith('http') ? cleanFileUrl : `${backendUrl}${cleanFileUrl}`;
+  const fileUrl = valor_formatado || arquivo;
+  const cleanFileUrl = fileUrl ? fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl : '';
+  const fullFileUrl = cleanFileUrl.startsWith('http') ? cleanFileUrl : `${backendUrl}${cleanFileUrl}`;
+  const mediaType = getMediaType(fullFileUrl);
+  const fileName = valor || 'Arquivo';
 
-    // Determina o tipo de mídia
-    const mediaType = getMediaType(fullFileUrl);
-    const fileName = valor || 'Arquivo';
+  if (!cleanFileUrl) {
+    return <Form.Control type="text" value="Nenhum arquivo" readOnly style={{ marginBottom: "0.5rem" }} />;
+  }
 
-    if (!cleanFileUrl) {
-        return <Form.Control type="text" value="Nenhum arquivo" readOnly style={{ marginBottom: "0.5rem" }} />;
-    }
-
-    return (
-        <div style={{ marginBottom: "0.5rem" }}>
-            <div className="d-flex align-items-center gap-2 mt-1">
-                 {/* 1. Botão de Visualizar/Esconder */}
-                 {mediaType !== 'unknown' && (
-                     <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => setShowPreview(!showPreview)}
-                        style={{ padding: '0.25rem 0.5rem', borderRadius: '0.3rem' }}
-                    >
-                        {showPreview ? "Esconder Preview" : "Visualizar Arquivo"}
-                    </Button>
-                 )}
-
-                {/* 2. Link de Download (mantido) */}
-                <Button
-                    variant="link"
-                    href={fullFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ padding: 0, textDecoration: 'underline' }}
-                >
-                    Baixar ({fileName})
-                </Button>
-            </div>
-
-            {/* 3. Área do Preview */}
-            {showPreview && (
-                <div
-                    style={{
-                        marginTop: '0.5rem',
-                        border: '1px solid #eee',
-                        padding: '0.5rem',
-                        borderRadius: '0.5rem',
-                        backgroundColor: '#fff',
-                        maxHeight: '600px',
-                        overflowY: 'auto'
-                    }}
-                >
-                    {renderPreviewContent(fullFileUrl, mediaType, fileName)}
-                </div>
-            )}
+  return (
+    <div style={{ marginBottom: "0.5rem" }}>
+      <div className="d-flex align-items-center gap-2 mt-1">
+        {mediaType !== 'unknown' && (
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+            style={{ padding: '0.25rem 0.5rem', borderRadius: '0.3rem' }}
+          >
+            {showPreview ? "Esconder Preview" : "Visualizar Arquivo"}
+          </Button>
+        )}
+        <Button
+          variant="link"
+          href={fullFileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ padding: 0, textDecoration: 'underline' }}
+        >
+          Baixar ({fileName})
+        </Button>
+      </div>
+      {showPreview && (
+        <div
+          style={{
+            marginTop: '0.5rem',
+            border: '1px solid #eee',
+            padding: '0.5rem',
+            borderRadius: '0.5rem',
+            backgroundColor: '#fff',
+            maxHeight: '600px',
+            overflowY: 'auto'
+          }}
+        >
+          {renderPreviewContent(fullFileUrl, mediaType, fileName)}
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
-// =================================================================
-// >>> COMPONENTE PRINCIPAL KanbanTask <<<
-// =================================================================
-
+// Componente principal
 export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [show, setShow] = useState(false);
   const [titulo, setTitulo] = useState(negocio.titulo);
@@ -192,14 +170,17 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [comentarios, setComentarios] = useState<Comentario[]>(negocio.comentarios ?? []);
   const [novoComentario, setNovoComentario] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Estados para criar campo personalizado
   const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
-  const [newFieldValue, setNewFieldValue] = useState<string | File>(""); // Pode ser string ou File
+  const [newFieldValue, setNewFieldValue] = useState<string | File>("");
   const [newFieldType, setNewFieldType] = useState("string");
   const [isSavingField, setIsSavingField] = useState(false);
   const [fieldCreationError, setFieldCreationError] = useState<string | null>(null);
+  const [showEditAttributeModal, setShowEditAttributeModal] = useState(false);
+  const [editingAttribute, setEditingAttribute] = useState<any | null>(null);
+  const [editFieldValue, setEditFieldValue] = useState<string | File>("");
+  const [isUpdatingField, setIsUpdatingField] = useState(false);
+  const [fieldUpdateError, setFieldUpdateError] = useState<string | null>(null);
 
   const handleSave = async () => {
     const payload = { titulo, valor, contato, estagio };
@@ -263,15 +244,14 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
 
   const handleCreateCustomField = async () => {
     if (!newFieldLabel.trim() || !newFieldType.trim()) {
-        setFieldCreationError("Por favor, preencha a etiqueta (Label) e o Tipo.");
-        return;
+      setFieldCreationError("Por favor, preencha a etiqueta (Label) e o Tipo.");
+      return;
     }
 
-    // 3. Lógica para enviar o formulário: JSON vs FormData
     const isFile = newFieldType === 'file';
     if (isFile && !(newFieldValue instanceof File)) {
-        setFieldCreationError("Por favor, selecione um arquivo.");
-        return;
+      setFieldCreationError("Por favor, selecione um arquivo.");
+      return;
     }
 
     setIsSavingField(true);
@@ -279,154 +259,218 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     const token = await getToken();
     if (!token) throw new Error("Autenticação falhou.");
 
-    let headers: Record<string, string> = {
-        Authorization: `Bearer ${token}`,
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
     };
     let body: BodyInit;
 
     if (isFile) {
-        const formData = new FormData();
-        formData.append('label', newFieldLabel.trim());
-        formData.append('type', newFieldType);
-        // Anexar o arquivo se for um File
-        if (newFieldValue instanceof File) {
-            formData.append('arquivo', newFieldValue);
-        }
-        // O REST framework espera que o 'valor' (TextField) esteja presente
-        // Se não houver, pode causar um erro. Enviamos uma string vazia ou o nome do arquivo.
-        formData.append('valor', newFieldValue instanceof File ? newFieldValue.name : String(newFieldValue).trim());
-
-        // Não defina Content-Type ao usar FormData, o navegador faz isso corretamente
-        // e define a boundary necessária.
-        body = formData;
+      const formData = new FormData();
+      formData.append('label', newFieldLabel.trim());
+      formData.append('type', newFieldType);
+      if (newFieldValue instanceof File) {
+        formData.append('arquivo', newFieldValue);
+      }
+      formData.append('valor', newFieldValue instanceof File ? newFieldValue.name : String(newFieldValue).trim());
+      body = formData;
     } else {
-        headers['Content-Type'] = 'application/json';
-        const payload = {
-            label: newFieldLabel.trim(),
-            valor: String(newFieldValue).trim(), // Envia valor como string para outros tipos
-            type: newFieldType,
-        };
-        body = JSON.stringify(payload);
+      headers['Content-Type'] = 'application/json';
+      const payload = {
+        label: newFieldLabel.trim(),
+        valor: String(newFieldValue).trim(),
+        type: newFieldType,
+      };
+      body = JSON.stringify(payload);
     }
 
     try {
-        const response = await fetch(`${backend_url}atributos-personalizaveis/${negocio.id}/`, {
-            method: "POST",
-            headers: headers,
-            body: body,
-        });
+      const response = await fetch(`${backend_url}atributos-personalizaveis/${negocio.id}/`, {
+        method: "POST",
+        headers: headers,
+        body: body,
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            const errorMessage = errorData.detail || JSON.stringify(errorData);
-            throw new Error(`Erro ao criar campo: ${errorMessage}`);
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.detail || JSON.stringify(errorData);
+        throw new Error(`Erro ao criar campo: ${errorMessage}`);
+      }
 
-        const data = await response.json();
-        console.log("Campo personalizável criado com sucesso:", data);
+      const data = await response.json();
+      console.log("Campo personalizável criado com sucesso:", data);
 
-        // Resetar estados
-        setNewFieldLabel("");
-        setNewFieldValue("");
-        setNewFieldType("string");
-        setShowCustomFieldModal(false);
-
+      setNewFieldLabel("");
+      setNewFieldValue("");
+      setNewFieldType("string");
+      setShowCustomFieldModal(false);
     } catch (error) {
-        console.error("Erro na criação do campo:", error);
-        setFieldCreationError(`Falha na criação do campo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      console.error("Erro na criação do campo:", error);
+      setFieldCreationError(`Falha na criação do campo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     } finally {
-        setIsSavingField(false);
+      setIsSavingField(false);
     }
   };
 
-  // 2. Atualização da função para incluir o tipo 'file'
-  const renderValueInput = (currentType: string) => {
-    switch (currentType) {
-        case 'boolean':
-            return (
-                <Form.Select
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                >
-                    <option value="false">Não</option>
-                    <option value="true">Sim</option>
-                </Form.Select>
-            );
-        case 'integer':
-        case 'float':
-            return (
-                <Form.Control
-                    type="number"
-                    step={currentType === 'integer' ? '1' : '0.01'}
-                    placeholder={currentType === 'integer' ? "Ex: 42" : "Ex: 3.14"}
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
-        case 'date':
-            return (
-                <Form.Control
-                    type="date"
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
-        case 'datetime':
-            return (
-                <Form.Control
-                    type="datetime-local"
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
-        case 'time':
-            return (
-                <Form.Control
-                    type="time"
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
-        case 'text':
-            return (
-                <Form.Control
-                    as="textarea"
-                    rows={3}
-                    placeholder="Digite o valor do campo (texto longo)"
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
-        case 'file': // <-- Novo tipo 'file'
-            return (
-                <Form.Control
-                    type="file"
-                    onChange={(e) => {
-                        const target = e.target as HTMLInputElement;
-                        setNewFieldValue(target.files?.[0] || ""); // Define o primeiro arquivo selecionado
-                    }}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
-        case 'string':
-        default:
-            return (
-                <Form.Control
-                    type="text"
-                    placeholder="Digite o valor do campo"
-                    value={newFieldValue as string} // Tipagem para string
-                    onChange={(e) => setNewFieldValue(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                />
-            );
+  const handleUpdateAttribute = async () => {
+    if (!editingAttribute) return;
+
+    const isFile = editingAttribute.type === 'file';
+    if (isFile && !(editFieldValue instanceof File) && !editingAttribute.valor) {
+      setFieldUpdateError("Por favor, selecione um arquivo.");
+      return;
     }
-  }
+
+    setIsUpdatingField(true);
+    setFieldUpdateError(null);
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+    };
+    let body: BodyInit;
+
+    if (isFile) {
+      const formData = new FormData();
+      formData.append('label', editingAttribute.label);
+      formData.append('type', editingAttribute.type);
+      if (editFieldValue instanceof File) {
+        formData.append('arquivo', editFieldValue);
+        formData.append('valor', editFieldValue.name);
+      } else {
+        formData.append('valor', editingAttribute.valor || '');
+      }
+      body = formData;
+    } else {
+      headers['Content-Type'] = 'application/json';
+      const payload = {
+        label: editingAttribute.label,
+        valor: String(editFieldValue).trim(),
+        type: editingAttribute.type,
+      };
+      body = JSON.stringify(payload);
+    }
+
+    try {
+      const response = await fetch(`${backend_url}atributos-personalizaveis/${editingAttribute.id}/update/`, {
+        method: "PATCH",
+        headers: headers,
+        body: body,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.detail || JSON.stringify(errorData);
+        throw new Error(`Erro ao atualizar campo: ${errorMessage}`);
+      }
+
+      const updatedAttribute = await response.json();
+      console.log("Campo atualizado com sucesso:", updatedAttribute);
+
+    const updatedAttributes = (negocio.atributos_personalizados || []).map((attr) =>
+      attr.id === editingAttribute.id ? updatedAttribute : attr
+    );
+
+    negocio.atributos_personalizados = updatedAttributes;
+
+      setShowEditAttributeModal(false);
+      setEditingAttribute(null);
+      setEditFieldValue("");
+    } catch (error) {
+      console.error("Erro na atualização do campo:", error);
+      setFieldUpdateError(`Falha na atualização do campo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    } finally {
+      setIsUpdatingField(false);
+    }
+  };
+
+  const renderValueInput = (currentType: string, value: string | File, onChange: (value: string | File) => void) => {
+    switch (currentType) {
+      case 'boolean':
+        return (
+          <Form.Select
+            value={typeof value === 'string' ? value : String(value)}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          >
+            <option value="false">Não</option>
+            <option value="true">Sim</option>
+          </Form.Select>
+        );
+      case 'integer':
+      case 'float':
+        return (
+          <Form.Control
+            type="number"
+            step={currentType === 'integer' ? '1' : '0.01'}
+            placeholder={currentType === 'integer' ? "Ex: 42" : "Ex: 3.14"}
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+      case 'date':
+        return (
+          <Form.Control
+            type="date"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+      case 'datetime':
+        return (
+          <Form.Control
+            type="datetime-local"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+      case 'time':
+        return (
+          <Form.Control
+            type="time"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+      case 'text':
+        return (
+          <Form.Control
+            as="textarea"
+            rows={3}
+            placeholder="Digite o valor do campo (texto longo)"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+      case 'file':
+        return (
+          <Form.Control
+            type="file"
+            onChange={(e) => {
+              const target = e.target as HTMLInputElement;
+              onChange(target.files?.[0] || "");
+            }}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+      case 'string':
+      default:
+        return (
+          <Form.Control
+            type="text"
+            placeholder="Digite o valor do campo"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+          />
+        );
+    }
+  };
 
   const handleAddComentario = async () => {
     if (!novoComentario.trim()) return;
@@ -435,70 +479,62 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     if (!token) throw new Error("Autenticação falhou.");
 
     const payload = {
-        mensagem: novoComentario.trim(),
+      mensagem: novoComentario.trim(),
     };
 
     try {
-        const response = await fetch(`${backend_url}negocios/${negocio.id}/comentarios/`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-        });
+      const response = await fetch(`${backend_url}negocios/${negocio.id}/comentarios/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Erro ao adicionar comentário:", errorData);
-            throw new Error(errorData.detail || "Falha desconhecida ao adicionar comentário.");
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Falha desconhecida ao adicionar comentário.");
+      }
 
-        const newCommentFromServer: Comentario = await response.json();
-
-        setComentarios((prev) => [newCommentFromServer, ...prev]);
-        setNovoComentario("");
-
+      const newCommentFromServer: Comentario = await response.json();
+      setComentarios((prev) => [newCommentFromServer, ...prev]);
+      setNovoComentario("");
     } catch (error) {
-        console.error("Erro na criação do comentário:", error);
-        alert(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      console.error("Erro na criação do comentário:", error);
+      alert(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
-  // Funções auxiliares para renderizar o valor do atributo personalizado na modal
   const renderCustomAttributeValue = (atributo: any) => {
-    const { type, valor } = atributo; // Removido arquivo e valor_formatado daqui, pois o FileAttributePreview usará
+    const { type, valor } = atributo;
 
     switch (type) {
-        case "boolean":
-            const isTrue = atributo.valor_formatado === true; // Usa valor_formatado se for boolean
-            return (
-                <div className="d-flex gap-3 mt-1">
-                    <Form.Check type="checkbox" id={`sim-${atributo.id}`} label="Sim" checked={isTrue} readOnly />
-                    <Form.Check type="checkbox" id={`nao-${atributo.id}`} label="Não" checked={!isTrue} readOnly />
-                </div>
-            );
-        case "file":
-             // NOVO: Usar o componente dedicado para lidar com o preview e seu estado
-             return <FileAttributePreview atributo={atributo} backendUrl={backend_url} />;
-
-        // Seus cases existentes (mantidos, mas melhorando a tipagem visual)
-        case "integer":
-        case "float":
-            return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
-        case "date":
-            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-        case "datetime":
-            return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-        case "time":
-            return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false, hour: '2-digit', minute: '2-digit' }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-        case "text":
-        case "string":
-        default:
-            return <Form.Control as="textarea" rows={3} value={valor || ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+      case "boolean":
+        const isTrue = atributo.valor_formatado === true;
+        return (
+          <div className="d-flex gap-3 mt-1">
+            <Form.Check type="checkbox" id={`sim-${atributo.id}`} label="Sim" checked={isTrue} readOnly />
+            <Form.Check type="checkbox" id={`nao-${atributo.id}`} label="Não" checked={!isTrue} readOnly />
+          </div>
+        );
+      case "file":
+        return <FileAttributePreview atributo={atributo} backendUrl={backend_url} />;
+      case "integer":
+      case "float":
+        return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
+      case "date":
+        return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+      case "datetime":
+        return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+      case "time":
+        return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false, hour: '2-digit', minute: '2-digit' }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
+      case "text":
+      case "string":
+      default:
+        return <Form.Control as="textarea" rows={3} value={valor || ""} readOnly style={{ marginBottom: "0.5rem" }} />;
     }
-  }
-
+  };
 
   return (
     <>
@@ -580,9 +616,9 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           }}
         >
           <Modal.Title>Editar Negócio</Modal.Title>
-            <small className="text-muted" style={{ color: "#e0e0e0", fontSize: "0.85rem" }}>
-              #{negocio.id}
-            </small>
+          <small className="text-muted" style={{ color: "#e0e0e0", fontSize: "0.85rem" }}>
+            #{negocio.id}
+          </small>
         </Modal.Header>
 
         <Modal.Body
@@ -594,10 +630,8 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           }}
         >
           <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}>
-
             <div style={{ flex: 2 }}>
               <Form>
-                {/* ... (Campos padrão) ... */}
                 <Form.Group className="mb-3">
                   <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
                   <Form.Control
@@ -652,22 +686,40 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                   />
                 </Form.Group>
 
-                {/* >>> ATRIBUTOS PERSONALIZADOS COM PREVIEW DE ARQUIVO <<< */}
                 <Form.Group className="mb-3">
                   <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
                   <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
                     {negocio.atributos_personalizados?.map((atributo, idx) => (
-                        <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
+                      <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
+                        <div className="d-flex justify-content-between align-items-center">
                           <strong>{atributo.label}</strong>
-                          {renderCustomAttributeValue(atributo)}
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => {
+                              setEditingAttribute(atributo);
+                                setEditFieldValue(
+                                  atributo.valor
+                                    ? atributo.valor
+                                    : typeof atributo.valor_formatado === "string"
+                                    ? atributo.valor_formatado
+                                    : ""
+                                );
+                              setShowEditAttributeModal(true);
+                            }}
+                            style={{ padding: "0.2rem 0.5rem" }}
+                          >
+                            Editar
+                          </Button>
                         </div>
+                        {renderCustomAttributeValue(atributo)}
+                      </div>
                     ))}
                   </div>
                 </Form.Group>
               </Form>
             </div>
 
-            {/* ... (Seção de Comentários) ... */}
             <div
               style={{
                 flex: 1,
@@ -720,8 +772,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           </div>
         </Modal.Body>
 
-      {/* ... (Modal Footer com botões Salvar/Excluir/Criar Campo) ... */}
-      <Modal.Footer style={{ borderTop: "none", justifyContent: "space-between" }}>
+        <Modal.Footer style={{ borderTop: "none", justifyContent: "space-between" }}>
           <Button
             style={{
               borderRadius: "0.5rem",
@@ -747,19 +798,19 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               }}
             >
               {isDeleting ? (
-                  <>
-                      <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          aria-hidden="true"
-                          className="me-2"
-                      />
-                      Excluindo...
-                  </>
+                <>
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                    className="me-2"
+                  />
+                  Excluindo...
+                </>
               ) : (
-                  "Excluir"
+                "Excluir"
               )}
             </Button>
 
@@ -781,100 +832,192 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         </Modal.Footer>
       </Modal>
 
-      {/* ... (Modal de Criar Campo Personalizável) ... */}
       <Modal
         show={showCustomFieldModal}
         onHide={() => {
-            setShowCustomFieldModal(false);
-            setFieldCreationError(null);
-            setNewFieldLabel("");
-            setNewFieldValue("");
-            setNewFieldType("string");
+          setShowCustomFieldModal(false);
+          setFieldCreationError(null);
+          setNewFieldLabel("");
+          setNewFieldValue("");
+          setNewFieldType("string");
         }}
         centered
       >
         <Modal.Header closeButton style={{ backgroundColor: "#8c52ff", color: "#fff", borderTopLeftRadius: "0.5rem", borderTopRightRadius: "0.5rem" }}>
-            <Modal.Title>Novo Campo Personalizável</Modal.Title>
+          <Modal.Title>Novo Campo Personalizável</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-            <Form>
-                <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: 600 }}>Etiqueta (Label)</Form.Label>
-                    <Form.Control
-                        type="text"
-                        placeholder="Ex: Código do Projeto"
-                        value={newFieldLabel}
-                        onChange={(e) => setNewFieldLabel(e.target.value)}
-                        style={{ borderRadius: "0.5rem", borderColor: "#ccc" }}
-                    />
-                </Form.Group>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: 600 }}>Etiqueta (Label)</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Ex: Código do Projeto"
+                value={newFieldLabel}
+                onChange={(e) => setNewFieldLabel(e.target.value)}
+                style={{ borderRadius: "0.5rem", borderColor: "#ccc" }}
+              />
+            </Form.Group>
 
-                <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: 600 }}>Tipo de Dado</Form.Label>
-                    <Form.Select
-                        value={newFieldType}
-                        onChange={(e) => {
-                            setNewFieldType(e.target.value);
-                            setNewFieldValue(""); // Limpa o valor ao mudar o tipo
-                        }}
-                        style={{ borderRadius: "0.5rem", borderColor: "#ccc" }}
-                    >
-                        {TYPE_CHOICES.map(type => (
-                            <option key={type} value={type}>
-                                {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </option>
-                        ))}
-                    </Form.Select>
-                </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: 600 }}>Tipo de Dado</Form.Label>
+              <Form.Select
+                value={newFieldType}
+                onChange={(e) => {
+                  setNewFieldType(e.target.value);
+                  setNewFieldValue("");
+                }}
+                style={{ borderRadius: "0.5rem", borderColor: "#ccc" }}
+              >
+                {TYPE_CHOICES.map(type => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
 
-                <Form.Group className="mb-4">
-                    <Form.Label style={{ fontWeight: 600 }}>Valor Inicial {newFieldType === 'file' && '(Arquivo)'}</Form.Label>
-                    {renderValueInput(newFieldType)}
-                    <Form.Text className="text-muted">
-                        {newFieldType === 'file' ?
-                            'O arquivo será enviado para o servidor.' :
-                            'O valor será armazenado como texto no banco de dados.'
-                        }
-                    </Form.Text>
-                </Form.Group>
+            <Form.Group className="mb-4">
+              <Form.Label style={{ fontWeight: 600 }}>Valor Inicial {newFieldType === 'file' && '(Arquivo)'}</Form.Label>
+              {renderValueInput(newFieldType, newFieldValue, setNewFieldValue)}
+              <Form.Text className="text-muted">
+                {newFieldType === 'file'
+                  ? 'O arquivo será enviado para o servidor.'
+                  : 'O valor será armazenado como texto no banco de dados.'
+                }
+              </Form.Text>
+            </Form.Group>
 
-                {fieldCreationError && (
-                    <Alert variant="danger" onClose={() => setFieldCreationError(null)} dismissible>
-                        {fieldCreationError}
-                    </Alert>
-                )}
-            </Form>
+            {fieldCreationError && (
+              <Alert variant="danger" onClose={() => setFieldCreationError(null)} dismissible>
+                {fieldCreationError}
+              </Alert>
+            )}
+          </Form>
         </Modal.Body>
         <Modal.Footer>
-            <Button variant="secondary" onClick={() => {
+          <Button
+            variant="secondary"
+            onClick={() => {
               setShowCustomFieldModal(false);
               setNewFieldLabel("");
               setNewFieldValue("");
               setNewFieldType("string");
-            }}>
-                Cancelar
-            </Button>
-            <Button
-                style={{ backgroundColor: "#8c52ff", borderColor: "#8c52ff" }}
-                onClick={handleCreateCustomField}
-                disabled={isSavingField}
-            >
-                {isSavingField ? (
-                    <>
-                        <Spinner
-                            as="span"
-                            animation="border"
-                            size="sm"
-                            role="status"
-                            aria-hidden="true"
-                            className="me-2"
-                        />
-                        Criando...
-                    </>
-                ) : (
-                    "Criar Campo"
-                )}
-            </Button>
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            style={{ backgroundColor: "#8c52ff", borderColor: "#8c52ff" }}
+            onClick={handleCreateCustomField}
+            disabled={isSavingField}
+          >
+            {isSavingField ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="me-2"
+                />
+                Criando...
+              </>
+            ) : (
+              "Criar Campo"
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={showEditAttributeModal}
+        onHide={() => {
+          setShowEditAttributeModal(false);
+          setEditingAttribute(null);
+          setEditFieldValue("");
+          setFieldUpdateError(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton style={{ backgroundColor: "#8c52ff", color: "#fff", borderTopLeftRadius: "0.5rem", borderTopRightRadius: "0.5rem" }}>
+          <Modal.Title>Editar Campo Personalizável</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: 600 }}>Etiqueta (Label)</Form.Label>
+              <Form.Control
+                type="text"
+                value={editingAttribute?.label || ""}
+                readOnly
+                style={{ borderRadius: "0.5rem", borderColor: "#ccc", backgroundColor: "#e9ecef" }}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: 600 }}>Tipo de Dado</Form.Label>
+              <Form.Control
+                type="text"
+                value={editingAttribute?.type || ""}
+                readOnly
+                style={{ borderRadius: "0.5rem", borderColor: "#ccc", backgroundColor: "#e9ecef" }}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label style={{ fontWeight: 600 }}>
+                Valor {editingAttribute?.type === 'file' && '(Arquivo)'}
+              </Form.Label>
+              {editingAttribute && renderValueInput(editingAttribute.type, editFieldValue, setEditFieldValue)}
+              <Form.Text className="text-muted">
+                {editingAttribute?.type === 'file'
+                  ? 'Selecione um novo arquivo para substituir o atual, ou deixe em branco para manter.'
+                  : 'O valor será armazenado como texto no banco de dados.'
+                }
+              </Form.Text>
+            </Form.Group>
+
+            {fieldUpdateError && (
+              <Alert variant="danger" onClose={() => setFieldUpdateError(null)} dismissible>
+                {fieldUpdateError}
+              </Alert>
+            )}
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowEditAttributeModal(false);
+              setEditingAttribute(null);
+              setEditFieldValue("");
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            style={{ backgroundColor: "#8c52ff", borderColor: "#8c52ff" }}
+            onClick={handleUpdateAttribute}
+            disabled={isUpdatingField}
+          >
+            {isUpdatingField ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                  className="me-2"
+                />
+                Atualizando...
+              </>
+            ) : (
+              "Atualizar Campo"
+            )}
+          </Button>
         </Modal.Footer>
       </Modal>
     </>

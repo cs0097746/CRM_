@@ -1,10 +1,11 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 from .models import AtributoPersonalizavel, PresetAtributos
 from .serializers import AtributoPersonalizavelSerializer, PresetAtributosSerializer
 from negocio.models import Negocio
-from rest_framework.exceptions import NotFound
 
 class AtributoPersonalizavelCreateView(generics.CreateAPIView):
     queryset = AtributoPersonalizavel.objects.all()
@@ -33,3 +34,27 @@ class PresetAtributosListView(generics.ListAPIView):
     queryset = PresetAtributos.objects.prefetch_related('atributos').all()
     serializer_class = PresetAtributosSerializer
     permission_classes = [IsAuthenticated]
+
+class AtributoPersonalizavelUpdateView(generics.UpdateAPIView):
+    queryset = AtributoPersonalizavel.objects.all()
+    serializer_class = AtributoPersonalizavelSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            atributo = self.get_object()
+        except AtributoPersonalizavel.DoesNotExist:
+            raise NotFound("Atributo não encontrado.")
+
+        serializer = self.get_serializer(
+            atributo,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
