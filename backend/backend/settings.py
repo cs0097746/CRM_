@@ -84,7 +84,8 @@ LOCAL_APPS = [
     'knowledge_base',
     'core',
     'notificacao',
-    'tarefas'
+    'tarefas',
+    'gatilho'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

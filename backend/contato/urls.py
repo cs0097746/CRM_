@@ -10,6 +10,7 @@ from knowledge_base.views import *
 from atributo import views as atributos_views
 from notificacao import views as notificacao_views
 from tarefas import views as tarefas_views
+from gatilho import views as gatilho_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -109,6 +110,12 @@ urlpatterns = [
     path('criar_tarefas/', tarefas_views.criar_tarefa, name='criar_tarefa'),
     path('listar_tarefas/', tarefas_views.listar_tarefas, name='listar_tarefas'),
     path('excluir_tarefa/<int:tarefa_id>/', tarefas_views.excluir_tarefa, name='excluir_tarefa'),
+
+    # api de gatilhos
+    path('listar_gatilhos/', gatilho_views.listar_gatilhos, name='listar_gatilhos'),
+    path('criar_gatilho/', gatilho_views.criar_gatilho, name='criar_gatilho'),
+    path('excluir_gatilho/<int:pk>/', gatilho_views.excluir_gatilho, name='excluir_gatilho'),
+    path('listar_estagios/', gatilho_views.listar_estagios, name='listar_estagios'),
 
     # ===== ROUTER URLS =====
     path("health/", core_views.health),
