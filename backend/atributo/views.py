@@ -30,10 +30,26 @@ class AtributoPersonalizavelCreateView(generics.CreateAPIView):
         negocio.atributos_personalizados.add(atributo)
         negocio.save(update_fields=['atualizado_em'])
 
-class PresetAtributosListView(generics.ListAPIView):
+class PresetAtributosListView(generics.ListCreateAPIView):
     queryset = PresetAtributos.objects.prefetch_related('atributos').all()
     serializer_class = PresetAtributosSerializer
     permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        print("Request d ata", request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        preset = serializer.save()
+        return Response(
+            PresetAtributosSerializer(preset).data,
+            status=status.HTTP_201_CREATED
+        )
+
+class PresetAtributosDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = PresetAtributos.objects.prefetch_related('atributos').all()
+    serializer_class = PresetAtributosSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
 
 class AtributoPersonalizavelUpdateView(generics.UpdateAPIView):
     queryset = AtributoPersonalizavel.objects.all()

@@ -96,7 +96,9 @@ urlpatterns = [
     # atrib person
     path('atributos-personalizaveis/<int:negocio_id>/', atributos_views.AtributoPersonalizavelCreateView.as_view(), name='atributo-personalizavel-create'),
     path('presets/', atributos_views.PresetAtributosListView.as_view(), name='presets-list'),
+    path('presets/create/', atributos_views.PresetAtributosListView.as_view(), name='presets-create'),
     path('atributos-personalizaveis/<int:pk>/update/', atributos_views.AtributoPersonalizavelUpdateView.as_view(), name='atributo-personalizavel-update'),
+    path('presets/<int:pk>/', atributos_views.PresetAtributosDetailView.as_view(), name='preset-detail-update-delete'),
 
     # comentarios do negocio
     path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),

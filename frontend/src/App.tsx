@@ -19,6 +19,9 @@ const CriarTarefas = lazy(() => import('./views/Tarefas'));
 const ListarTarefas = lazy(()=> import('./views/ListarTarefas'));
 const CriarGatilhos = lazy(()=>import('./views/Gatilhos'));
 const ListarGatilhos = lazy(()=>import('./views/ListarGatilhos'));
+const ListarPresets = lazy(() => import('./views/ListarPresets'));
+const Presets = lazy(() => import('./views/Presets'));
+const EditarPreset = lazy(() => import('./views/EditarPreset'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -99,6 +102,9 @@ const AppContent = () => {
             <Route path="/tarefas" element={<ListarTarefas />} />
             <Route path="/gatilhos"  element={<ListarGatilhos />} />
             <Route path="/criar_gatilho" element={<CriarGatilhos />} />
+            <Route path="/presets" element={<ListarPresets />} />
+            <Route path="/criar_preset" element={<Presets />} />
+            <Route path="/presets/:presetId/editar" element={<EditarPreset />} />
           </Routes>
         </Suspense>
       </div>
@@ -123,6 +129,7 @@ const AppContent = () => {
             <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
             <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
+            <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
             {/* ✅ BOTÃO DE LOGOUT */}
             <hr />
             <Button 
