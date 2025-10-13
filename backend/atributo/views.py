@@ -7,6 +7,18 @@ from .models import AtributoPersonalizavel, PresetAtributos
 from .serializers import AtributoPersonalizavelSerializer, PresetAtributosSerializer
 from negocio.models import Negocio
 
+class AtributoPersonalizavelDeleteView(generics.DestroyAPIView):
+    queryset = AtributoPersonalizavel.objects.all()
+    serializer_class = AtributoPersonalizavelSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_object(self):
+        try:
+            return super().get_object()
+        except AtributoPersonalizavel.DoesNotExist:
+            raise NotFound("AtributoPersonalizavel não encontrado.")
+
 class AtributoPersonalizavelCreateView(generics.CreateAPIView):
     queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer

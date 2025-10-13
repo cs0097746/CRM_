@@ -231,7 +231,7 @@ const Home = () => {
       badge: null // Você pode adicionar a contagem de contatos aqui se tiver os dados
     },
     {
-      titulo: '🎯 Kanban CRM',
+      titulo: '🎯 Pipelines',
       descricao: 'Gestão de leads e negócios',
       url: '/kanbans/',
       cor: '#ffc107', // Amarelo (warning)

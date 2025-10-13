@@ -242,6 +242,44 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     }
   };
 
+  const handleDeleteAttribute = async (attributeId: number) => {
+    if (!window.confirm("Tem certeza que deseja excluir este campo personalizável? Esta ação é irreversível.")) {
+      return;
+    }
+
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
+
+    try {
+      const response = await fetch(`${backend_url}atributos-personalizaveis/${attributeId}/delete/`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 204) {
+        console.log("Atributo excluído com sucesso:", attributeId);
+
+        if (negocio.atributos_personalizados) {
+          negocio.atributos_personalizados = negocio.atributos_personalizados.filter(
+            (attr) => attr.id !== attributeId
+          );
+        }
+
+        alert("Campo personalizável excluído com sucesso!");
+        setShowEditAttributeModal(false);
+        setEditingAttribute(null);
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Falha ao excluir o atributo. Status: ${response.status}. Mensagem: ${errorText}`);
+      }
+    } catch (error) {
+      console.error("Erro ao excluir atributo:", error);
+      alert(`Falha ao excluir o campo personalizável: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
+  };
+
   const handleCreateCustomField = async () => {
     if (!newFieldLabel.trim() || !newFieldType.trim()) {
       setFieldCreationError("Por favor, preencha a etiqueta (Label) e o Tipo.");
@@ -987,6 +1025,14 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           </Form>
         </Modal.Body>
         <Modal.Footer>
+          <Button
+              variant="outline-danger"
+              onClick={() => editingAttribute?.id && handleDeleteAttribute(editingAttribute.id)}
+              style={{ borderRadius: "0.5rem", fontWeight: 500 }}
+              disabled={isUpdatingField}
+            >
+              Excluir Atributo
+          </Button>
           <Button
             variant="secondary"
             onClick={() => {

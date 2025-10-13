@@ -46,7 +46,7 @@ urlpatterns = [
     
     # ===== CRM/KANBAN =====
     path('estagios/<int:kanban_id>/', kanban_views.EstagioListView.as_view(), name='estagio_list'),
-    path('estagios/<int:pk>/', kanban_views.EstagioDetailView.as_view(), name='estagio_detail'),
+    path('estagios/<int:pk>/detail/', kanban_views.EstagioDetailView.as_view(), name='estagio_detail'),
     path('kanbans/', kanban_views.KanbanListView.as_view(), name='kanban_list'),
     path('kanbans/<int:pk>/', kanban_views.KanbanUpdateDeleteView.as_view(), name='kanban_detail'),
     path('negocios/', negocio_views.NegocioListCreateView.as_view(), name='negocio_list_create'),
@@ -99,7 +99,7 @@ urlpatterns = [
     path('presets/create/', atributos_views.PresetAtributosListView.as_view(), name='presets-create'),
     path('atributos-personalizaveis/<int:pk>/update/', atributos_views.AtributoPersonalizavelUpdateView.as_view(), name='atributo-personalizavel-update'),
     path('presets/<int:pk>/', atributos_views.PresetAtributosDetailView.as_view(), name='preset-detail-update-delete'),
-
+    path('atributos-personalizaveis/<int:pk>/delete/', atributos_views.AtributoPersonalizavelDeleteView.as_view(), name='atributo_delete'),
     # comentarios do negocio
     path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),
 

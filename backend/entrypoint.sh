@@ -13,4 +13,4 @@ echo "Criando superuser..."
 python manage.py createsuperuser --noinput 2>/dev/null || true
 
 echo "Iniciando Gunicorn..."
-exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3
+exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3 --log-level debug --access-logfile - --error-logfile -
