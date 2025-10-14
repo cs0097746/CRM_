@@ -30,7 +30,7 @@ def _acao_criar_tarefa(gatilho, negocio):
         print(f"[Gatilho {gatilho.id}] 📱 WhatsApp enviado para {telefone}.")
 
     elif tipo == "webhook":
-        destinatario = email or "Sistema"
+        destinatario = telefone or 'Sistema não encontrou telefone de contato do negócio.'
         enviar_webhook_task.delay(destinatario, nota, gatilho.url_n8n or '', codigo)
         print(f"[Gatilho {gatilho.id}] 🌐 Webhook enviado com nota para {destinatario}.")
 
