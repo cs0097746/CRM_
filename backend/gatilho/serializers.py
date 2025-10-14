@@ -20,6 +20,8 @@ class GatilhoSerializer(serializers.ModelSerializer):
         allow_null=True
     )
 
+    dados_adicionais_tarefa = serializers.JSONField(write_only=True, required=False)
+
     class Meta:
         model = Gatilho
         fields = [
@@ -33,7 +35,9 @@ class GatilhoSerializer(serializers.ModelSerializer):
             'estagio_destino',
             'estagio_origem_id',
             'estagio_destino_id',
-            'tarefa_relacionada'
+            'tarefa_relacionada',
+            'dados_adicionais_tarefa',
+            'url_n8n'
         ]
 
     def to_representation(self, instance):
@@ -43,3 +47,13 @@ class GatilhoSerializer(serializers.ModelSerializer):
         if instance.estagio_destino:
             representation['estagio_destino'] = EstagioSerializer(instance.estagio_destino).data
         return representation
+
+    def create(self, validated_data):
+        dados_adicionais_tarefa = validated_data.pop('dados_adicionais_tarefa', {})
+
+        url_n8n = dados_adicionais_tarefa.get('url_n8n')
+
+        if url_n8n:
+            validated_data['url_n8n'] = url_n8n
+
+        return super().create(validated_data)

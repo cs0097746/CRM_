@@ -67,9 +67,10 @@ interface DadosGatilho {
   nota: string;
 }
 
+// 1. INTERFACE MODIFICADA: Alterado de link_webhook_n8n para url_n8n
 interface TarefaPayload {
     assunto?: string;
-    link_webhook_n8n?: string;
+    url_n8n?: string;
 }
 
 const getTipoLabel = (tipo: string | undefined): string => {
@@ -118,13 +119,14 @@ const TarefaFields: React.FC<TarefaFieldsProps> = memo(({ tarefaSelecionada, tar
             </Col>
         );
     } else if (tipo === 'webhook') {
+        // 2. COMPONENTE MODIFICADO: Alterado name e value para url_n8n
         fields.push(
-            <Col md={12} key="link_webhook_n8n">
+            <Col md={12} key="url_n8n">
                 <FloatingLabel label="URL de Disparo do Webhook *Obrigatório*">
                     <Form.Control
                         type="url"
-                        name="link_webhook_n8n"
-                        value={tarefaPayload.link_webhook_n8n || ''}
+                        name="url_n8n" // Alterado aqui
+                        value={tarefaPayload.url_n8n || ''} // Alterado aqui
                         onChange={handleTarefaPayloadChange}
                         required
                         placeholder="Ex: https://webhook.site/abc-123"
@@ -318,7 +320,7 @@ const CriarGatilho = () => {
         validationError = "Assunto e o campo Nota (mensagem) são obrigatórios para E-mail.";
     } else if (tipo === 'whatsapp' && !formData.nota) {
         validationError = "O campo Nota (mensagem) é obrigatório para WhatsApp.";
-    } else if (tipo === 'webhook' && !tarefaPayload.link_webhook_n8n) {
+    } else if (tipo === 'webhook' && !tarefaPayload.url_n8n) { // 3. VALIDAÇÃO MODIFICADA: Usando url_n8n
         validationError = "O Link do Webhook é obrigatório.";
     }
 
@@ -329,6 +331,7 @@ const CriarGatilho = () => {
         return;
     }
 
+    // O spread já funcionará pois o estado tarefaPayload agora usa 'url_n8n'
     let dadosAdicionaisTarefa: TarefaPayload & { mensagem?: string } = { ...tarefaPayload };
 
     if (tipo === 'email' || tipo === 'whatsapp') {
@@ -337,6 +340,7 @@ const CriarGatilho = () => {
          dadosAdicionaisTarefa.mensagem = formData.nota;
     }
 
+    // 4. PAYLOAD FINAL: O objeto dadosAdicionaisTarefa agora contém 'url_n8n' se for um webhook.
     const payload = {
       nome: formData.nome,
       evento: formData.evento,

@@ -48,6 +48,10 @@ class Gatilho(models.Model):
         null=True,
         choices=TAREFA_CHOICES,
     )
+    url_n8n = models.URLField(
+        blank=True,
+        null=True,
+    )
     def __str__(self):
         return f"{self.nome} ({self.evento})"
 

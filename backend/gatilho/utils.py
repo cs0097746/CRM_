@@ -1,17 +1,15 @@
-import logging
 from tarefas.models import Tarefa
 from tarefas.tasks import enviar_email_task, enviar_whatsapp_task, enviar_webhook_task
 
-logger = logging.getLogger(__name__)
 
 def executar_acao_gatilho(gatilho, negocio):
     try:
         if gatilho.acao == "criar_tarefa":
             _acao_criar_tarefa(gatilho, negocio)
         else:
-            logger.warning(f"[Gatilho {gatilho.id}] ⚠️ Ação desconhecida: {gatilho.acao}")
+            print(f"[Gatilho {gatilho.id}] ⚠️ Ação desconhecida: {gatilho.acao}")
     except Exception as e:
-        logger.exception(f"❌ Erro ao executar gatilho {gatilho.id} ({gatilho.nome}): {e}")
+        print(f"❌ Erro ao executar gatilho {gatilho.id} ({gatilho.nome}): {e}")
 
 
 def _acao_criar_tarefa(gatilho, negocio):
@@ -25,16 +23,16 @@ def _acao_criar_tarefa(gatilho, negocio):
 
     if tipo == "email" and email:
         enviar_email_task.delay(email, f"Tarefa do gatilho: {gatilho.nome}", nota, "", True, codigo)
-        logger.info(f"[Gatilho {gatilho.id}] ✉️ E-mail enviado para {email}.")
+        print(f"[Gatilho {gatilho.id}] ✉️ E-mail enviado para {email}.")
 
     elif tipo == "whatsapp" and telefone:
         enviar_whatsapp_task.delay(telefone, nota, "", True, codigo)
-        logger.info(f"[Gatilho {gatilho.id}] 📱 WhatsApp enviado para {telefone}.")
+        print(f"[Gatilho {gatilho.id}] 📱 WhatsApp enviado para {telefone}.")
 
     elif tipo == "webhook":
         destinatario = email or "Sistema"
-        enviar_webhook_task.delay(destinatario, nota, "", codigo)
-        logger.info(f"[Gatilho {gatilho.id}] 🌐 Webhook enviado com nota para {destinatario}.")
+        enviar_webhook_task.delay(destinatario, nota, gatilho.url_n8n or '', codigo)
+        print(f"[Gatilho {gatilho.id}] 🌐 Webhook enviado com nota para {destinatario}.")
 
     else:
         Tarefa.objects.create(
@@ -44,4 +42,4 @@ def _acao_criar_tarefa(gatilho, negocio):
             descricao=nota,
             precisar_enviar=True,
         )
-        logger.info(f"[Gatilho {gatilho.id}] 🗂️ Tarefa interna criada para {email or 'admin@sistema.com'}.")
+        print(f"[Gatilho {gatilho.id}] 🗂️ Tarefa interna criada para {email or 'admin@sistema.com'}.")

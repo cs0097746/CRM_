@@ -6,6 +6,12 @@ import requests
 from django.utils import timezone
 
 def chamar_webhook_n8n(link_webhook_n8n, tipo_tarefa, destinatario, codigo, mensagem):
+    print("Link n8n", link_webhook_n8n)
+    print("Tipo tarefa", tipo_tarefa)
+    print("Destinatario", destinatario)
+    print("Codigo", codigo)
+    print("Mensagem", mensagem)
+
     if not link_webhook_n8n:
         return
 
@@ -75,5 +81,11 @@ def enviar_whatsapp_task(destinatario, mensagem, link_webhook_n8n="", precisar_e
 
 @shared_task
 def enviar_webhook_task(destinatario, assunto, link_webhook_n8n, codigo=None):
+
+    print("NA TASK AINDA")
+    print("Destinatario", destinatario)
+    print("Link webhook", link_webhook_n8n)
+    print("Codigo", codigo)
+    print("Assunto", assunto)
 
     chamar_webhook_n8n(link_webhook_n8n, "webhook", destinatario, codigo, assunto)
