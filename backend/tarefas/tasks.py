@@ -72,3 +72,8 @@ def enviar_whatsapp_task(destinatario, mensagem, link_webhook_n8n="", precisar_e
     chamar_webhook_n8n(link_webhook_n8n, "whatsapp", destinatario, codigo, mensagem)
 
     return {"success": success}
+
+@shared_task
+def enviar_webhook_task(destinatario, assunto, link_webhook_n8n, codigo=None):
+
+    chamar_webhook_n8n(link_webhook_n8n, "webhook", destinatario, codigo, assunto)

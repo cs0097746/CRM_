@@ -5,6 +5,7 @@ class Tarefa(models.Model):
     TIPO_CHOICES = [
         ('email', 'E-mail'),
         ('whatsapp', 'WhatsApp'),
+        ('webhook', 'Webhook'),
     ]
 
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, blank=False, null=False)

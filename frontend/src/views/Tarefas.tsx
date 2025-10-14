@@ -7,8 +7,7 @@ import axios from 'axios';
 import backend_url from "../config/env.ts";
 import {getToken} from "../function/validateToken.tsx";
 
-
-type TipoTarefa = 'email' | 'whatsapp';
+type TipoTarefa = 'email' | 'whatsapp' | 'webhook';
 type RecorrenciaTipo = 'unica' | 'horas' | 'diaria' | 'dias';
 
 interface RecorrenciaConfig {
@@ -19,10 +18,10 @@ interface RecorrenciaConfig {
 
 interface DadosTarefa {
   tipo: TipoTarefa;
-  destinatario: string;
-  assunto: string;
-  mensagem: string;
-  linkWebhookN8n: string;
+  destinatario: string; // Para email/whatsapp é o contato. Para webhook é o telefone/ID do contato.
+  assunto: string; // Para email é o assunto. Para webhook é o payload/nota.
+  mensagem: string; // O corpo da mensagem ou o payload do webhook.
+  linkWebhookN8n: string; // Para email/whatsapp é opcional. Para webhook é a URL principal.
   recorrencia: RecorrenciaConfig;
   precisarEnviar: boolean;
   codigo: string;
@@ -95,7 +94,7 @@ const CriarTarefa = () => {
           valor1: '',
           valor2: undefined,
         },
-        precisarEnviar: true,
+        precisarEnviar: true, // Padrão para email/whatsapp
         codigo: '',
     });
   };
@@ -105,7 +104,27 @@ const CriarTarefa = () => {
     setLoading(true);
     setError(null);
 
-    const { recorrencia, precisarEnviar, codigo } = formData;
+    const { recorrencia, precisarEnviar, codigo, tipo } = formData;
+
+    if (tipo === 'webhook' && !formData.linkWebhookN8n) {
+        setError("O Link do Webhook é obrigatório para o tipo 'Webhook'.");
+        setLoading(false);
+        return;
+    }
+
+    if (tipo === 'webhook' && !formData.destinatario) {
+        setError("O Telefone/ID do Contato é obrigatório para o tipo 'Webhook'.");
+        setLoading(false);
+        return;
+    }
+
+    // VALIDAÇÃO OBRIGATÓRIA: Assunto (que contém a Nota/Payload) é obrigatório para Webhook
+    if (tipo === 'webhook' && !formData.assunto.trim()) {
+        setError("A Nota (Assunto/Mensagem/Payload) do Webhook é obrigatória.");
+        setLoading(false);
+        return;
+    }
+
 
     const config_recorrencia_formatada = {
         tipo: recorrencia.tipo,
@@ -113,16 +132,29 @@ const CriarTarefa = () => {
         ...(recorrencia.valor2 !== undefined && { valor2: String(recorrencia.valor2) })
     };
 
-    const payload = {
-      tipo_tarefa: formData.tipo,
-      destinatario: formData.destinatario,
-      assunto: formData.tipo === 'email' ? formData.assunto : undefined,
-      mensagem: formData.mensagem,
-      link_webhook_n8n: formData.linkWebhookN8n || undefined,
-      config_recorrencia: config_recorrencia_formatada,
+    // Força precisar_enviar como false para o tipo webhook
+    const finalPreciserEnviar = tipo === 'webhook' ? false : precisarEnviar;
 
-      precisar_enviar: precisarEnviar,
+    // CONSTRUÇÃO DO PAYLOAD
+    const payload = {
+      tipo_tarefa: tipo,
+      destinatario: formData.destinatario,
+
+      link_webhook_n8n:
+        (tipo === ('webhook' as string) || (tipo !== 'webhook' && formData.linkWebhookN8n))
+          ? formData.linkWebhookN8n
+          : undefined,
+
+      config_recorrencia: config_recorrencia_formatada,
+      precisar_enviar: finalPreciserEnviar,
       codigo: codigo || undefined,
+
+      // Assunto é enviado apenas para 'email'
+      assunto: tipo === 'email' ? formData.assunto : undefined,
+
+      // Mensagem (payload da API) é o conteúdo da Nota/Payload (salvo em 'formData.assunto') para webhook,
+      // e o conteúdo da mensagem normal para email/whatsapp.
+      mensagem: tipo === 'webhook' ? formData.assunto : formData.mensagem,
     };
 
     console.log("Payload de envio:", payload);
@@ -232,6 +264,28 @@ const CriarTarefa = () => {
     }
   };
 
+  const getRecipientLabel = (tipo: TipoTarefa) => {
+    switch (tipo) {
+        case 'email':
+            return "Destinatário (Email)";
+        case 'whatsapp':
+            return "Destinatário (Telefone com DDD)";
+        default:
+            return "Destinatário";
+    }
+  }
+
+  const getRecipientPlaceholder = (tipo: TipoTarefa) => {
+    switch (tipo) {
+        case 'email':
+            return "exemplo@dominio.com";
+        case 'whatsapp':
+            return "5551987654321";
+        default:
+            return "";
+    }
+  }
+
   return (
     <div className="p-4" style={{ maxWidth: '900px', margin: '0 auto' }}>
       <h2 className="mb-4" style={{ fontWeight: 600 }}>
@@ -242,15 +296,22 @@ const CriarTarefa = () => {
         <ButtonGroup size="lg">
           <Button
             variant={formData.tipo === 'email' ? 'primary' : 'outline-primary'}
-            onClick={() => setFormData(prev => ({ ...prev, tipo: 'email', assunto: '' }))}
+            onClick={() => setFormData(prev => ({ ...prev, tipo: 'email', assunto: '', destinatario: '', linkWebhookN8n: '', precisarEnviar: true }))}
           >
             📧 Envio de E-mail
           </Button>
           <Button
             variant={formData.tipo === 'whatsapp' ? 'success' : 'outline-success'}
-            onClick={() => setFormData(prev => ({ ...prev, tipo: 'whatsapp', assunto: 'N/A' }))}
+            onClick={() => setFormData(prev => ({ ...prev, tipo: 'whatsapp', assunto: '', destinatario: '', linkWebhookN8n: '', precisarEnviar: true }))}
           >
             📱 Envio de WhatsApp
+          </Button>
+          {/* Botão para Webhook: define precisarEnviar como false */}
+          <Button
+            variant={formData.tipo === 'webhook' ? 'dark' : 'outline-dark'}
+            onClick={() => setFormData(prev => ({ ...prev, tipo: 'webhook', assunto: '', destinatario: '', linkWebhookN8n: '', precisarEnviar: false }))}
+          >
+            🔗 Webhook (N8N/Outro)
           </Button>
         </ButtonGroup>
       </div>
@@ -258,65 +319,113 @@ const CriarTarefa = () => {
       <Form onSubmit={handleSubmit}>
         <Card className="shadow-sm mb-4">
           <Card.Header style={{ fontWeight: 600 }}>
-            {formData.tipo === 'email' ? 'Configuração do E-mail' : 'Configuração do WhatsApp'}
+            {formData.tipo === 'email' ? 'Configuração do E-mail' : formData.tipo === 'whatsapp' ? 'Configuração do WhatsApp' : 'Configuração do Webhook'}
           </Card.Header>
           <Card.Body>
             <Row className="g-3">
-              <Col md={12}>
-                <FloatingLabel
-                  label={formData.tipo === 'email' ? "Destinatário (Email)" : "Destinatário (Telefone com DDD)"}
-                >
-                  <Form.Control
-                    type={formData.tipo === 'email' ? "email" : "tel"}
-                    placeholder={formData.tipo === 'email' ? "exemplo@dominio.com" : "5551987654321"}
-                    name="destinatario"
-                    value={formData.destinatario}
-                    onChange={handleChange}
-                    required
-                  />
-                </FloatingLabel>
-              </Col>
 
-              {formData.tipo === 'email' && (
-                <Col md={12}>
-                  <FloatingLabel label="Assunto do E-mail">
-                    <Form.Control
-                      type="text"
-                      placeholder="Assunto da Mensagem"
-                      name="assunto"
-                      value={formData.assunto}
-                      onChange={handleChange}
-                      required
-                    />
-                  </FloatingLabel>
-                </Col>
+              {formData.tipo === 'webhook' ? (
+                <>
+                  <Col md={12}>
+                      <FloatingLabel label="Link do Webhook (URL de Destino) *Obrigatório*">
+                          <Form.Control
+                              type="url"
+                              placeholder="https://sua.instancia.n8n/webhook/..."
+                              name="linkWebhookN8n"
+                              value={formData.linkWebhookN8n}
+                              onChange={handleChange}
+                              required
+                          />
+                      </FloatingLabel>
+                  </Col>
+                  {/* Webhook: Telefone/ID do Contato (destinatario) */}
+                  <Col md={12}>
+                      <FloatingLabel label="Telefone do Destinatário ou ID do Contato *Obrigatório*">
+                          <Form.Control
+                              type="text"
+                              placeholder="Ex: 5551987654321 ou ID-12345"
+                              name="destinatario"
+                              value={formData.destinatario}
+                              onChange={handleChange}
+                              required
+                          />
+                      </FloatingLabel>
+                  </Col>
+                  {/* Campo unificado 'Nota' para Assunto/Mensagem/Payload do Webhook */}
+                  <Col md={12}>
+                      <FloatingLabel label="Nota (Assunto/Mensagem/Payload) *Obrigatório*">
+                          <Form.Control
+                              as="textarea"
+                              placeholder='Corpo da requisição. Ex: {"status":"success", "data": "..."}'
+                              name="assunto" // O conteúdo da Nota está sendo salvo em 'assunto'
+                              value={formData.assunto}
+                              onChange={handleChange}
+                              style={{ height: '150px' }}
+                              required // Torna obrigatório na UI
+                          />
+                      </FloatingLabel>
+                  </Col>
+                  {/* O campo 'mensagem' do state não é usado na UI para webhook */}
+                </>
+              ) : (
+                <>
+                  <Col md={12}>
+                      <FloatingLabel
+                          label={getRecipientLabel(formData.tipo)}
+                      >
+                          <Form.Control
+                              type={formData.tipo === 'email' ? "email" : "tel"}
+                              placeholder={getRecipientPlaceholder(formData.tipo)}
+                              name="destinatario"
+                              value={formData.destinatario}
+                              onChange={handleChange}
+                              required
+                          />
+                      </FloatingLabel>
+                  </Col>
+
+                  {formData.tipo === 'email' && (
+                      <Col md={12}>
+                          <FloatingLabel label="Assunto do E-mail">
+                              <Form.Control
+                                  type="text"
+                                  placeholder="Assunto da Mensagem"
+                                  name="assunto"
+                                  value={formData.assunto}
+                                  onChange={handleChange}
+                                  required
+                              />
+                          </FloatingLabel>
+                      </Col>
+                  )}
+
+                  <Col md={12}>
+                      <FloatingLabel label="Conteúdo da Mensagem">
+                          <Form.Control
+                              as="textarea"
+                              placeholder="Corpo da mensagem ou texto do WhatsApp"
+                              name="mensagem"
+                              value={formData.mensagem}
+                              onChange={handleChange}
+                              style={{ height: '100px' }}
+                              required
+                          />
+                      </FloatingLabel>
+                  </Col>
+
+                  <Col md={12}>
+                      <FloatingLabel label="URL de Webhook Adicional (Opcional - p/ n8n ou outro)">
+                          <Form.Control
+                              type="url"
+                              placeholder="https://sua.instancia.n8n/webhook/..."
+                              name="linkWebhookN8n"
+                              value={formData.linkWebhookN8n}
+                              onChange={handleChange}
+                          />
+                      </FloatingLabel>
+                  </Col>
+                </>
               )}
-
-              <Col md={12}>
-                <FloatingLabel label="Conteúdo da Mensagem">
-                  <Form.Control
-                    as="textarea"
-                    placeholder="Corpo da mensagem ou texto do WhatsApp"
-                    name="mensagem"
-                    value={formData.mensagem}
-                    onChange={handleChange}
-                    style={{ height: '100px' }}
-                    required
-                  />
-                </FloatingLabel>
-              </Col>
-
-              <Col md={12}>
-                <FloatingLabel label="URL do Webhook (Opcional - p/ n8n ou outro)">
-                  <Form.Control
-                    type="url"
-                    placeholder="https://sua.instancia.n8n/webhook/..."
-                    name="linkWebhookN8n"
-                    value={formData.linkWebhookN8n}
-                    onChange={handleChange}
-                  />
-                </FloatingLabel>
-              </Col>
 
             </Row>
           </Card.Body>
@@ -361,23 +470,38 @@ const CriarTarefa = () => {
           </Card.Header>
           <Card.Body>
             <Row className="g-3 align-items-center">
-              <Col md={6}>
-                <Form.Check
-                  type="switch"
-                  id="precisarEnviarSwitch"
-                  label={
-                    <span style={{ fontWeight: 500 }}>
-                      {formData.precisarEnviar
-                        ? '✅ Envio Habilitado (Envio será pelo próprio CRM)'
-                        : '⏸️ Envio Desabilitado (Envio será apenas pelo N8N)'}
-                    </span>
-                  }
-                  name="precisarEnviar"
-                  checked={formData.precisarEnviar}
-                  onChange={handleChange}
-                  className="pt-2 pb-2"
-                />
-              </Col>
+
+              {/* Opção de Envio: Mostra o switch apenas para Email/WhatsApp */}
+              {formData.tipo !== 'webhook' ? (
+                <Col md={6}>
+                  <Form.Check
+                    type="switch"
+                    id="precisarEnviarSwitch"
+                    label={
+                      <span style={{ fontWeight: 500 }}>
+                        {formData.precisarEnviar
+                          ? '✅ Envio Habilitado (Envio será pelo próprio CRM)'
+                          : '⏸️ Envio Desabilitado (Envio será apenas pelo Webhook Adicional)'}
+                      </span>
+                    }
+                    name="precisarEnviar"
+                    checked={formData.precisarEnviar}
+                    onChange={handleChange}
+                    className="pt-2 pb-2"
+                  />
+                </Col>
+              ) : (
+                /* Para Webhook: Exibe mensagem estática no lugar do switch */
+                <Col md={6} className="d-flex align-items-center">
+                    <Alert variant="secondary" className="m-0 py-2 w-100 text-center" style={{fontSize: '0.9rem'}}>
+                      <span style={{ fontWeight: 600 }}>
+                        🔗 Webhook: Envio sempre desabilitado no CRM
+                      </span>
+                    </Alert>
+                </Col>
+              )}
+
+              {/* Código Opcional: Mantido para todos os tipos */}
               <Col md={6}>
                 <FloatingLabel label="Código Opcional (Max 10 caracteres)">
                   <Form.Control

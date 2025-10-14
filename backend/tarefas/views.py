@@ -43,6 +43,13 @@ def criar_tarefa(request):
             tarefa.precisar_enviar,
             tarefa.codigo
         ]
+    elif tipo =="webhook":
+        task_args = [
+            tarefa.destinatario,
+            tarefa.assunto or tarefa.mensagem,
+            tarefa.link_webhook_n8n,
+            tarefa.codigo
+        ]
     else:
         task_args = [
             tarefa.destinatario,
