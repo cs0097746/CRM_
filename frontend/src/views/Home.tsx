@@ -5,6 +5,25 @@ import type { Conversa } from "../types/Conversa.ts";
 import backend_url from "../config/env.ts";
 import { getToken} from "../function/validateToken.tsx";
 
+const api = axios.create({ baseURL: `${backend_url}` });
+
+interface Notificacao {
+    id: number;
+    lida: boolean;
+    texto: string;
+    tipo: 'boa' | 'alerta' | 'erro';
+    criado_em: string;
+}
+
+const getTipoBadge = (tipo: Notificacao['tipo']) => {
+    switch (tipo) {
+        case 'boa': return { variant: 'success', cor: '#28a745', icone: '✅' };
+        case 'alerta': return { variant: 'warning', cor: '#ffc107', icone: '⚠️' };
+        case 'erro': return { variant: 'danger', cor: '#dc3545', icone: '❌' };
+        default: return { variant: 'secondary', cor: '#6c757d', icone: 'ℹ️' };
+    }
+};
+
 const styles = `
     .professional-layout {
       height: 100vh;
@@ -91,117 +110,88 @@ const Home = () => {
   const [markingLidas, setMarkingLidas] = useState(false);
   const [notificacoesError, setNotificacoesError] = useState<string | null>(null);
 
-  // NOVO: Estado para controlar a expansão
   const [isExpanded, setIsExpanded] = useState(false);
 
   const notificacoesNaoLidas = notificacoes.filter(n => !n.lida);
 
-  // Lista de notificações a serem exibidas: todas se expandido, ou apenas as 3 primeiras
   const notificacoesExibidas = isExpanded ? notificacoesNaoLidas : notificacoesNaoLidas.slice(0, 3);
 
-  // Verifica se há mais de 3 notificações não lidas para mostrar o botão "Ver Mais"
   const hasMoreNotifs = notificacoesNaoLidas.length > 3;
 
-  // A API e as constantes estão sendo definidas dentro do escopo do componente ou fora
-  // como no código original. Mantendo a definição dentro do Home para simplificar.
-  const api = axios.create({ baseURL: `${backend_url}` });
+  const handleMarcarTodasLidas = async () => {
+      if (notificacoesNaoLidas.length === 0) return;
 
-    // --- Tipos e Funções de Notificação ---
-    interface Notificacao {
-        id: number;
-        lida: boolean;
-        texto: string;
-        tipo: 'boa' | 'alerta' | 'erro';
-        criado_em: string;
-    }
-
-    const getTipoBadge = (tipo: Notificacao['tipo']) => {
-        switch (tipo) {
-            case 'boa': return { variant: 'success', cor: '#28a745', icone: '✅' };
-            case 'alerta': return { variant: 'warning', cor: '#ffc107', icone: '⚠️' };
-            case 'erro': return { variant: 'danger', cor: '#dc3545', icone: '❌' };
-            default: return { variant: 'secondary', cor: '#6c757d', icone: 'ℹ️' };
-        }
-    };
-    // ------------------------------------
-
-    const handleMarcarTodasLidas = async () => {
-        if (notificacoesNaoLidas.length === 0) return;
-
-        try {
-            setMarkingLidas(true);
-            const token = await getToken();
-            console.log("Token", token);
-            if (!token) throw new Error("Autenticação falhou.");
-
-            await api.patch('notificacoes/marcar-todas-lidas/', {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            // Atualiza o estado das notificações localmente
-            const novasNotificacoes = notificacoes.map(n => ({ ...n, lida: true }));
-            setNotificacoes(novasNotificacoes);
-
-            // Oculta após marcar todas como lidas
-            if (isExpanded) {
-                setIsExpanded(false);
-            }
-
-        } catch (err) {
-            setNotificacoesError('Erro ao marcar notificações como lidas.');
-            console.error('Erro ao marcar como lidas:', err);
-        } finally {
-            setMarkingLidas(false);
-        }
-    };
-
-    // Função para buscar o resumo e notificações (ajustada)
-    const fetchResumoRapido = useCallback(async () => {
       try {
-        const token = await getToken();
-        console.log("Token", token);
-        if (!token) throw new Error("Autenticação falhou.");
+          setMarkingLidas(true);
+          const token = await getToken();
+          console.log("Token", token);
+          if (!token) throw new Error("Autenticação falhou.");
 
-        const [resumoResponse, notifResponse] = await Promise.all([
-             api.get<Conversa[]>('conversas/', {
+          await api.patch('notificacoes/marcar-todas-lidas/', {}, {
               headers: { Authorization: `Bearer ${token}` }
-            }),
-            api.get<Notificacao[]>('notificacoes/', {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-        ]);
+          });
 
-        // @ts-ignore
-        const conversas = resumoResponse.data.results;
-        const aguardando = conversas.filter((c: Conversa) => c.status === 'entrada' && !c.operador).length;
-        const emAndamento = conversas.filter((c: Conversa) => c.status === 'atendimento').length;
-        // Simulação de operadores online baseada nas conversas ativas
-        const operadoresUnicos = new Set(
-          conversas.filter((c: Conversa) => c.operador).map((c: Conversa) => c.operador!.id)
-        );
+          const novasNotificacoes = notificacoes.map(n => ({ ...n, lida: true }));
+          setNotificacoes(novasNotificacoes);
 
-        setResumoAtendimento({
-          aguardando,
-          emAndamento,
-          operadoresOnline: operadoresUnicos.size
-        });
-        // @ts-ignore
-        setNotificacoes(notifResponse.data.results || []);
+          if (isExpanded) {
+              setIsExpanded(false);
+          }
 
-      } catch (error) {
-        console.error('Erro ao carregar resumo/notificações:', error);
+      } catch (err) {
+          setNotificacoesError('Erro ao marcar notificações como lidas.');
+          console.error('Erro ao marcar como lidas:', err);
       } finally {
-        setLoading(false);
+          setMarkingLidas(false);
       }
-    }, [api]);
+  };
+
+  const fetchResumoRapido = useCallback(async () => {
+    try {
+      const token = await getToken();
+      console.log("Token", token);
+      if (!token) throw new Error("Autenticação falhou.");
+
+      const [resumoResponse, notifResponse] = await Promise.all([
+           api.get<Conversa[]>('conversas/', {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          api.get<Notificacao[]>('notificacoes/', {
+              headers: { Authorization: `Bearer ${token}` }
+          })
+      ]);
+
+      // @ts-ignore
+      const conversas = resumoResponse.data.results;
+      const aguardando = conversas.filter((c: Conversa) => c.status === 'entrada' && !c.operador).length;
+      const emAndamento = conversas.filter((c: Conversa) => c.status === 'atendimento').length;
+      const operadoresUnicos = new Set(
+        conversas.filter((c: Conversa) => c.operador).map((c: Conversa) => c.operador!.id)
+      );
+
+      setResumoAtendimento({
+        aguardando,
+        emAndamento,
+        operadoresOnline: operadoresUnicos.size
+      });
+      // @ts-ignore
+      setNotificacoes(notifResponse.data.results || []);
+
+    } catch (error) {
+      console.error('Erro ao carregar resumo/notificações:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
 
   useEffect(() => {
     fetchResumoRapido();
 
-    // Atualizar a cada 30 segundos
     const interval = setInterval(fetchResumoRapido, 30000);
+
     return () => clearInterval(interval);
+
   }, [fetchResumoRapido]);
 
   const modulosCRM = [
@@ -246,7 +236,6 @@ const Home = () => {
 
         <div className="professional-layout">
 
-            {/* 1. Top Bar com Logo e Título */}
             <div className="top-bar">
                 <div className="d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center gap-3">
@@ -261,7 +250,6 @@ const Home = () => {
                 </div>
             </div>
 
-            {/* Container Flutuante de Notificações */}
             <div
                 className="notif-card"
                 style={{ maxHeight: isExpanded ? '85vh' : 'auto', overflowY: isExpanded ? 'auto' : 'visible' }}
@@ -310,7 +298,6 @@ const Home = () => {
                         </ListGroup.Item>
                         );
                     })}
-                    {/* Botão de expansão/colapso, visível se houver mais de 3 e não estiver totalmente expandido */}
                     {hasMoreNotifs && (
                         <ListGroup.Item className="text-center py-2" style={{ backgroundColor: '#f8f9fa' }}>
                             <Button
@@ -337,11 +324,9 @@ const Home = () => {
                 )}
             </div>
 
-            {/* 2. Conteúdo Principal */}
             <div className="main-content">
                 <Container className="p-0" style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
-                    {/* Resumo Rápido/Status do Sistema - Mantido o visual sóbrio */}
                     <Card className="border-0 shadow-sm mb-5" style={{ borderRadius: '15px', backgroundColor: '#ffffff' }}>
                         <Card.Body className="p-4">
                             <h5 className="text-center mb-4" style={{ color: "#316dbd", fontWeight: 700 }}>
@@ -382,7 +367,6 @@ const Home = () => {
                         </Card.Body>
                     </Card>
 
-                    {/* Módulos Principais */}
                     <h2 className="text-center mb-4" style={{ color: "#316dbd", fontWeight: 700 }}>
                         🚀 Módulos do Sistema
                     </h2>
@@ -447,7 +431,6 @@ const Home = () => {
                     </Row>
                 </Container>
 
-                {/* Footer */}
                 <footer
                     style={{
                         paddingTop: "4rem",

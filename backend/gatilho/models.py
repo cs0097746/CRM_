@@ -9,12 +9,21 @@ class Gatilho(models.Model):
         ('negocio_estagio_trocado', 'Negócio Trocou de Estágio'),
         ('negocio_estagio_trocado_de_x_para_y', 'Negócio Trocou de Estágio X para Y'),
     ]
+    ACAO_CHOICES = [
+        ('criar_tarefa', 'Criar Tarefa'),
+    ]
+
+    TAREFA_CHOICES = [
+        ('email', 'E-mail'),
+        ('whatsapp', 'WhatsApp'),
+        ('webhook', 'Webhook'),
+    ]
 
     nome = models.CharField(max_length=100)
     evento = models.CharField(max_length=50, choices=EVENTO_CHOICES)
     acao = models.CharField(
-        max_length=200,
-        help_text="Tipo de ação: ex. enviar_email, criar_tarefa, etc."
+        max_length=50,
+        choices=ACAO_CHOICES,
     )
     ativo = models.BooleanField(default=True)
 
@@ -32,8 +41,13 @@ class Gatilho(models.Model):
         help_text="Usado se o evento for 'trocado_de_x_para_y' (destino)"
     )
 
-    parametros = models.JSONField(default=dict, blank=True)
-
+    nota = models.TextField(blank=True, null=True)
+    tarefa_relacionada = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        choices=TAREFA_CHOICES,
+    )
     def __str__(self):
         return f"{self.nome} ({self.evento})"
 

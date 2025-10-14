@@ -14,6 +14,12 @@ class GatilhoSerializer(serializers.ModelSerializer):
         queryset=Estagio.objects.all(), source='estagio_destino', write_only=True, required=False, allow_null=True
     )
 
+    tarefa_relacionada = serializers.ChoiceField(
+        choices=Gatilho.TAREFA_CHOICES,
+        required=True,
+        allow_null=True
+    )
+
     class Meta:
         model = Gatilho
         fields = [
@@ -22,11 +28,12 @@ class GatilhoSerializer(serializers.ModelSerializer):
             'evento',
             'acao',
             'ativo',
-            'parametros',
+            'nota',
             'estagio_origem',
             'estagio_destino',
             'estagio_origem_id',
-            'estagio_destino_id'
+            'estagio_destino_id',
+            'tarefa_relacionada'
         ]
 
     def to_representation(self, instance):

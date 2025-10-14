@@ -1,92 +1,47 @@
 import logging
-from django.core.mail import send_mail
 from tarefas.models import Tarefa
+from tarefas.tasks import enviar_email_task, enviar_whatsapp_task, enviar_webhook_task
 
 logger = logging.getLogger(__name__)
 
 def executar_acao_gatilho(gatilho, negocio):
-    acao = gatilho.acao
-    params = gatilho.parametros or {}
-
     try:
-        if acao == "enviar_email":
-            print("Acao enviar email")
-            _acao_enviar_email(gatilho, negocio, params)
-
-        elif acao == "criar_tarefa":
-            print("Acao criar tarefa")
-            _acao_criar_tarefa(gatilho, negocio, params)
-
-        elif acao == "executar_webhook":
-            print("Acao executar webhook")
-            _acao_executar_webhook(gatilho, negocio, params)
-
+        if gatilho.acao == "criar_tarefa":
+            _acao_criar_tarefa(gatilho, negocio)
         else:
-            print("Acao desconhecida")
-            logger.warning(f"[Gatilho {gatilho.id}] Ação desconhecida: {acao}")
-
+            logger.warning(f"[Gatilho {gatilho.id}] ⚠️ Ação desconhecida: {gatilho.acao}")
     except Exception as e:
-        logger.error(f"Erro ao executar gatilho {gatilho.id} ({gatilho.nome}): {e}")
+        logger.exception(f"❌ Erro ao executar gatilho {gatilho.id} ({gatilho.nome}): {e}")
 
 
-# === Ações individuais ===========================================
+def _acao_criar_tarefa(gatilho, negocio):
+    nota = gatilho.nota or f"Tarefa automática: {negocio}"
+    tipo = gatilho.tarefa_relacionada
+    codigo = negocio.id
+    contato = negocio.contato
 
-def _acao_enviar_email(gatilho, negocio, params):
-    assunto = params.get("assunto", f"Gatilho: {gatilho.nome}")
-    mensagem = params.get(
-        "mensagem",
-        f"O negócio '{negocio}' foi atualizado (gatilho: {gatilho.nome})."
-    )
-    remetente = params.get("remetente", "no-reply@sistema.com")
-    destinatarios = params.get("destinatarios", ["admin@sistema.com"])
+    email = contato.email if contato and contato.email else None
+    telefone = contato.telefone if contato and contato.telefone else None
 
-    send_mail(
-        subject=assunto,
-        message=mensagem,
-        from_email=remetente,
-        recipient_list=destinatarios,
-        fail_silently=False,
-    )
+    if tipo == "email" and email:
+        enviar_email_task.delay(email, f"Tarefa do gatilho: {gatilho.nome}", nota, "", True, codigo)
+        logger.info(f"[Gatilho {gatilho.id}] ✉️ E-mail enviado para {email}.")
 
-    logger.info(f"[Gatilho {gatilho.id}] E-mail enviado para {destinatarios}.")
+    elif tipo == "whatsapp" and telefone:
+        enviar_whatsapp_task.delay(telefone, nota, "", True, codigo)
+        logger.info(f"[Gatilho {gatilho.id}] 📱 WhatsApp enviado para {telefone}.")
 
+    elif tipo == "webhook":
+        destinatario = email or "Sistema"
+        enviar_webhook_task.delay(destinatario, nota, "", codigo)
+        logger.info(f"[Gatilho {gatilho.id}] 🌐 Webhook enviado com nota para {destinatario}.")
 
-def _acao_criar_tarefa(gatilho, negocio, params):
-    tipo = params.get("tipo", "email")
-    destinatario = params.get("destinatario", "admin@sistema.com")
-    assunto = params.get("assunto", f"Tarefa automática - {negocio}")
-    descricao = params.get(
-        "descricao",
-        f"Tarefa gerada automaticamente pelo gatilho '{gatilho.nome}'."
-    )
-    precisar_enviar = params.get("precisar_enviar", True)
-
-    Tarefa.objects.create(
-        tipo=tipo,
-        destinatario=destinatario,
-        assunto=assunto,
-        descricao=descricao,
-        precisar_enviar=precisar_enviar,
-    )
-
-    logger.info(f"[Gatilho {gatilho.id}] Tarefa criada para {destinatario}.")
-
-
-def _acao_executar_webhook(gatilho, negocio, params):
-    import requests
-    url = params.get("url")
-    if not url:
-        logger.warning(f"[Gatilho {gatilho.id}] Nenhuma URL configurada no webhook.")
-        return
-
-    payload = {
-        "negocio_id": negocio.id,
-        "negocio_nome": str(negocio),
-        "evento": gatilho.evento,
-        "gatilho": gatilho.nome,
-        "estagio_id": getattr(negocio.estagio, "id", None),
-        "estagio_nome": getattr(negocio.estagio, "nome", None),
-    }
-
-    resp = requests.post(url, json=payload, timeout=5)
-    logger.info(f"[Gatilho {gatilho.id}] Webhook enviado para {url} ({resp.status_code}).")
+    else:
+        Tarefa.objects.create(
+            tipo=tipo or "email",
+            destinatario=email or "admin@sistema.com",
+            assunto=f"Tarefa automática - {negocio}",
+            descricao=nota,
+            precisar_enviar=True,
+        )
+        logger.info(f"[Gatilho {gatilho.id}] 🗂️ Tarefa interna criada para {email or 'admin@sistema.com'}.")
