@@ -9,6 +9,8 @@ from kanban import views as kanban_views
 from knowledge_base.views import *
 from atributo import views as atributos_views
 from notificacao import views as notificacao_views
+from tarefas import views as tarefas_views
+from gatilho import views as gatilho_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -45,14 +47,18 @@ urlpatterns = [
     
     # ===== CRM/KANBAN =====
     path('estagios/<int:kanban_id>/', kanban_views.EstagioListView.as_view(), name='estagio_list'),
-    path('estagios/<int:pk>/', kanban_views.EstagioDetailView.as_view(), name='estagio_detail'),
+    path('estagios/<int:pk>/detail/', kanban_views.EstagioDetailView.as_view(), name='estagio_detail'),
     path('kanbans/', kanban_views.KanbanListView.as_view(), name='kanban_list'),
     path('kanbans/<int:pk>/', kanban_views.KanbanUpdateDeleteView.as_view(), name='kanban_detail'),
     path('negocios/', negocio_views.NegocioListCreateView.as_view(), name='negocio_list_create'),
     path('kanbans/<int:kanban_id>/negocios/', negocio_views.NegocioListCreateView.as_view(), name='negocio_list_create'),
     path('negocios/<int:pk>/', negocio_views.NegocioDetailView.as_view(), name='negocio_detail'),
     path('funil/stats/', negocio_views.FunilStatsView.as_view(), name='funil_stats'),
-    
+    path('kanban/<int:kanban_id>/estagio/<int:estagio_id>/negocios/', kanban_views.NegociosPorEstagioView.as_view(),
+         name='negocios-por-estagio'),
+    path('buscar-por-telefone/', negocio_views.buscar_negocio_por_telefone, name='buscar_negocio_por_telefone'),
+    path('contato-buscar_por_telefone/', contato_views.buscar_contato_por_telefone, name='buscar_contato_por_telefone'),
+
     # ===== RESPOSTAS RÁPIDAS =====
     path('respostas-rapidas/', atendimento_views.RespostasRapidasListView.as_view(), name='respostas_rapidas_list'),
 
@@ -91,7 +97,11 @@ urlpatterns = [
 
     # atrib person
     path('atributos-personalizaveis/<int:negocio_id>/', atributos_views.AtributoPersonalizavelCreateView.as_view(), name='atributo-personalizavel-create'),
-
+    path('presets/', atributos_views.PresetAtributosListView.as_view(), name='presets-list'),
+    path('presets/create/', atributos_views.PresetAtributosListView.as_view(), name='presets-create'),
+    path('atributos-personalizaveis/<int:pk>/update/', atributos_views.AtributoPersonalizavelUpdateView.as_view(), name='atributo-personalizavel-update'),
+    path('presets/<int:pk>/', atributos_views.PresetAtributosDetailView.as_view(), name='preset-detail-update-delete'),
+    path('atributos-personalizaveis/<int:pk>/delete/', atributos_views.AtributoPersonalizavelDeleteView.as_view(), name='atributo_delete'),
     # comentarios do negocio
     path('negocios/<int:negocio_id>/comentarios/', negocio_views.ComentarioCreateView.as_view(), name='negocio-comentario-create'),
 
@@ -100,7 +110,19 @@ urlpatterns = [
     path('notificacoes/marcar-todas-lidas/', notificacao_views.MarcarTodasLidasView.as_view(), name='marcar-todas-lidas'),
     path('notificacoes/criar/', notificacao_views.CriarNotificacaoView.as_view(), name='notificacoes'),
 
+    # api de criar tarefas
+    path('criar_tarefas/', tarefas_views.criar_tarefa, name='criar_tarefa'),
+    path('listar_tarefas/', tarefas_views.listar_tarefas, name='listar_tarefas'),
+    path('excluir_tarefa/<int:tarefa_id>/', tarefas_views.excluir_tarefa, name='excluir_tarefa'),
+
+    # api de gatilhos
+    path('listar_gatilhos/', gatilho_views.listar_gatilhos, name='listar_gatilhos'),
+    path('criar_gatilho/', gatilho_views.criar_gatilho, name='criar_gatilho'),
+    path('excluir_gatilho/<int:pk>/', gatilho_views.excluir_gatilho, name='excluir_gatilho'),
+    path('listar_estagios/', gatilho_views.listar_estagios, name='listar_estagios'),
+
     # ===== ROUTER URLS =====
+    path("health/", core_views.health),
     path('', include(router.urls)),
 ]
 

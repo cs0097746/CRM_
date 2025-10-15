@@ -1,14 +1,19 @@
 from django.shortcuts import render
-from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from django.shortcuts import get_object_or_404
-
+from contato.models import Contato
 from .models import Negocio
 from .serializers import NegocioSerializer, ComentarioSerializer
+from rest_framework.exceptions import NotFound
+from django.http import Http404
+from atributo.utils import aplicar_preset_no_negocio
+from atributo.models import PresetAtributos, AtributoPersonalizavel
+
 
 class NegocioListCreateView(generics.ListCreateAPIView):
     """API: Lista e cria negócios"""
@@ -25,6 +30,7 @@ class NegocioListCreateView(generics.ListCreateAPIView):
 
         estagio_id = data.get("estagio_id")
         contato_id = data.get("contato_id")
+        preset_id = data.get("preset_id")
 
         if estagio_id:
             data["estagio"] = estagio_id
@@ -34,7 +40,18 @@ class NegocioListCreateView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=data)
 
         if serializer.is_valid():
-            serializer.save()
+            negocio = serializer.save()
+
+            if preset_id:
+                try:
+                    preset = PresetAtributos.objects.get(id=preset_id)
+                    aplicar_preset_no_negocio(preset, negocio)
+                except PresetAtributos.DoesNotExist:
+                    return Response(
+                        {"detail": f"Preset com ID {preset_id} não encontrado."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -45,6 +62,18 @@ class NegocioDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = NegocioSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_object(self):
+        try:
+            return super().get_object()
+        except (Http404, NotFound):
+            return None
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance is None:
+            return Response({}, status=status.HTTP_200_OK)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 # ===== ESTATÍSTICAS =====
 
@@ -76,3 +105,36 @@ class ComentarioCreateView(generics.CreateAPIView):
         negocio.comentarios.add(comentario)
 
         negocio.save(update_fields=['atualizado_em'])
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def buscar_negocio_por_telefone(request):
+
+    telefone = (request.GET.get('telefone') or '').strip()
+    kanban_id = request.GET.get('kanban_id')
+    estagio_id = request.GET.get('estagio_id')
+
+    if not telefone:
+        return Response([], status=status.HTTP_200_OK)
+
+    try:
+        contato = Contato.objects.filter(
+            Q(telefone=telefone) | Q(whatsapp_id=telefone)
+        ).first()
+
+        if not contato:
+            return Response([], status=status.HTTP_200_OK)
+
+        negocios = Negocio.objects.filter(contato=contato)
+
+        if kanban_id:
+            negocios = negocios.filter(estagio__kanban_id=kanban_id)
+
+        if estagio_id:
+            negocios = negocios.filter(estagio_id=estagio_id)
+
+        serializer = NegocioSerializer(negocios, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response([], status=status.HTTP_200_OK)

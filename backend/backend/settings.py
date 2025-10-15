@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -33,6 +34,9 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "a5ad08236761.ngrok-free.app",
+    "792d38fa1167.ngrok-free.app",
+    "backend.localhost",
+    "crm.localhost"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -44,6 +48,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://backend.loomiecrm.com",
     "https://crm.localhost",
     "https://crm.loomiecrm.com",
+    "http://crm.localhost",
+    "http://backend.localhost",
 ]
 
 # =========================
@@ -65,6 +71,9 @@ THIRD_PARTY_APPS = [
     'oauth2_provider',
     'corsheaders',
     'drf_spectacular',
+    'django_celery_beat',
+    'django_celery_results',
+    'django_filters',
 ]
 
 LOCAL_APPS = [
@@ -77,6 +86,8 @@ LOCAL_APPS = [
     'knowledge_base',
     'core',
     'notificacao',
+    'tarefas',
+    'gatilho'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -125,12 +136,26 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # BANCO DE DADOS
 # =========================
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+PSQL = config("PSQL", default=False, cast=bool)
+
+if not PSQL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            "ENGINE": "django.db.backends.postgresql_psycopg2",
+            'NAME': os.environ.get('POSTGRES_DB', 'crmdb'),
+            'USER': os.environ.get('POSTGRES_USER', 'crmuser'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'crmpassword'),
+            'HOST': os.environ.get('POSTGRES_HOST', 'db'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
+    }
 
 # =========================
 # VALIDAÇÃO DE SENHAS
@@ -243,17 +268,8 @@ REST_FRAMEWORK = {
 # =========================
 # CORS (Cross-Origin Resource Sharing)
 # =========================
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://crm.loomiecrm.com",
-    "https://backend.loomiecrm.com",
-    "http://crm.loomiecrm.com",
-    "http://backend.loomiecrm.com",
-]
+
+CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -397,9 +413,27 @@ if DEBUG:
         'localhost',
     ]
 
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = 'redis://redis_crm:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis_crm:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/Sao_Paulo'
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_ENABLE_UTC = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'contatoloomie@gmail.com'
+EMAIL_HOST_PASSWORD = config("EMAIL_APP_PASSWORD")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# CELERY_BEAT_SCHEDULE = {
+#     'send-email-every-minute': {
+#         'task': 'core.tasks.enviar_email',
+#         'schedule': crontab(minute='*'), # A cada minuto
+#         'args': ('teste_manual@debug.com',),
+#     },
+# }

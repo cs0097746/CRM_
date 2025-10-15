@@ -4,6 +4,7 @@ import KanbanTask from "./KanbanTask.tsx";
 import { Droppable } from "@hello-pangea/dnd";
 import { Badge } from "react-bootstrap";
 import { CriarNegocioModal} from "./modal/CriarNegocio.tsx";
+import {RemoverEstagioButton} from "./RemoverEstagioButton.tsx";
 
 interface KanbanColumnProps {
   estagio: Estagio;
@@ -13,7 +14,7 @@ interface KanbanColumnProps {
 }
 
 export default function KanbanColumn({ estagio, negocios, token, onNegocioCreated }: KanbanColumnProps) {
-    console.log("Kanban", estagio.kanban);
+
     return (
     <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
       <div
@@ -41,9 +42,15 @@ export default function KanbanColumn({ estagio, negocios, token, onNegocioCreate
         >
           <div className="d-flex align-items-center gap-2">
               <span>{estagio.nome}</span>
+              <small className="text-muted">#{estagio.id}</small>
                 {token && (
                     <div className="text-center mt-3">
                         <CriarNegocioModal estagioId={estagio.id} kanban={estagio.kanban} token={token} onCreated={onNegocioCreated}/>
+                        <RemoverEstagioButton
+                            estagioId={estagio.id}
+                            estagioNome={estagio.nome}
+                            token={token}
+                        />
                     </div>
                   )}
           </div>

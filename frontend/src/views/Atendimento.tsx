@@ -5,49 +5,10 @@ import type { Conversa, StatusConversa } from '../types/Conversa';
 import ChatWindow from '../components/ChatWindow';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
+import { getToken } from "../function/validateToken.tsx";
 
-
-const USERNAME = "admin";
-const PASSWORD = "admin";
-const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
-
-const getToken = async () => {
-  const params = new URLSearchParams();
-  params.append("grant_type", "password");
-  params.append("username", USERNAME);
-  params.append("password", PASSWORD);
-  params.append("client_id", CLIENT_ID);
-  params.append("client_secret", CLIENT_SECRET);
-
-  try {
-    const res = await axios.post(`${backend_url}o/token/`, params);
-    return res.data.access_token;
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const api = axios.create({
-  baseURL: backend_url,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Interceptor para adicionar token automaticamente
-api.interceptors.request.use(async (config) => {
-  try {
-    const token = await getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch (error) {
-    console.error('Erro ao obter token:', error);
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
+const api = axios.create({ 
+  baseURL: backend_url
 });
 
 export default function Atendimento() {
@@ -373,42 +334,41 @@ export default function Atendimento() {
     }
   };
 
-
-  // Token será adicionado automaticamente pelo interceptor
-
-
-
   const fetchConversas = useCallback(async () => {
-    try {
-      setLoadingList(true);
+      try {
+        setLoadingList(true);
 
-      const response = await api.get<Conversa[]>('conversas/');
+        const token = await getToken();
+        if (!token) throw new Error("Autenticação falhou.");
 
-      // Debug: verificar estrutura dos dados
-      console.log('🔍 Dados de conversas recebidos:', response.data);
-      // @ts-ignore
-      console.log('🔍 Primeira conversa:', response.data.results?.[0]);
-      // @ts-ignore
-      console.log('🔍 Contato da primeira conversa:', response.data.results?.[0]?.contato);
+        const response = await api.get<Conversa[]>('conversas/', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
 
-      // @ts-ignore
-      setConversas(response.data.results);
-      setError(null);
+        // @ts-ignore
+        setConversas(response.data.results);
+        setError(null);
 
-    } catch (err) {
-      setError('Não foi possível carregar as conversas.');
-      console.error('Erro ao buscar conversas:', err);
-    } finally {
-      setLoadingList(false);
-    }
-  }, []);
+      } catch (err) {
+        setError('Não foi possível carregar as conversas.');
+        console.error('Erro ao buscar conversas:', err);
+      } finally {
+        setLoadingList(false);
+      }
+    }, []);
 
   const criarChamadoTeste = async () => {
     try {
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
 
       await api.patch('conversas/1/', {
         operador_id: null,
         status: 'entrada'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       showToastWithSound('Chamado de teste criado', 'success', 'success');
@@ -445,7 +405,7 @@ export default function Atendimento() {
         status: 'atendimento',
         operador_id: 1
       }, {
-
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.status === 200) {
@@ -470,7 +430,7 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       const response = await api.get<Conversa>(`conversas/${conversa.id}/`, {
-
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       setConversaAtiva(response.data);
@@ -484,7 +444,7 @@ export default function Atendimento() {
     }
   };
 
-  const handleNewMessageSent = useCallback(async () => {
+ const handleNewMessageSent = useCallback(async () => {
     if (!conversaAtiva) return;
 
     try {
@@ -492,8 +452,8 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, {}),
-        api.get<Conversa[]>('conversas/', {})
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       setConversaAtiva(conversaResponse.data);
@@ -505,7 +465,7 @@ export default function Atendimento() {
   }, [conversaAtiva]);
 
 
-  const handleStatusChange = async (novoStatus: StatusConversa) => {
+ const handleStatusChange = async (novoStatus: StatusConversa) => {
     if (!conversaAtiva) return;
 
     try {
@@ -513,12 +473,12 @@ export default function Atendimento() {
       if (!token) throw new Error("Não foi possível autenticar.");
 
       await api.patch(`conversas/${conversaAtiva.id}/`, { status: novoStatus }, {
-
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const [conversaResponse, listResponse] = await Promise.all([
-        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, {}),
-        api.get<Conversa[]>('conversas/', {})
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       setConversaAtiva(conversaResponse.data);
@@ -564,7 +524,7 @@ export default function Atendimento() {
         const token = await getToken();
         if (!token) return;
 
-        const response = await api.get<Conversa[]>('conversas/', {});
+        const response = await api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } });
 
         // @ts-ignore
         const novasConversas = response.data.results;
@@ -579,7 +539,7 @@ export default function Atendimento() {
         setConversas(novasConversas);
 
         if (conversaAtiva) {
-          const updatedConversa = await api.get<Conversa>(`conversas/${conversaAtiva.id}/`, {});
+          const updatedConversa = await api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } });
           setConversaAtiva(updatedConversa.data);
         }
       } catch (error) {
@@ -595,33 +555,33 @@ export default function Atendimento() {
   // Filtrar conversas
   const conversasFiltradas = conversas.filter(conversa => {
     const matchStatus = filtroStatus === 'todos' || conversa.status === filtroStatus;
-
+    
     if (!searchTerm) return matchStatus;
-
+    
     const searchLower = searchTerm.toLowerCase();
-    const matchSearch =
+    const matchSearch = 
       conversa.contato?.nome?.toLowerCase().includes(searchLower) ||
       conversa.contato?.telefone?.includes(searchTerm) ||
       conversa.contato?.email?.toLowerCase().includes(searchLower) ||
       conversa.ultima_mensagem?.mensagem?.toLowerCase().includes(searchLower);
-
+      
     return matchStatus && matchSearch;
   });
 
-  const chamadosAguardando = conversas.filter(conv =>
+  const chamadosAguardando = conversas.filter(conv => 
     conv.status === 'entrada' && !conv.operador
   ).length;
 
   return (
     <>
       <style>{styles}</style>
-
+      
       <div className="professional-layout">
         {/* Barra superior */}
         <div className="top-bar">
           <div className="d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-3">
-              <div style={{ 
+              <div style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 borderRadius: '12px',
                 padding: '8px',
@@ -633,8 +593,8 @@ export default function Atendimento() {
                 <img src="/Loomie.svg" alt="Logo" style={{ width: "24px", height: "24px", filter: 'brightness(0) invert(1)' }} />
               </div>
               <div>
-                <h5 className="mb-0" style={{ 
-                  fontWeight: 700, 
+                <h5 className="mb-0" style={{
+                  fontWeight: 700,
                   fontSize: '20px',
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   WebkitBackgroundClip: 'text',
@@ -643,8 +603,8 @@ export default function Atendimento() {
                 }}>
                   CRM Professional
                 </h5>
-                <small style={{ 
-                  color: '#6c757d', 
+                <small style={{
+                  color: '#6c757d',
                   fontWeight: 500,
                   fontSize: '12px',
                   textTransform: 'uppercase',
@@ -655,8 +615,8 @@ export default function Atendimento() {
               </div>
             </div>
             <div className="d-flex gap-3">
-              <Button 
-                href="/" 
+              <Button
+                href="/"
                 size="sm"
                 style={{
                   background: 'rgba(255, 255, 255, 0.9)',
@@ -682,8 +642,8 @@ export default function Atendimento() {
               >
                 ← Início
               </Button>
-              <Button 
-                href="/dashboard-atendimento" 
+              <Button
+                href="/dashboard-atendimento"
                 size="sm"
                 style={{
                   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

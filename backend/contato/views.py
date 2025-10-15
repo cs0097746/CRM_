@@ -243,3 +243,28 @@ def whatsapp_restart_debug(request):
             'success': False,
             'error': f'Erro interno: {str(e)}'
         }, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def buscar_contato_por_telefone(request):
+    telefone = request.GET.get('telefone')
+
+    if not telefone:
+        return Response({'error': 'Informe o parâmetro telefone.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        telefone = telefone.strip()
+
+        contatos = Contato.objects.filter(
+            Q(telefone=telefone) | Q(whatsapp_id=telefone)
+        )
+
+        if not contatos.exists():
+            return Response([], status=status.HTTP_200_OK)
+
+        serializer = ContatoSerializer(contatos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print("Exception", e)
+        return Response([], status=status.HTTP_200_OK)

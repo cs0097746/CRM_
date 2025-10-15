@@ -16,3 +16,6 @@ celery
 redis
 ffmpeg-python
 cryptography>=3.4.8
+django-celery-beat
+django-celery-results
+django-filter

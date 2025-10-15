@@ -6,6 +6,14 @@ import axios from "axios";
 import type { Kanban } from "../../types/Kanban.ts";
 import type { Contato } from "../../types/Contato.ts";
 import backend_url from "../../config/env.ts";
+import type {AtributoPersonalizavel} from "../../types/AtributoPersonalizavel.ts";
+
+interface PresetAtributos {
+  id: number;
+  nome: string;
+  descricao: string;
+  atributos: AtributoPersonalizavel[];
+}
 
 interface CriarNegocioModalProps {
   estagioId: number;
@@ -19,14 +27,32 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
   const [titulo, setTitulo] = useState("");
   const [valor, setValor] = useState<number | undefined>();
   const [contatos, setContatos] = useState<Contato[]>([]);
+  const [presets, setPresets] = useState<PresetAtributos[]>([]); // Estado para os presets
   const [contatoSelecionado, setContatoSelecionado] = useState<Contato | null>(null);
+  const [presetSelecionado, setPresetSelecionado] = useState<PresetAtributos | null>(null); // Novo estado para o preset
+  const [isLoadingPresets, setIsLoadingPresets] = useState(true); // Estado de loading
 
+  // Efeito para buscar Contatos e Presets
   useEffect(() => {
     if (show) {
+      // 1. Busca de Contatos (já existia)
       axios
         .get(`${backend_url}contatos/`, { headers: { Authorization: `Bearer ${token}` } })
         .then((res) => setContatos(res.data.results))
         .catch((err) => console.error("Erro ao buscar contatos:", err));
+
+      // 2. NOVA: Busca de Presets
+      setIsLoadingPresets(true);
+      axios
+        .get(`${backend_url}presets/`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((res) => {
+          setPresets(res.data.results);
+          setIsLoadingPresets(false);
+        })
+        .catch((err) => {
+          console.error("Erro ao buscar presets:", err);
+          setIsLoadingPresets(false);
+        });
     }
   }, [show, token]);
 
@@ -36,21 +62,52 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
       return;
     }
 
+    // Estrutura de dados para enviar
+    const negocioData = {
+      titulo,
+      valor,
+      estagio_id: estagioId,
+      contato_id: contatoSelecionado.id,
+      preset_id: presetSelecionado ? presetSelecionado.id : undefined,
+    };
+
     try {
       await axios.post(
         `${backend_url}kanbans/${kanban}/negocios/`,
-        { titulo, valor, estagio_id: estagioId, contato_id: contatoSelecionado.id },
+        negocioData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setTitulo("");
       setValor(undefined);
       setContatoSelecionado(null);
+      setPresetSelecionado(null);
       setShow(false);
       onCreated();
     } catch (err) {
       console.error("Erro ao criar negócio:", err);
+      alert("Falha ao criar negócio. Verifique o console para detalhes.");
     }
+  };
+
+  console.log("Presets: ", presets);
+
+  const formatPresetOptions = presets.map((p) => ({
+    value: p.id,
+    label: p.nome,
+    preset: p,
+  }));
+
+  const handlePresetChange = (option: any) => {
+    setPresetSelecionado(option ? option.preset : null);
+  };
+
+  const handleClose = () => {
+    setTitulo("");
+    setValor(undefined);
+    setContatoSelecionado(null);
+    setPresetSelecionado(null);
+    setShow(false);
   };
 
   return (
@@ -65,7 +122,7 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
         <FaPlus />
       </Button>
 
-      <Modal show={show} onHide={() => setShow(false)} centered>
+      <Modal show={show} onHide={handleClose} centered>
         <Modal.Header closeButton style={{ background: "linear-gradient(135deg, #316dbd, #8c52ff)", color: "#fff" }}>
           <Modal.Title>Novo Negócio</Modal.Title>
         </Modal.Header>
@@ -106,13 +163,42 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
                 isSearchable
               />
             </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Preset de Atributos (opcional)</Form.Label>
+              <Select
+                options={formatPresetOptions}
+                value={presetSelecionado ? { value: presetSelecionado.id, label: presetSelecionado.nome } : null}
+                onChange={handlePresetChange}
+                placeholder={isLoadingPresets ? "Carregando presets..." : "Selecione um preset..."}
+                isClearable
+                isSearchable
+                isDisabled={isLoadingPresets}
+              />
+            </Form.Group>
+
+            {presetSelecionado && (
+              <div className="mt-3 p-3 border rounded" style={{ backgroundColor: '#f8f9fa' }}>
+                <h6 className="text-primary">Atributos do Preset: <strong>{presetSelecionado.nome}</strong></h6>
+                <small className="text-muted">{presetSelecionado.descricao}</small>
+
+                <ul className="list-unstyled mt-2 small">
+                  {presetSelecionado.atributos.map((atributo, index) => (
+                    <li key={index} className="mb-1">
+                      <strong className="text-dark">{atributo.label}:</strong> (Tipo: *{atributo.type}*)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
           </Form>
         </Modal.Body>
 
         <Modal.Footer className="d-flex justify-content-between">
           <div>
-            <Button variant="danger" className="me-2" onClick={() => setShow(false)}>
-              Excluir
+            <Button variant="danger" className="me-2" onClick={handleClose}>
+              Cancelar
             </Button>
             <Button variant="primary" onClick={handleSave}>
               Salvar

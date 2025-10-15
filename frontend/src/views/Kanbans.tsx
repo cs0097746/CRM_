@@ -3,6 +3,71 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import type { Kanban } from "../types/Kanban.ts";
 import backend_url from "../config/env.ts";
+import { Container, Row, Col, Card, Button, Modal, Form, Badge, Spinner } from 'react-bootstrap';
+import {getToken} from "../function/validateToken.tsx";
+
+// Estilos Profissionais
+const styles = `
+    .kanbans-container {
+        min-height: 100vh;
+        background-color: #f8f9fa; /* Fundo cinza claro */
+    }
+
+    /* Estilo do Card Kanban */
+    .kanban-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: all 0.2s ease;
+        border: 1px solid #e1e5e9;
+        height: 100%;
+        cursor: pointer;
+    }
+    .kanban-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+    }
+    .kanban-card .card-title {
+        color: #316dbd; /* Azul primário */
+        font-size: 1.25rem;
+    }
+
+    /* Estilo do Modal Profissional */
+    .modal-professional .modal-content {
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    .modal-professional .modal-header {
+        background-color: #316dbd; /* Cabeçalho azul primário sólido */
+        color: white;
+        border-bottom: none;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+    .modal-professional .form-control {
+        border-radius: 8px;
+    }
+
+    /* Botões de Ação */
+    .btn-create-kanban {
+        background-color: #7ed957; /* Verde suave */
+        border-color: #7ed957;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.6rem 1.5rem;
+        box-shadow: 0 4px 12px rgba(126, 217, 87, 0.4);
+    }
+    .btn-primary-kanban {
+        background-color: #316dbd;
+        border-color: #316dbd;
+        font-weight: 600;
+        border-radius: 8px;
+    }
+    .btn-primary-kanban:hover {
+        background-color: #2a5a9c;
+        border-color: #2a5a9c;
+    }
+`;
+
 
 export default function Kanbans() {
   const [kanbans, setKanbans] = useState<Kanban[]>([]);
@@ -11,41 +76,16 @@ export default function Kanbans() {
   const [editingKanban, setEditingKanban] = useState<Kanban | null>(null);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [token, setToken] = useState<string | null>(null);
-
-  const USERNAME = "admin";
-  const PASSWORD = "admin";
-  const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-  const CLIENT_SECRET =
-    "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
   const api = axios.create({ baseURL: `${backend_url}` });
 
-  const getToken = async () => {
-    if (token) return token;
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    try {
-      const res = await axios.post(`${backend_url}o/token/`, params);
-      setToken(res.data.access_token);
-      return res.data.access_token;
-    } catch (err) {
-      console.error("Erro ao buscar token:", err);
-    }
-  };
-
   const fetchKanbans = async () => {
     try {
-      const t = await getToken();
-      if (!t) return;
+      const token = await getToken();
+      if (!token) throw new Error("Autenticação falhou.");
 
       const res = await api.get<Kanban[]>("kanbans/", {
-        headers: { Authorization: `Bearer ${t}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       // @ts-ignore
@@ -75,21 +115,21 @@ export default function Kanbans() {
   };
 
   const saveKanban = async () => {
-    const t = await getToken();
-    if (!t) return;
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       if (editingKanban) {
         await api.put(
           `kanbans/${editingKanban.id}/`,
           { nome, descricao },
-          { headers: { Authorization: `Bearer ${t}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         await api.post(
           "kanbans/",
           { nome, descricao },
-          { headers: { Authorization: `Bearer ${t}` } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
       }
       fetchKanbans();
@@ -101,12 +141,12 @@ export default function Kanbans() {
 
   const deleteKanban = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este kanban?")) return;
-    const t = await getToken();
-    if (!t) return;
+    const token = await getToken();
+    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       await api.delete(`kanbans/${id}/`, {
-        headers: { Authorization: `Bearer ${t}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setKanbans((prev) => prev.filter((k) => k.id !== id));
     } catch (err) {
@@ -114,163 +154,133 @@ export default function Kanbans() {
     }
   };
 
-  if (loading) return <p>Carregando kanbans...</p>;
+  if (loading) return (
+    <Container className="py-5 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-2 text-muted">Carregando Kanbans...</p>
+    </Container>
+  );
 
   return (
-    <div className="container py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="text-primary fw-bold">Kanbans</h1>
-        <button
-          className="btn btn-success"
-          onClick={() => openModal()}
-          style={{
-            borderRadius: "0.6rem",
-            padding: "0.5rem 1rem",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          }}
-        >
-          + Criar Kanban
-        </button>
-      </div>
+    <>
+      <style>{styles}</style>
+      <Container className="py-5 kanbans-container">
 
-      {kanbans.length === 0 && <p>Nenhum kanban encontrado.</p>}
-
-      <div className="row g-4">
-        {kanbans.map((kanban) => (
-          <div key={kanban.id} className="col-12 col-md-6 col-lg-4">
-            <div
-              className="card h-100"
-              style={{
-                borderRadius: "1rem",
-                boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = "0 12px 25px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.1)";
-              }}
-            >
-              <div className="card-body d-flex flex-column">
-                <h5 className="card-title fw-bold">{kanban.nome}</h5>
-                <p className="card-text text-muted flex-grow-1">{kanban.descricao}</p>
-                <div className="d-flex gap-2 mt-auto">
-                  <Link
-                    to={`/kanban/${kanban.id}`}
-                    className="btn btn-primary flex-grow-1"
-                    style={{
-                      background: "linear-gradient(135deg, #316dbd, #8c52ff)",
-                      border: "none",
-                    }}
-                  >
-                    Ir para o kanban
-                  </Link>
-                  <button
-                    className="btn btn-warning flex-grow-1"
-                    style={{ borderRadius: "0.6rem" }}
-                    onClick={() => openModal(kanban)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className="btn btn-danger flex-grow-1"
-                    style={{ borderRadius: "0.6rem" }}
-                    onClick={() => deleteKanban(kanban.id)}
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {modalOpen && (
-        <div
-          className="modal show d-block"
-          tabIndex={-1}
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div
-              className="modal-content"
-              style={{
-                borderRadius: "1rem",
-                boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
-              }}
-            >
-              <div
-                className="modal-header"
-                style={{
-                  background: "linear-gradient(135deg, #316dbd, #8c52ff)",
-                  color: "#fff",
-                  borderBottom: "none",
-                  borderTopLeftRadius: "1rem",
-                  borderTopRightRadius: "1rem",
-                }}
-              >
-                <h5 className="modal-title">
-                  {editingKanban ? "Editar Kanban" : "Criar Kanban"}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setModalOpen(false)}
-                />
-              </div>
-
-              <div className="modal-body" style={{ padding: "1.5rem" }}>
-                <div className="mb-3">
-                  <label className="form-label">Nome</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    style={{ borderRadius: "0.6rem", padding: "0.5rem" }}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Descrição</label>
-                  <textarea
-                    className="form-control"
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value)}
-                    style={{ borderRadius: "0.6rem", padding: "0.5rem" }}
-                  />
-                </div>
-              </div>
-
-              <div
-                className="modal-footer"
-                style={{ borderTop: "none", justifyContent: "flex-end" }}
-              >
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={saveKanban}
-                  style={{
-                    backgroundColor: "#316dbd",
-                    borderColor: "#316dbd",
-                    borderRadius: "0.6rem",
-                  }}
-                >
-                  Salvar
-                </button>
-              </div>
-            </div>
-          </div>
+        <div className="d-flex justify-content-between align-items-center mb-5">
+          <h1 className="fw-bold" style={{ color: "#316dbd" }}>
+            🎯 Gestão de Pipeline
+          </h1>
+          <Button
+            className="btn-create-kanban"
+            onClick={() => openModal()}
+          >
+            + Criar Kanban
+          </Button>
         </div>
+
+        {kanbans.length === 0 && (
+            <div className="alert alert-info text-center" role="alert">
+                Nenhum Kanban encontrado. Crie um novo para começar!
+            </div>
+        )}
+
+        <Row className="g-4">
+          {kanbans.map((kanban) => (
+            <Col key={kanban.id} xs={12} md={6} lg={4}>
+              <Card
+                className="kanban-card"
+                // Removendo onMouseEnter/onMouseLeave inline e usando CSS
+                onClick={() => window.location.href = `/kanban/${kanban.id}`}
+              >
+                <Card.Body className="d-flex flex-column">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <h5 className="card-title fw-bold mb-0">
+                        {kanban.nome}
+                    </h5>
+                    <Badge bg="secondary" pill>#{kanban.id}</Badge>
+                  </div>
+
+                  <p className="card-text text-muted flex-grow-1" style={{ fontSize: '0.9rem' }}>
+                    {kanban.descricao || 'Nenhuma descrição fornecida.'}
+                  </p>
+
+                  <div className="d-flex gap-2 mt-auto pt-3 border-top">
+                    <Link
+                      to={`/kanban/${kanban.id}`}
+                      className="btn btn-primary-kanban flex-grow-1"
+                    >
+                      Acessar
+                    </Link>
+                    <Button
+                      variant="warning"
+                      onClick={(e) => { e.stopPropagation(); openModal(kanban); }}
+                      style={{ borderRadius: "8px" }}
+                    >
+                      ✏️
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={(e) => { e.stopPropagation(); deleteKanban(kanban.id); }}
+                      style={{ borderRadius: "8px" }}
+                    >
+                      🗑️
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Container>
+
+      {/* Modal de Criação/Edição */}
+      {modalOpen && (
+        <Modal
+            show={modalOpen}
+            onHide={() => setModalOpen(false)}
+            centered
+            dialogClassName="modal-professional"
+        >
+          <Modal.Header closeButton closeVariant="white">
+            <Modal.Title>
+              {editingKanban ? "Editar Kanban" : "Criar Novo Kanban"}
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Nome do Kanban</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Descrição</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                />
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="btn-primary-kanban"
+              onClick={saveKanban}
+            >
+              Salvar
+            </Button>
+          </Modal.Footer>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }

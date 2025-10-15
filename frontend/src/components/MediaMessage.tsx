@@ -96,9 +96,6 @@ export const MediaMessage: React.FC<MediaMessageProps> = ({
               className="w-100" 
               style={{ height: '40px' }}
               preload="metadata"
-              onError={(e) => {
-                console.error('❌ Erro no player de áudio:', mediaUrl);
-              }}
             >
               <source src={mediaUrl} type="audio/ogg" />
               <source src={mediaUrl} type="audio/mpeg" />

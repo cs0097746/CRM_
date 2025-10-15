@@ -4,7 +4,7 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
 import AtendimentoDashboard from './views/AtendimentoDashboard';
-import { LoginForm } from './components/LoginForm'; // ✅ ADICIONAR IMPORT
+import { LoginForm } from './components/LoginForm';
 import ConfiguracaoSistema from './views/ConfiguracaoSistema';
 import TestePage from './views/TestePage';
 import ConfiguracaoWhatsApp from './views/ConfiguracaoWhatsApp';
@@ -15,6 +15,13 @@ const Atendimento = lazy(() => import("./views/Atendimento"));
 const NotFound = lazy(() => import('./views/NotFound'));
 const Kanbans = lazy(() => import('./views/Kanbans'));
 const Contatos = lazy(() => import('./views/Contatos'));
+const CriarTarefas = lazy(() => import('./views/Tarefas'));
+const ListarTarefas = lazy(()=> import('./views/ListarTarefas'));
+const CriarGatilhos = lazy(()=>import('./views/Gatilhos'));
+const ListarGatilhos = lazy(()=>import('./views/ListarGatilhos'));
+const ListarPresets = lazy(() => import('./views/ListarPresets'));
+const Presets = lazy(() => import('./views/Presets'));
+const EditarPreset = lazy(() => import('./views/EditarPreset'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -22,14 +29,12 @@ const MenuIcon = () => (
   </svg>
 );
 
-// ✅ COMPONENTE PRINCIPAL COM LOGIN
 const AppContent = () => {
   const [showNav, setShowNav] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
-  // ✅ VERIFICAR LOGIN AO CARREGAR
   useEffect(() => {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
@@ -48,12 +53,10 @@ const AppContent = () => {
   const handleCloseNav = () => setShowNav(false);
   const handleShowNav = () => setShowNav(true);
 
-  // ✅ FUNÇÃO DE LOGIN
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
   };
 
-  // ✅ FUNÇÃO DE LOGOUT
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -63,7 +66,6 @@ const AppContent = () => {
 
   const isFabHidden = location.pathname === '/atendimento';
 
-  // ✅ LOADING INICIAL
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
@@ -77,12 +79,10 @@ const AppContent = () => {
     );
   }
 
-  // ✅ TELA DE LOGIN
   if (!isLoggedIn) {
     return <LoginForm onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // ✅ APP NORMAL (quando logado)
   return (
     <>
       <div className="content-area">
@@ -98,6 +98,13 @@ const AppContent = () => {
             <Route path="/configuracao" element={<ConfiguracaoSistema />} />
             <Route path="/teste" element={<TestePage />} />
             <Route path="/whatsapp-config" element={<ConfiguracaoWhatsApp />} />
+            <Route path="/criar_tarefas" element={<CriarTarefas />} />
+            <Route path="/tarefas" element={<ListarTarefas />} />
+            <Route path="/gatilhos"  element={<ListarGatilhos />} />
+            <Route path="/criar_gatilho" element={<CriarGatilhos />} />
+            <Route path="/presets" element={<ListarPresets />} />
+            <Route path="/criar_preset" element={<Presets />} />
+            <Route path="/presets/:presetId/editar" element={<EditarPreset />} />
           </Routes>
         </Suspense>
       </div>
@@ -120,6 +127,9 @@ const AppContent = () => {
             <NavLink to="/configuracao" className="nav-link" onClick={handleCloseNav}>Configurações</NavLink>
             <NavLink to="/whatsapp-config" className="nav-link" onClick={handleCloseNav}>WhatsApp</NavLink>
             <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
+            <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
+            <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
+            <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
             {/* ✅ BOTÃO DE LOGOUT */}
             <hr />
             <Button 

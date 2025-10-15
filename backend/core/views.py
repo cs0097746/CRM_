@@ -15,6 +15,7 @@ from contato.models import Contato, Operador
 from contato.serializers import ContatoSerializer
 from atendimento.views import verificar_status_instancia
 from core.models import ConfiguracaoSistema
+from django.http import JsonResponse
 
 
 @api_view(['GET'])
@@ -314,3 +315,6 @@ def configuracao_sistema(request):
             
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+
+def health(request):
+    return JsonResponse({"status": "ok"})

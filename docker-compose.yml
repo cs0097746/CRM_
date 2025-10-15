@@ -1,3 +1,5 @@
+name: crm
+
 services:
   db:
     image: postgres:15
@@ -10,7 +12,18 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - loomie-network
+      - crm-network
+
+  redis_crm:
+    image: redis:7-alpine
+    container_name: redis_crm
+    restart: unless-stopped
+    expose:
+      - "6379"
+    volumes:
+      - redis-crm-data:/data
+    networks:
+      - crm-network
 
   backend:
     build:
@@ -28,16 +41,58 @@ services:
       DJANGO_SUPERUSER_USERNAME: admin
       DJANGO_SUPERUSER_EMAIL: admin@admin.com
       DJANGO_SUPERUSER_PASSWORD: admin
-    entrypoint: >
-        sh -c "python manage.py migrate &&
-               python manage.py createsuperuser --noinput 2>/dev/null || true &&
-               exec gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+      CELERY_BROKER_URL: redis://redis_crm:6379/0
+    entrypoint: ["/app/entrypoint.sh"]
     depends_on:
       - db
+      - redis_crm
     expose:
       - "8000"
     networks:
+      - crm-network
       - loomie-network
+    volumes:
+      - ./backend:/app
+      - crm-media-data:/app/media
+
+  celery:
+    build:
+      context: ./backend
+    container_name: crm_celery
+    restart: unless-stopped
+    entrypoint: ["celery", "-A", "backend.celery", "worker", "-l", "info"]
+    environment:
+      - CELERY_BROKER_URL=redis://redis_crm:6379/0
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - POSTGRES_DB=crmdb
+      - POSTGRES_USER=crmuser
+      - POSTGRES_PASSWORD=crmpassword
+      - POSTGRES_HOST=db
+    depends_on:
+      - backend
+      - redis_crm
+    networks:
+      - crm-network
+
+  celery_beat:
+    build:
+      context: ./backend
+    container_name: crm_celery_beat
+    restart: unless-stopped
+    entrypoint: ["celery", "-A", "backend.celery", "beat", "-l", "info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+    environment:
+      - CELERY_BROKER_URL=redis://redis_crm:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_crm:6379/0
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - POSTGRES_DB=crmdb
+      - POSTGRES_USER=crmuser
+      - POSTGRES_PASSWORD=crmpassword
+      - POSTGRES_HOST=db
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    networks:
+      - crm-network
 
   frontend:
     build:
@@ -50,11 +105,19 @@ services:
     expose:
       - "80"
     networks:
+      - crm-network
       - loomie-network
 
 volumes:
   postgres-data:
+    name: crm_postgres-data
+  redis-crm-data:
+    name: crm_redis-crm-data
+  crm-media-data:
+    name: crm_media-data
 
 networks:
   loomie-network:
     external: true
+  crm-network:
+    driver: bridge

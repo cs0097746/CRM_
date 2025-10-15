@@ -1,41 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Spinner, Button  } from 'react-bootstrap';
+import { Alert, Spinner, Button, Modal, Form } from 'react-bootstrap';
 import axios from 'axios';
 import backend_url from "../config/env.ts";
+import {getToken} from "../function/validateToken.tsx";
 
-// Reutilizando a configuração da API e autenticação
 const api = axios.create({ baseURL:`${backend_url}` });
-
-const USERNAME = "admin";
-const PASSWORD = "admin";
-const CLIENT_ID = "KpkNSgZswIS1axx3fwpzNqvGKSkf6udZ9QoD3Ulz";
-const CLIENT_SECRET = "q828o8DwBwuM1d9XMNZ2KxLQvCmzJgvRnb0I1TMe0QwyVPNB7yA1HRyie45oubSQbKucq6YR3Gyo9ShlN1L0VsnEgKlekMCdlKRkEK4x1760kzgPbqG9mtzfMU4BjXvG";
 
 interface Contato {
   id: number;
   nome: string;
   telefone: string;
-  email: string;
+  email: string | null;
   criado_em: string;
+  empresa: string | null;
+  cargo: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  estado: string | null;
+  cep: string | null;
+  data_nascimento: string | null;
+  observacoes: string | null;
 }
 
-const getToken = async () => {
-    const params = new URLSearchParams();
-    params.append("grant_type", "password");
-    params.append("username", USERNAME);
-    params.append("password", PASSWORD);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    try {
-        const res = await axios.post(`${backend_url}o/token/`, params);
-        return res.data.access_token;
-    } catch (err) {
-        console.error("Erro ao obter token:", err);
-    }
-};
-
-// CSS profissional - Adaptado do Atendimento.tsx para uma lista simples
 const styles = `
     .professional-layout {
       height: 100vh;
@@ -74,11 +60,17 @@ const styles = `
         align-items: center;
         background: #f8f9fa;
     }
+    
+    .list-header-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+
 
     .contact-item {
       border-bottom: 1px solid #f0f2f5;
       padding: 15px 20px;
-      cursor: pointer;
       transition: background 0.2s ease;
       display: flex;
       justify-content: space-between;
@@ -92,6 +84,13 @@ const styles = `
     .contact-item:hover {
       background: #f8f9fa;
     }
+    
+    .contact-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-grow: 1;
+    }
 
     .contact-info strong {
         font-weight: 600;
@@ -104,6 +103,22 @@ const styles = `
         color: #65676b;
         font-size: 13px;
         margin-top: 2px;
+    }
+
+    .contact-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-shrink: 0;
+    }
+
+    .contact-actions small {
+        color: #8a8d91; 
+        font-size: 11px;
+    }
+    
+    .remove-btn {
+        margin-left: 10px;
     }
 
     .search-input {
@@ -123,12 +138,261 @@ const styles = `
     }
 `;
 
+const initialFormData = {
+    nome: '',
+    telefone: '',
+    email: '',
+    empresa: '',
+    cargo: '',
+    endereco: '',
+    cidade: '',
+    estado: '',
+    cep: '',
+    data_nascimento: '',
+    observacoes: '',
+};
+
+interface ContactFormModalProps {
+    show: boolean;
+    onHide: () => void;
+    contactId: number | null;
+    onContactSuccess: (contact: Contato, isNew: boolean) => void;
+}
+
+function ContactFormModal({ show, onHide, contactId, onContactSuccess }: ContactFormModalProps) {
+    const isEditMode = contactId !== null;
+    const [formData, setFormData] = useState<typeof initialFormData>(initialFormData);
+    const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(isEditMode);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchContactData = useCallback(async (id: number) => {
+        setFetching(true);
+        setError(null);
+        try {
+            const token = await getToken();
+            if (!token) throw new Error("Autenticação falhou.");
+
+            const response = await api.get<Contato>(`contatos/${id}/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const contactData = response.data;
+            setFormData({
+                nome: contactData.nome,
+                telefone: contactData.telefone,
+                email: contactData.email || '',
+                empresa: contactData.empresa || '',
+                cargo: contactData.cargo || '',
+                endereco: contactData.endereco || '',
+                cidade: contactData.cidade || '',
+                estado: contactData.estado || '',
+                cep: contactData.cep || '',
+                data_nascimento: contactData.data_nascimento ? contactData.data_nascimento.split('T')[0] : '',
+                observacoes: contactData.observacoes || '',
+            });
+
+        } catch (err) {
+            const errorMessage = axios.isAxiosError(err) && err.response?.data?.detail
+                ? err.response.data.detail
+                : 'Não foi possível carregar os dados para edição.';
+            setError(errorMessage);
+        } finally {
+            setFetching(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (show) {
+            if (isEditMode && contactId) {
+                fetchContactData(contactId);
+            } else {
+                setFormData(initialFormData);
+                setFetching(false);
+            }
+        }
+    }, [show, contactId, isEditMode, fetchContactData]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
+        if (error) setError(null);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        if (!formData.nome || !formData.telefone) {
+            setError('Nome e Telefone são campos obrigatórios.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const token = await getToken();
+            if (!token) throw new Error("Autenticação falhou.");
+
+            const payload = {
+                nome: formData.nome,
+                telefone: formData.telefone,
+                email: formData.email || null,
+                empresa: formData.empresa || null,
+                cargo: formData.cargo || null,
+                endereco: formData.endereco || null,
+                cidade: formData.cidade || null,
+                estado: formData.estado || null,
+                cep: formData.cep || null,
+                data_nascimento: formData.data_nascimento || null,
+                observacoes: formData.observacoes || null,
+            };
+
+            let response;
+            if (isEditMode && contactId) {
+                response = await api.put<Contato>(`contatos/${contactId}/`, payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            } else {
+                response = await api.post<Contato>('contatos/', payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            }
+
+            onContactSuccess(response.data, !isEditMode);
+            handleHide();
+            alert(`Contato "${response.data.nome}" ${isEditMode ? 'atualizado' : 'criado'} com sucesso! ${isEditMode ? '✏️' : '🎉'}`);
+
+        } catch (err) {
+            const defaultMessage = isEditMode ? 'Não foi possível atualizar o contato.' : 'Não foi possível criar o contato.';
+            const errorMessage = axios.isAxiosError(err) && err.response?.data?.detail
+                ? err.response.data.detail
+                : defaultMessage + ' Verifique os dados e a conexão com a API.';
+            setError(errorMessage);
+            console.error(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} contato:`, err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleHide = () => {
+        setFormData(initialFormData);
+        setError(null);
+        setLoading(false);
+        setFetching(isEditMode);
+        onHide();
+    }
+
+    const modalTitle = isEditMode ? 'Editar Contato' : 'Criar Novo Contato';
+    const submitText = isEditMode ? 'Salvar Alterações' : 'Salvar Contato';
+    const submitVariant = isEditMode ? 'warning' : 'success';
+
+
+    return (
+        <Modal show={show} onHide={handleHide} centered size="lg">
+            <Modal.Header closeButton>
+                <Modal.Title style={{ fontSize: '1.25rem', fontWeight: 600 }}>{modalTitle}</Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleSubmit}>
+                {fetching && isEditMode ? (
+                    <div className="text-center p-5">
+                        <Spinner animation="border" />
+                        <div className="mt-2" style={{ fontSize: '14px', color: '#65676b' }}>
+                            Carregando dados...
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <Modal.Body>
+                            {error && <Alert variant="danger">{error}</Alert>}
+
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactName">
+                                    <Form.Label style={{ fontWeight: 500 }}>Nome Completo <span className="text-danger">*</span></Form.Label>
+                                    <Form.Control type="text" placeholder="Nome do Cliente/Contato" name="nome" value={formData.nome} onChange={handleChange} required/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactPhone">
+                                    <Form.Label style={{ fontWeight: 500 }}>Telefone <span className="text-danger">*</span></Form.Label>
+                                    <Form.Control type="text" placeholder="(99) 99999-9999" name="telefone" value={formData.telefone} onChange={handleChange} required/>
+                                </Form.Group>
+                            </div>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactEmail">
+                                    <Form.Label style={{ fontWeight: 500 }}>E-mail</Form.Label>
+                                    <Form.Control type="email" placeholder="email@exemplo.com" name="email" value={formData.email || ''} onChange={handleChange}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactBirthDate">
+                                    <Form.Label style={{ fontWeight: 500 }}>Data de Nascimento</Form.Label>
+                                    <Form.Control type="date" name="data_nascimento" value={formData.data_nascimento || ''} onChange={handleChange}/>
+                                </Form.Group>
+                            </div>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactCompany">
+                                    <Form.Label style={{ fontWeight: 500 }}>Empresa</Form.Label>
+                                    <Form.Control type="text" placeholder="Nome da empresa" name="empresa" value={formData.empresa || ''} onChange={handleChange}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactPosition">
+                                    <Form.Label style={{ fontWeight: 500 }}>Cargo</Form.Label>
+                                    <Form.Control type="text" placeholder="Ex: Gerente, Vendedor" name="cargo" value={formData.cargo || ''} onChange={handleChange}/>
+                                </Form.Group>
+                            </div>
+                            <Form.Group className="mb-3" controlId="formContactAddress">
+                                <Form.Label style={{ fontWeight: 500 }}>Endereço</Form.Label>
+                                <Form.Control as="textarea" rows={2} placeholder="Rua, número, complemento..." name="endereco" value={formData.endereco || ''} onChange={handleChange}/>
+                            </Form.Group>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactCity">
+                                    <Form.Label style={{ fontWeight: 500 }}>Cidade</Form.Label>
+                                    <Form.Control type="text" name="cidade" value={formData.cidade || ''} onChange={handleChange}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-3" controlId="formContactState">
+                                    <Form.Label style={{ fontWeight: 500 }}>Estado</Form.Label>
+                                    <Form.Control type="text" name="estado" placeholder="Ex: SP, RJ" value={formData.estado || ''} onChange={handleChange} maxLength={2}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-3" controlId="formContactZip">
+                                    <Form.Label style={{ fontWeight: 500 }}>CEP</Form.Label>
+                                    <Form.Control type="text" name="cep" value={formData.cep || ''} onChange={handleChange}/>
+                                </Form.Group>
+                            </div>
+                            <Form.Group className="mb-3" controlId="formContactNotes">
+                                <Form.Label style={{ fontWeight: 500 }}>Observações</Form.Label>
+                                <Form.Control as="textarea" rows={3} placeholder="Notas importantes sobre o contato, preferências, etc." name="observacoes" value={formData.observacoes || ''} onChange={handleChange}/>
+                            </Form.Group>
+
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={handleHide} disabled={loading}>
+                                Cancelar
+                            </Button>
+                            <Button variant={submitVariant} type="submit" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                        <span className="ms-2">Salvando...</span>
+                                    </>
+                                ) : (
+                                    submitText
+                                )}
+                            </Button>
+                        </Modal.Footer>
+                    </>
+                )}
+            </Form>
+        </Modal>
+    );
+}
 
 export default function Contatos() {
     const [contatos, setContatos] = useState<Contato[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const [deleteStatus, setDeleteStatus] = useState<{ id: number; loading: boolean } | null>(null);
+
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [contactToEditId, setContactToEditId] = useState<number | null>(null);
 
     const fetchContatos = useCallback(async () => {
         try {
@@ -136,12 +400,8 @@ export default function Contatos() {
             setError(null);
 
             const token = await getToken();
-            if (!token) {
-                setError("Não foi possível autenticar.");
-                return;
-            }
+            if (!token) throw new Error("Autenticação falhou.");
 
-            // Assumindo que o endpoint para contatos seja 'contatos/'
             const response = await api.get<{ results: Contato[] }>('contatos/', {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -162,16 +422,66 @@ export default function Contatos() {
         fetchContatos();
     }, [fetchContatos]);
 
-    // Filtrar contatos
+    const removeContato = async (id: number) => {
+        if (!window.confirm("Tem certeza que deseja remover este contato?")) {
+            return;
+        }
+
+        setDeleteStatus({ id, loading: true });
+
+        try {
+            const token = await getToken();
+            if (!token) throw new Error("Autenticação falhou.");
+
+            await api.delete(`contatos/${id}/`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            setContatos(contatos.filter(c => c.id !== id));
+            alert("Contato removido com sucesso! 🗑️");
+
+        } catch (err) {
+            setError('Não foi possível remover o contato.');
+            console.error('Erro ao remover contato:', err);
+        } finally {
+            setDeleteStatus(null);
+        }
+    };
+
+    const handleContactSuccess = (contact: Contato, isNew: boolean) => {
+        if (isNew) {
+            setContatos([contact, ...contatos]);
+        } else {
+            setContatos(contatos.map(c =>
+                c.id === contact.id ? contact : c
+            ));
+        }
+    };
+
+    const openCreateModal = () => {
+        setContactToEditId(null);
+        setShowContactModal(true);
+    };
+
+    const openEditModal = (id: number) => {
+        setContactToEditId(id);
+        setShowContactModal(true);
+    };
+
     const contatosFiltrados = contatos.filter(contato => {
         if (!searchTerm) return true;
 
         const searchLower = searchTerm.toLowerCase();
-        return (
-            contato.nome.toLowerCase().includes(searchLower) ||
-            contato.telefone.includes(searchTerm) ||
-            contato.email.toLowerCase().includes(searchLower)
-        );
+
+        const nomeMatch = contato.nome.toLowerCase().includes(searchLower);
+
+        const telefoneMatch = contato.telefone.includes(searchTerm);
+
+        const emailMatch = contato.email && contato.email.toLowerCase().includes(searchLower);
+
+        return nomeMatch || telefoneMatch || emailMatch;
     });
 
     return (
@@ -179,7 +489,6 @@ export default function Contatos() {
             <style>{styles}</style>
 
             <div className="professional-layout">
-                {/* Barra superior - Replicada do Atendimento.tsx */}
                 <div className="top-bar">
                     <div className="d-flex justify-content-between align-items-center">
                         <div className="d-flex align-items-center gap-3">
@@ -202,18 +511,24 @@ export default function Contatos() {
                     </div>
                 </div>
 
-                {/* Conteúdo principal */}
                 <div className="main-content">
                     <div className="card-list" style={{ maxWidth: '800px', margin: '0 auto' }}>
+
                         <div className="list-header">
                             <h5 className="mb-0" style={{ fontWeight: 600 }}>Contatos Cadastrados ({contatos.length})</h5>
-                            <input
-                                type="text"
-                                className="search-input"
-                                placeholder="Buscar por nome, tel ou e-mail..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+
+                            <div className="list-header-controls">
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="Buscar por nome, tel ou e-mail..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                <Button variant="primary" onClick={openCreateModal}>
+                                    + Novo Contato
+                                </Button>
+                            </div>
                         </div>
 
                         {error && (
@@ -260,10 +575,38 @@ export default function Contatos() {
                                                     {contato.email && ` | E-mail: ${contato.email}`}
                                                 </small>
                                             </div>
-                                            <div className="text-end">
-                                                <small style={{ color: '#8a8d91', fontSize: '11px' }}>
+
+                                            <div className="contact-actions">
+                                                <small>
                                                     Criado em: {new Date(contato.criado_em).toLocaleDateString('pt-BR')}
                                                 </small>
+
+                                                {/* NOVO BOTÃO DE EDIÇÃO */}
+                                                <Button
+                                                    variant="outline-warning"
+                                                    size="sm"
+                                                    onClick={() => openEditModal(contato.id)}
+                                                >
+                                                    Editar
+                                                </Button>
+
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={() => removeContato(contato.id)}
+                                                    disabled={deleteStatus?.loading && deleteStatus.id === contato.id}
+                                                    className="remove-btn"
+                                                >
+                                                    {deleteStatus?.loading && deleteStatus.id === contato.id ? (
+                                                        <Spinner
+                                                            as="span"
+                                                            animation="border"
+                                                            size="sm"
+                                                            role="status"
+                                                            aria-hidden="true"
+                                                        />
+                                                    ) : 'Remover'}
+                                                </Button>
                                             </div>
                                         </div>
                                     ))
@@ -273,8 +616,16 @@ export default function Contatos() {
                     </div>
                 </div>
             </div>
+
+            <ContactFormModal
+                show={showContactModal}
+                onHide={() => {
+                    setShowContactModal(false);
+                    setContactToEditId(null);
+                }}
+                contactId={contactToEditId}
+                onContactSuccess={handleContactSuccess}
+            />
         </>
     );
 }
-
-// Lembre-se de criar o arquivo Contatos.tsx e incluí-lo no roteamento do seu aplicativo (ex: em App.tsx)
