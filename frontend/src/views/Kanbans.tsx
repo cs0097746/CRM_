@@ -166,10 +166,9 @@ export default function Kanbans() {
       <style>{styles}</style>
       <Container className="py-5 kanbans-container">
 
-        {/* Header e Botão de Ação */}
         <div className="d-flex justify-content-between align-items-center mb-5">
           <h1 className="fw-bold" style={{ color: "#316dbd" }}>
-            🎯 Gestão de Kanbans
+            🎯 Gestão de Pipeline
           </h1>
           <Button
             className="btn-create-kanban"

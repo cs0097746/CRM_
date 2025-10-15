@@ -1,166 +1,19 @@
 import type { Negocio } from "../types/Negocio.ts";
 import type { Comentario } from "../types/Comentario.ts";
+import {ContactDataTab} from "./tab/ContactDataTab.tsx";
 import { Draggable } from "@hello-pangea/dnd";
 import { useState } from "react";
-import { Modal, Button, Form, Badge, Spinner, Alert } from "react-bootstrap";
+import { Modal, Button, Form, Badge, Spinner, Alert, Tab, Tabs } from "react-bootstrap";
 import backend_url from "../config/env.ts";
 import { getToken } from "../function/validateToken.tsx";
+import {TYPE_CHOICES} from "./utils/mediaUtils.tsx";
+import {renderCustomAttributeValue, renderValueInput } from "./utils/customFieldRender.tsx";
 
 interface KanbanCardProps {
   negocio: Negocio;
   index: number;
-}
-
-// Lista de tipos de dados suportados
-const TYPE_CHOICES = [
-  'string', 'text', 'integer', 'float', 'boolean', 'date', 'datetime', 'time', 'file'
-];
-
-// Função auxiliar para inferir o tipo de mídia
-const getMediaType = (url: string): 'image' | 'video' | 'pdf' | 'text' | 'unknown' => {
-  const cleanUrl = url.split('?')[0];
-  const extension = cleanUrl.split('.').pop()?.toLowerCase();
-  if (!extension) return 'unknown';
-
-  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-  const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi'];
-  const pdfExtensions = ['pdf'];
-  const textExtensions = ['txt', 'json', 'csv'];
-
-  if (imageExtensions.includes(extension)) return 'image';
-  if (videoExtensions.includes(extension)) return 'video';
-  if (pdfExtensions.includes(extension)) return 'pdf';
-  if (textExtensions.includes(extension) || extension.length <= 4) return 'text';
-  return 'unknown';
 };
 
-// Componente para preview de arquivos
-interface FileAttributePreviewProps {
-  atributo: any;
-  backendUrl: string;
-}
-
-const renderPreviewContent = (url: string, type: string, fileName: string) => {
-  switch (type) {
-    case 'image':
-      return (
-        <img
-          src={url}
-          alt={fileName}
-          style={{
-            maxWidth: '100%',
-            maxHeight: '400px',
-            objectFit: 'contain',
-            marginTop: '0.5rem',
-            borderRadius: '0.5rem'
-          }}
-        />
-      );
-    case 'video':
-      return (
-        <video
-          src={url}
-          controls
-          style={{
-            width: '100%',
-            maxHeight: '400px',
-            marginTop: '0.5rem',
-            borderRadius: '0.5rem'
-          }}
-        >
-          Seu navegador não suporta a tag de vídeo.
-        </video>
-      );
-    case 'pdf':
-      return (
-        <iframe
-          src={url}
-          style={{
-            width: '100%',
-            height: '500px',
-            border: '1px solid #ccc',
-            marginTop: '0.5rem',
-            borderRadius: '0.5rem'
-          }}
-          title={`Preview de PDF: ${fileName}`}
-        />
-      );
-    case 'text':
-      return (
-        <iframe
-          src={url}
-          style={{
-            width: '100%',
-            height: '300px',
-            border: '1px solid #ccc',
-            marginTop: '0.5rem',
-            borderRadius: '0.5rem'
-          }}
-          title={`Preview de Texto: ${fileName}`}
-        />
-      );
-    default:
-      return <p className="text-muted mt-2">Nenhum preview disponível para este tipo de arquivo. Por favor, utilize o link de download.</p>;
-  }
-};
-
-const FileAttributePreview: React.FC<FileAttributePreviewProps> = ({ atributo, backendUrl }) => {
-  const { valor, arquivo, valor_formatado } = atributo;
-  const [showPreview, setShowPreview] = useState(false);
-
-  const fileUrl = valor_formatado || arquivo;
-  const cleanFileUrl = fileUrl ? fileUrl.startsWith('/') ? fileUrl.substring(1) : fileUrl : '';
-  const fullFileUrl = cleanFileUrl.startsWith('http') ? cleanFileUrl : `${backendUrl}${cleanFileUrl}`;
-  const mediaType = getMediaType(fullFileUrl);
-  const fileName = valor || 'Arquivo';
-
-  if (!cleanFileUrl) {
-    return <Form.Control type="text" value="Nenhum arquivo" readOnly style={{ marginBottom: "0.5rem" }} />;
-  }
-
-  return (
-    <div style={{ marginBottom: "0.5rem" }}>
-      <div className="d-flex align-items-center gap-2 mt-1">
-        {mediaType !== 'unknown' && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowPreview(!showPreview)}
-            style={{ padding: '0.25rem 0.5rem', borderRadius: '0.3rem' }}
-          >
-            {showPreview ? "Esconder Preview" : "Visualizar Arquivo"}
-          </Button>
-        )}
-        <Button
-          variant="link"
-          href={fullFileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ padding: 0, textDecoration: 'underline' }}
-        >
-          Baixar ({fileName})
-        </Button>
-      </div>
-      {showPreview && (
-        <div
-          style={{
-            marginTop: '0.5rem',
-            border: '1px solid #eee',
-            padding: '0.5rem',
-            borderRadius: '0.5rem',
-            backgroundColor: '#fff',
-            maxHeight: '600px',
-            overflowY: 'auto'
-          }}
-        >
-          {renderPreviewContent(fullFileUrl, mediaType, fileName)}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Componente principal
 export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [show, setShow] = useState(false);
   const [titulo, setTitulo] = useState(negocio.titulo);
@@ -181,6 +34,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [editFieldValue, setEditFieldValue] = useState<string | File>("");
   const [isUpdatingField, setIsUpdatingField] = useState(false);
   const [fieldUpdateError, setFieldUpdateError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("negocio");
 
   const handleSave = async () => {
     const payload = { titulo, valor, contato, estagio };
@@ -422,94 +276,6 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     }
   };
 
-  const renderValueInput = (currentType: string, value: string | File, onChange: (value: string | File) => void) => {
-    switch (currentType) {
-      case 'boolean':
-        return (
-          <Form.Select
-            value={typeof value === 'string' ? value : String(value)}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          >
-            <option value="false">Não</option>
-            <option value="true">Sim</option>
-          </Form.Select>
-        );
-      case 'integer':
-      case 'float':
-        return (
-          <Form.Control
-            type="number"
-            step={currentType === 'integer' ? '1' : '0.01'}
-            placeholder={currentType === 'integer' ? "Ex: 42" : "Ex: 3.14"}
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-      case 'date':
-        return (
-          <Form.Control
-            type="date"
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-      case 'datetime':
-        return (
-          <Form.Control
-            type="datetime-local"
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-      case 'time':
-        return (
-          <Form.Control
-            type="time"
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-      case 'text':
-        return (
-          <Form.Control
-            as="textarea"
-            rows={3}
-            placeholder="Digite o valor do campo (texto longo)"
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-      case 'file':
-        return (
-          <Form.Control
-            type="file"
-            onChange={(e) => {
-              const target = e.target as HTMLInputElement;
-              onChange(target.files?.[0] || "");
-            }}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-      case 'string':
-      default:
-        return (
-          <Form.Control
-            type="text"
-            placeholder="Digite o valor do campo"
-            value={typeof value === 'string' ? value : ''}
-            onChange={(e) => onChange(e.target.value)}
-            style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-          />
-        );
-    }
-  };
-
   const handleAddComentario = async () => {
     if (!novoComentario.trim()) return;
 
@@ -541,36 +307,6 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     } catch (error) {
       console.error("Erro na criação do comentário:", error);
       alert(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
-    }
-  };
-
-  const renderCustomAttributeValue = (atributo: any) => {
-    const { type, valor } = atributo;
-
-    switch (type) {
-      case "boolean":
-        const isTrue = atributo.valor_formatado === true;
-        return (
-          <div className="d-flex gap-3 mt-1">
-            <Form.Check type="checkbox" id={`sim-${atributo.id}`} label="Sim" checked={isTrue} readOnly />
-            <Form.Check type="checkbox" id={`nao-${atributo.id}`} label="Não" checked={!isTrue} readOnly />
-          </div>
-        );
-      case "file":
-        return <FileAttributePreview atributo={atributo} backendUrl={backend_url} />;
-      case "integer":
-      case "float":
-        return <Form.Control type="number" value={valor} readOnly style={{ marginBottom: "0.5rem" }} />;
-      case "date":
-        return <Form.Control type="text" value={valor ? new Date(valor).toLocaleDateString("pt-BR") : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-      case "datetime":
-        return <Form.Control type="text" value={valor ? new Date(valor).toLocaleString("pt-BR", { hour12: false }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-      case "time":
-        return <Form.Control type="text" value={valor ? new Date(`1970-01-01T${valor}`).toLocaleTimeString("pt-BR", { hour12: false, hour: '2-digit', minute: '2-digit' }) : ""} readOnly style={{ marginBottom: "0.5rem" }} />;
-      case "text":
-      case "string":
-      default:
-        return <Form.Control as="textarea" rows={3} value={valor || ""} readOnly style={{ marginBottom: "0.5rem" }} />;
     }
   };
 
@@ -667,147 +403,163 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             overflowY: "auto",
           }}
         >
-          <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}>
-            <div style={{ flex: 2 }}>
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={titulo}
-                    onChange={(e) => setTitulo(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                  />
-                </Form.Group>
+          <Tabs
+            activeKey={activeTab}
+            onSelect={(k) => k && setActiveTab(k)}
+            className="mb-4"
+            style={{ borderBottom: '2px solid #e0e0e0' }}
+          >
+            <Tab eventKey="negocio" title="Negócio & Comentários" tabClassName="text-primary fw-bold">
+              <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}>
+                <div style={{ flex: 2 }}>
+                  <Form>
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={titulo}
+                        onChange={(e) => setTitulo(e.target.value)}
+                        style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                      />
+                    </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Valor</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={valor}
-                    onChange={(e) => setValor(Number(e.target.value))}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                  />
-                </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Valor</Form.Label>
+                      <Form.Control
+                        type="number"
+                        value={valor}
+                        onChange={(e) => setValor(Number(e.target.value))}
+                        style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                      />
+                    </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Contato</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={contato}
-                    onChange={(e) => setContato(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                  />
-                </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Contato (Nome)</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={contato}
+                        onChange={(e) => setContato(e.target.value)}
+                        style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                      />
+                      <Form.Text className="text-muted">
+                        Outros dados do contato estão na aba "Dados do Contato".
+                      </Form.Text>
+                    </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Estágio</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={estagio}
-                    onChange={(e) => setEstagio(e.target.value)}
-                    style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
-                  />
-                </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Estágio</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={estagio}
+                        onChange={(e) => setEstagio(e.target.value)}
+                        style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                      />
+                    </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Criado em</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={new Date(negocio.criado_em).toLocaleString("pt-BR")}
-                    disabled
-                    style={{
-                      borderRadius: "0.6rem",
-                      backgroundColor: "#e9ecef",
-                      padding: "0.5rem",
-                    }}
-                  />
-                </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Criado em</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={new Date(negocio.criado_em).toLocaleString("pt-BR")}
+                        disabled
+                        style={{
+                          borderRadius: "0.6rem",
+                          backgroundColor: "#e9ecef",
+                          padding: "0.5rem",
+                        }}
+                      />
+                    </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
-                  <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
-                    {negocio.atributos_personalizados?.map((atributo, idx) => (
-                      <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
-                        <div className="d-flex justify-content-between align-items-center">
-                          <strong>{atributo.label}</strong>
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => {
-                              setEditingAttribute(atributo);
-                                setEditFieldValue(
-                                  atributo.valor
-                                    ? atributo.valor
-                                    : typeof atributo.valor_formatado === "string"
-                                    ? atributo.valor_formatado
-                                    : ""
-                                );
-                              setShowEditAttributeModal(true);
-                            }}
-                            style={{ padding: "0.2rem 0.5rem" }}
-                          >
-                            Editar
-                          </Button>
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
+                      <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
+                        {negocio.atributos_personalizados?.map((atributo, idx) => (
+                          <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
+                            <div className="d-flex justify-content-between align-items-center">
+                              <strong>{atributo.label}</strong>
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingAttribute(atributo);
+                                    setEditFieldValue(
+                                      atributo.valor
+                                        ? atributo.valor
+                                        : typeof atributo.valor_formatado === "string"
+                                        ? atributo.valor_formatado
+                                        : ""
+                                    );
+                                  setShowEditAttributeModal(true);
+                                }}
+                                style={{ padding: "0.2rem 0.5rem" }}
+                              >
+                                Editar
+                              </Button>
+                            </div>
+                            {renderCustomAttributeValue(atributo)}
+                          </div>
+                        ))}
+                      </div>
+                    </Form.Group>
+                  </Form>
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#ffffff",
+                    borderRadius: "0.8rem",
+                    padding: "1rem",
+                    height: "100%",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <h6 style={{ color: "#316dbd", fontWeight: 700 }}>Comentários</h6>
+                  <div style={{ flex: 1, overflowY: "auto", marginTop: "1rem" }}>
+                    {comentarios.map((c) => (
+                      <div
+                        key={c.id}
+                        style={{
+                          marginBottom: "1rem",
+                          padding: "0.5rem",
+                          backgroundColor: "#f1f5ff",
+                          borderRadius: "0.5rem",
+                          wordWrap: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        <strong>{c.criado_por}:</strong> {c.mensagem}
+                        <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
+                          {new Date(c.criado_em).toLocaleString("pt-BR")}
                         </div>
-                        {renderCustomAttributeValue(atributo)}
                       </div>
                     ))}
                   </div>
-                </Form.Group>
-              </Form>
-            </div>
 
-            <div
-              style={{
-                flex: 1,
-                backgroundColor: "#ffffff",
-                borderRadius: "0.8rem",
-                padding: "1rem",
-                height: "100%",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <h6 style={{ color: "#316dbd", fontWeight: 700 }}>Comentários</h6>
-              <div style={{ flex: 1, overflowY: "auto", marginTop: "1rem" }}>
-                {comentarios.map((c) => (
-                  <div
-                    key={c.id}
-                    style={{
-                      marginBottom: "1rem",
-                      padding: "0.5rem",
-                      backgroundColor: "#f1f5ff",
-                      borderRadius: "0.5rem",
-                      wordWrap: "break-word",
-                      whiteSpace: "pre-wrap",
-                    }}
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    placeholder="Adicionar comentário..."
+                    style={{ marginTop: "0.5rem", borderRadius: "0.5rem" }}
+                    value={novoComentario}
+                    onChange={(e) => setNovoComentario(e.target.value)}
+                  />
+                  <Button
+                    style={{ marginTop: "0.5rem", backgroundColor: "#316dbd", borderColor: "#316dbd" }}
+                    onClick={handleAddComentario}
                   >
-                    <strong>{c.criado_por}:</strong> {c.mensagem}
-                    <div style={{ fontSize: "0.75rem", color: "#6c757d" }}>
-                      {new Date(c.criado_em).toLocaleString("pt-BR")}
-                    </div>
-                  </div>
-                ))}
+                    Adicionar
+                  </Button>
+                </div>
               </div>
+            </Tab>
 
-              <Form.Control
-                as="textarea"
-                rows={3}
-                placeholder="Adicionar comentário..."
-                style={{ marginTop: "0.5rem", borderRadius: "0.5rem" }}
-                value={novoComentario}
-                onChange={(e) => setNovoComentario(e.target.value)}
-              />
-              <Button
-                style={{ marginTop: "0.5rem", backgroundColor: "#316dbd", borderColor: "#316dbd" }}
-                onClick={handleAddComentario}
-              >
-                Adicionar
-              </Button>
-            </div>
-          </div>
+            <Tab eventKey="contato" title="Dados do Contato" tabClassName="text-success fw-bold">
+                <ContactDataTab contato={negocio.contato} />
+            </Tab>
+          </Tabs>
         </Modal.Body>
 
         <Modal.Footer style={{ borderTop: "none", justifyContent: "space-between" }}>
