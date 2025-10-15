@@ -138,28 +138,80 @@ const styles = `
     }
 `;
 
-interface CreateContactModalProps {
+const initialFormData = {
+    nome: '',
+    telefone: '',
+    email: '',
+    empresa: '',
+    cargo: '',
+    endereco: '',
+    cidade: '',
+    estado: '',
+    cep: '',
+    data_nascimento: '',
+    observacoes: '',
+};
+
+interface ContactFormModalProps {
     show: boolean;
     onHide: () => void;
-    onContactCreated: (newContact: Contato) => void;
+    contactId: number | null;
+    onContactSuccess: (contact: Contato, isNew: boolean) => void;
 }
 
-function CreateContactModal({ show, onHide, onContactCreated }: CreateContactModalProps) {
-    const [formData, setFormData] = useState({
-        nome: '',
-        telefone: '',
-        email: '',
-        empresa: '',
-        cargo: '',
-        endereco: '',
-        cidade: '',
-        estado: '',
-        cep: '',
-        data_nascimento: '',
-        observacoes: '',
-    });
+function ContactFormModal({ show, onHide, contactId, onContactSuccess }: ContactFormModalProps) {
+    const isEditMode = contactId !== null;
+    const [formData, setFormData] = useState<typeof initialFormData>(initialFormData);
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(isEditMode);
     const [error, setError] = useState<string | null>(null);
+
+    const fetchContactData = useCallback(async (id: number) => {
+        setFetching(true);
+        setError(null);
+        try {
+            const token = await getToken();
+            if (!token) throw new Error("Autenticação falhou.");
+
+            const response = await api.get<Contato>(`contatos/${id}/`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const contactData = response.data;
+            setFormData({
+                nome: contactData.nome,
+                telefone: contactData.telefone,
+                email: contactData.email || '',
+                empresa: contactData.empresa || '',
+                cargo: contactData.cargo || '',
+                endereco: contactData.endereco || '',
+                cidade: contactData.cidade || '',
+                estado: contactData.estado || '',
+                cep: contactData.cep || '',
+                data_nascimento: contactData.data_nascimento ? contactData.data_nascimento.split('T')[0] : '',
+                observacoes: contactData.observacoes || '',
+            });
+
+        } catch (err) {
+            const errorMessage = axios.isAxiosError(err) && err.response?.data?.detail
+                ? err.response.data.detail
+                : 'Não foi possível carregar os dados para edição.';
+            setError(errorMessage);
+        } finally {
+            setFetching(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (show) {
+            if (isEditMode && contactId) {
+                fetchContactData(contactId);
+            } else {
+                setFormData(initialFormData);
+                setFetching(false);
+            }
+        }
+    }, [show, contactId, isEditMode, fetchContactData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({
@@ -198,188 +250,135 @@ function CreateContactModal({ show, onHide, onContactCreated }: CreateContactMod
                 observacoes: formData.observacoes || null,
             };
 
-            const response = await api.post<Contato>('contatos/', payload, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            let response;
+            if (isEditMode && contactId) {
+                response = await api.put<Contato>(`contatos/${contactId}/`, payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            } else {
+                response = await api.post<Contato>('contatos/', payload, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            }
 
-            onContactCreated(response.data);
+            onContactSuccess(response.data, !isEditMode);
             handleHide();
-            alert(`Contato "${response.data.nome}" criado com sucesso! 🎉`);
+            alert(`Contato "${response.data.nome}" ${isEditMode ? 'atualizado' : 'criado'} com sucesso! ${isEditMode ? '✏️' : '🎉'}`);
 
         } catch (err) {
+            const defaultMessage = isEditMode ? 'Não foi possível atualizar o contato.' : 'Não foi possível criar o contato.';
             const errorMessage = axios.isAxiosError(err) && err.response?.data?.detail
                 ? err.response.data.detail
-                : 'Não foi possível criar o contato. Verifique os dados e a conexão com a API.';
+                : defaultMessage + ' Verifique os dados e a conexão com a API.';
             setError(errorMessage);
-            console.error('Erro ao criar contato:', err);
+            console.error(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} contato:`, err);
         } finally {
             setLoading(false);
         }
     };
 
     const handleHide = () => {
-        setFormData({
-            nome: '', telefone: '', email: '', empresa: '', cargo: '', endereco: '',
-            cidade: '', estado: '', cep: '', data_nascimento: '', observacoes: '',
-        });
+        setFormData(initialFormData);
         setError(null);
         setLoading(false);
+        setFetching(isEditMode);
         onHide();
     }
+
+    const modalTitle = isEditMode ? 'Editar Contato' : 'Criar Novo Contato';
+    const submitText = isEditMode ? 'Salvar Alterações' : 'Salvar Contato';
+    const submitVariant = isEditMode ? 'warning' : 'success';
 
 
     return (
         <Modal show={show} onHide={handleHide} centered size="lg">
             <Modal.Header closeButton>
-                <Modal.Title style={{ fontSize: '1.25rem', fontWeight: 600 }}>Criar Novo Contato</Modal.Title>
+                <Modal.Title style={{ fontSize: '1.25rem', fontWeight: 600 }}>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Form onSubmit={handleSubmit}>
-                <Modal.Body>
-                    {error && <Alert variant="danger">{error}</Alert>}
-
-                    <div className="row">
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactName">
-                            <Form.Label style={{ fontWeight: 500 }}>Nome Completo <span className="text-danger">*</span></Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Nome do Cliente/Contato"
-                                name="nome"
-                                value={formData.nome}
-                                onChange={handleChange}
-                                required
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactPhone">
-                            <Form.Label style={{ fontWeight: 500 }}>Telefone <span className="text-danger">*</span></Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="(99) 99999-9999"
-                                name="telefone"
-                                value={formData.telefone}
-                                onChange={handleChange}
-                                required
-                            />
-                        </Form.Group>
+                {fetching && isEditMode ? (
+                    <div className="text-center p-5">
+                        <Spinner animation="border" />
+                        <div className="mt-2" style={{ fontSize: '14px', color: '#65676b' }}>
+                            Carregando dados...
+                        </div>
                     </div>
+                ) : (
+                    <>
+                        <Modal.Body>
+                            {error && <Alert variant="danger">{error}</Alert>}
 
-                    <div className="row">
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactEmail">
-                            <Form.Label style={{ fontWeight: 500 }}>E-mail</Form.Label>
-                            <Form.Control
-                                type="email"
-                                placeholder="email@exemplo.com"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactBirthDate">
-                            <Form.Label style={{ fontWeight: 500 }}>Data de Nascimento</Form.Label>
-                            <Form.Control
-                                type="date"
-                                name="data_nascimento"
-                                value={formData.data_nascimento}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                    </div>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactName">
+                                    <Form.Label style={{ fontWeight: 500 }}>Nome Completo <span className="text-danger">*</span></Form.Label>
+                                    <Form.Control type="text" placeholder="Nome do Cliente/Contato" name="nome" value={formData.nome} onChange={handleChange} required/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactPhone">
+                                    <Form.Label style={{ fontWeight: 500 }}>Telefone <span className="text-danger">*</span></Form.Label>
+                                    <Form.Control type="text" placeholder="(99) 99999-9999" name="telefone" value={formData.telefone} onChange={handleChange} required/>
+                                </Form.Group>
+                            </div>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactEmail">
+                                    <Form.Label style={{ fontWeight: 500 }}>E-mail</Form.Label>
+                                    <Form.Control type="email" placeholder="email@exemplo.com" name="email" value={formData.email || ''} onChange={handleChange}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactBirthDate">
+                                    <Form.Label style={{ fontWeight: 500 }}>Data de Nascimento</Form.Label>
+                                    <Form.Control type="date" name="data_nascimento" value={formData.data_nascimento || ''} onChange={handleChange}/>
+                                </Form.Group>
+                            </div>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactCompany">
+                                    <Form.Label style={{ fontWeight: 500 }}>Empresa</Form.Label>
+                                    <Form.Control type="text" placeholder="Nome da empresa" name="empresa" value={formData.empresa || ''} onChange={handleChange}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactPosition">
+                                    <Form.Label style={{ fontWeight: 500 }}>Cargo</Form.Label>
+                                    <Form.Control type="text" placeholder="Ex: Gerente, Vendedor" name="cargo" value={formData.cargo || ''} onChange={handleChange}/>
+                                </Form.Group>
+                            </div>
+                            <Form.Group className="mb-3" controlId="formContactAddress">
+                                <Form.Label style={{ fontWeight: 500 }}>Endereço</Form.Label>
+                                <Form.Control as="textarea" rows={2} placeholder="Rua, número, complemento..." name="endereco" value={formData.endereco || ''} onChange={handleChange}/>
+                            </Form.Group>
+                            <div className="row">
+                                <Form.Group className="mb-3 col-md-6" controlId="formContactCity">
+                                    <Form.Label style={{ fontWeight: 500 }}>Cidade</Form.Label>
+                                    <Form.Control type="text" name="cidade" value={formData.cidade || ''} onChange={handleChange}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-3" controlId="formContactState">
+                                    <Form.Label style={{ fontWeight: 500 }}>Estado</Form.Label>
+                                    <Form.Control type="text" name="estado" placeholder="Ex: SP, RJ" value={formData.estado || ''} onChange={handleChange} maxLength={2}/>
+                                </Form.Group>
+                                <Form.Group className="mb-3 col-md-3" controlId="formContactZip">
+                                    <Form.Label style={{ fontWeight: 500 }}>CEP</Form.Label>
+                                    <Form.Control type="text" name="cep" value={formData.cep || ''} onChange={handleChange}/>
+                                </Form.Group>
+                            </div>
+                            <Form.Group className="mb-3" controlId="formContactNotes">
+                                <Form.Label style={{ fontWeight: 500 }}>Observações</Form.Label>
+                                <Form.Control as="textarea" rows={3} placeholder="Notas importantes sobre o contato, preferências, etc." name="observacoes" value={formData.observacoes || ''} onChange={handleChange}/>
+                            </Form.Group>
 
-                    <div className="row">
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactCompany">
-                            <Form.Label style={{ fontWeight: 500 }}>Empresa</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Nome da empresa"
-                                name="empresa"
-                                value={formData.empresa}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactPosition">
-                            <Form.Label style={{ fontWeight: 500 }}>Cargo</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Ex: Gerente, Vendedor"
-                                name="cargo"
-                                value={formData.cargo}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                    </div>
-
-                    <Form.Group className="mb-3" controlId="formContactAddress">
-                        <Form.Label style={{ fontWeight: 500 }}>Endereço</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={2}
-                            placeholder="Rua, número, complemento..."
-                            name="endereco"
-                            value={formData.endereco}
-                            onChange={handleChange}
-                        />
-                    </Form.Group>
-
-                    <div className="row">
-                        <Form.Group className="mb-3 col-md-6" controlId="formContactCity">
-                            <Form.Label style={{ fontWeight: 500 }}>Cidade</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="cidade"
-                                value={formData.cidade}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3 col-md-3" controlId="formContactState">
-                            <Form.Label style={{ fontWeight: 500 }}>Estado</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="estado"
-                                placeholder="Ex: SP, RJ"
-                                value={formData.estado}
-                                onChange={handleChange}
-                                maxLength={2}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3 col-md-3" controlId="formContactZip">
-                            <Form.Label style={{ fontWeight: 500 }}>CEP</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="cep"
-                                value={formData.cep}
-                                onChange={handleChange}
-                            />
-                        </Form.Group>
-                    </div>
-
-                    <Form.Group className="mb-3" controlId="formContactNotes">
-                        <Form.Label style={{ fontWeight: 500 }}>Observações</Form.Label>
-                        <Form.Control
-                            as="textarea"
-                            rows={3}
-                            placeholder="Notas importantes sobre o contato, preferências, etc."
-                            name="observacoes"
-                            value={formData.observacoes}
-                            onChange={handleChange}
-                        />
-                    </Form.Group>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleHide} disabled={loading}>
-                        Cancelar
-                    </Button>
-                    <Button variant="success" type="submit" disabled={loading}>
-                        {loading ? (
-                            <>
-                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-                                <span className="ms-2">Salvando...</span>
-                            </>
-                        ) : (
-                            'Salvar Contato'
-                        )}
-                    </Button>
-                </Modal.Footer>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={handleHide} disabled={loading}>
+                                Cancelar
+                            </Button>
+                            <Button variant={submitVariant} type="submit" disabled={loading}>
+                                {loading ? (
+                                    <>
+                                        <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+                                        <span className="ms-2">Salvando...</span>
+                                    </>
+                                ) : (
+                                    submitText
+                                )}
+                            </Button>
+                        </Modal.Footer>
+                    </>
+                )}
             </Form>
         </Modal>
     );
@@ -391,7 +390,9 @@ export default function Contatos() {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [deleteStatus, setDeleteStatus] = useState<{ id: number; loading: boolean } | null>(null);
-    const [showCreateModal, setShowCreateModal] = useState(false);
+
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [contactToEditId, setContactToEditId] = useState<number | null>(null);
 
     const fetchContatos = useCallback(async () => {
         try {
@@ -449,8 +450,24 @@ export default function Contatos() {
         }
     };
 
-    const handleContactCreated = (newContact: Contato) => {
-        setContatos([newContact, ...contatos]);
+    const handleContactSuccess = (contact: Contato, isNew: boolean) => {
+        if (isNew) {
+            setContatos([contact, ...contatos]);
+        } else {
+            setContatos(contatos.map(c =>
+                c.id === contact.id ? contact : c
+            ));
+        }
+    };
+
+    const openCreateModal = () => {
+        setContactToEditId(null);
+        setShowContactModal(true);
+    };
+
+    const openEditModal = (id: number) => {
+        setContactToEditId(id);
+        setShowContactModal(true);
     };
 
     const contatosFiltrados = contatos.filter(contato => {
@@ -508,7 +525,7 @@ export default function Contatos() {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
-                                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                                <Button variant="primary" onClick={openCreateModal}>
                                     + Novo Contato
                                 </Button>
                             </div>
@@ -564,6 +581,15 @@ export default function Contatos() {
                                                     Criado em: {new Date(contato.criado_em).toLocaleDateString('pt-BR')}
                                                 </small>
 
+                                                {/* NOVO BOTÃO DE EDIÇÃO */}
+                                                <Button
+                                                    variant="outline-warning"
+                                                    size="sm"
+                                                    onClick={() => openEditModal(contato.id)}
+                                                >
+                                                    Editar
+                                                </Button>
+
                                                 <Button
                                                     variant="danger"
                                                     size="sm"
@@ -591,10 +617,14 @@ export default function Contatos() {
                 </div>
             </div>
 
-            <CreateContactModal
-                show={showCreateModal}
-                onHide={() => setShowCreateModal(false)}
-                onContactCreated={handleContactCreated}
+            <ContactFormModal
+                show={showContactModal}
+                onHide={() => {
+                    setShowContactModal(false);
+                    setContactToEditId(null);
+                }}
+                contactId={contactToEditId}
+                onContactSuccess={handleContactSuccess}
             />
         </>
     );
