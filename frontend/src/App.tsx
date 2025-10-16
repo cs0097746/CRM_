@@ -130,7 +130,6 @@ const AppContent = () => {
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
             <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
             <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
-            {/* ✅ BOTÃO DE LOGOUT */}
             <hr />
             <Button 
               variant="outline-danger" 
