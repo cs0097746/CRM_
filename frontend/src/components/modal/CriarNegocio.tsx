@@ -27,21 +27,18 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
   const [titulo, setTitulo] = useState("");
   const [valor, setValor] = useState<number | undefined>();
   const [contatos, setContatos] = useState<Contato[]>([]);
-  const [presets, setPresets] = useState<PresetAtributos[]>([]); // Estado para os presets
+  const [presets, setPresets] = useState<PresetAtributos[]>([]);
   const [contatoSelecionado, setContatoSelecionado] = useState<Contato | null>(null);
-  const [presetSelecionado, setPresetSelecionado] = useState<PresetAtributos | null>(null); // Novo estado para o preset
-  const [isLoadingPresets, setIsLoadingPresets] = useState(true); // Estado de loading
+  const [presetSelecionado, setPresetSelecionado] = useState<PresetAtributos | null>(null);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(true);
 
-  // Efeito para buscar Contatos e Presets
   useEffect(() => {
     if (show) {
-      // 1. Busca de Contatos (já existia)
       axios
         .get(`${backend_url}contatos/`, { headers: { Authorization: `Bearer ${token}` } })
         .then((res) => setContatos(res.data.results))
         .catch((err) => console.error("Erro ao buscar contatos:", err));
 
-      // 2. NOVA: Busca de Presets
       setIsLoadingPresets(true);
       axios
         .get(`${backend_url}presets/`, { headers: { Authorization: `Bearer ${token}` } })
@@ -62,7 +59,6 @@ export function CriarNegocioModal({ estagioId, kanban, token, onCreated }: Criar
       return;
     }
 
-    // Estrutura de dados para enviar
     const negocioData = {
       titulo,
       valor,

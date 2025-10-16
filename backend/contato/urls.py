@@ -44,7 +44,8 @@ urlpatterns = [
     # ===== INTERAÇÕES/MENSAGENS =====
     path('conversas/<int:conversa_pk>/interacoes/', atendimento_views.InteracaoCreateView.as_view(), name='interacao_create'),
     path('mensagens/buscar/', atendimento_views.BuscarMensagensView.as_view(), name='buscar-mensagens'),
-    
+    path('atendimento-stats/', atendimento_views.atendimento_stats, name='atendimento_stats'),
+
     # ===== CRM/KANBAN =====
     path('estagios/<int:kanban_id>/', kanban_views.EstagioListView.as_view(), name='estagio_list'),
     path('estagios/<int:pk>/detail/', kanban_views.EstagioDetailView.as_view(), name='estagio_detail'),

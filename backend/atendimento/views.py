@@ -13,7 +13,7 @@ import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.db.models import Q
+from django.db.models import Q, F, Avg, Count, Min, Max
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -22,6 +22,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 
 # Imports de outros apps do seu projeto
 from core.models import ConfiguracaoSistema
@@ -1399,3 +1400,106 @@ def debug_webhook(request):
             'status': 'debug_error',
             'error': str(e)
         })
+
+@api_view(['GET'])
+def atendimento_stats(request):
+    agora = timezone.now()
+    hoje = agora.date()
+
+    total_conversas = Conversa.objects.count()
+    aguardando = Conversa.objects.filter(status='entrada').count()
+    em_andamento = Conversa.objects.filter(status='atendimento').count()
+    resolvidas_hoje = Conversa.objects.filter(finalizada_em__date=hoje).count()
+
+    primeiras = (
+        Interacao.objects
+        .values('conversa')
+        .annotate(
+            primeira_msg=Min('criado_em'),
+            primeira_resposta=Min('criado_em', filter=Q(operador__isnull=False))
+        )
+    )
+
+    tempos_resposta = []
+    for p in primeiras:
+        if p['primeira_msg'] and p['primeira_resposta']:
+            delta = (p['primeira_resposta'] - p['primeira_msg']).total_seconds() / 60
+            tempos_resposta.append(delta)
+
+    tempo_resposta_medio_min = round(sum(tempos_resposta) / len(tempos_resposta), 2) if tempos_resposta else 0
+    tempo_espera_max_min = round(max(tempos_resposta), 2) if tempos_resposta else 0
+
+    operadores = Operador.objects.all()
+    operadores_online = operadores.filter(status='online').count() if hasattr(Operador, 'status') else 0
+
+    operadores_perf = []
+    for op in operadores:
+        conversas_ativas = Conversa.objects.filter(operador=op, status='atendimento').count()
+        conversas_resolvidas = Conversa.objects.filter(operador=op, status='finalizada').count()
+
+        respostas = Interacao.objects.filter(operador=op)
+        medias = []
+        for r in respostas:
+            msg_anterior = (
+                Interacao.objects
+                .filter(conversa=r.conversa, criado_em__lt=r.criado_em, operador__isnull=True)
+                .order_by('-criado_em')
+                .first()
+            )
+            if msg_anterior:
+                diff = (r.criado_em - msg_anterior.criado_em).total_seconds() / 60
+                medias.append(diff)
+
+        tempo_medio_min = round(sum(medias) / len(medias), 2) if medias else 0
+
+        operadores_perf.append({
+            "id": op.id,
+            "nome": getattr(op, "nome", "Sem nome"),
+            "conversas_ativas": conversas_ativas,
+            "conversas_resolvidas": conversas_resolvidas,
+            "tempo_medio_min": tempo_medio_min,
+            "status": getattr(op, "status", "online")
+        })
+
+    distrib = Conversa.objects.values('status').annotate(total=Count('id'))
+    distrib_status = {
+        'entrada': next((d['total'] for d in distrib if d['status'] == 'entrada'), 0),
+        'atendimento': next((d['total'] for d in distrib if d['status'] == 'atendimento'), 0),
+        'resolvida': next((d['total'] for d in distrib if d['status'] == 'finalizada'), 0),
+    }
+
+    interacoes = (
+        Interacao.objects
+        .filter(criado_em__date=hoje)
+        .annotate(hora=F('criado_em__hour'))
+        .values('hora')
+        .annotate(conversas=Count('id'))
+        .order_by('hora')
+    )
+    atividade_por_hora = [
+        {"hora": f"{i['hora']:02d}:00", "conversas": i['conversas']}
+        for i in interacoes
+    ]
+
+    taxa_resolucao_percent = (
+        round((distrib_status['resolvida'] / total_conversas) * 100, 2)
+        if total_conversas else 0
+    )
+    pico = max(atividade_por_hora, key=lambda x: x['conversas'], default={"hora": "00:00", "conversas": 0})
+
+    data = {
+        "conversas_totais": total_conversas,
+        "conversas_aguardando": aguardando,
+        "conversas_em_andamento": em_andamento,
+        "conversas_resolvidas_hoje": resolvidas_hoje,
+        "tempo_resposta_medio_min": tempo_resposta_medio_min,
+        "tempo_espera_max_min": tempo_espera_max_min,
+        "operadores_online": operadores_online,
+        "taxa_resolucao_percent": taxa_resolucao_percent,
+        "pico_horario": pico,
+        "distribuicao_status": distrib_status,
+        "operadores_performance": operadores_perf,
+        "atividade_por_hora": atividade_por_hora,
+    }
+
+    return Response(data)
