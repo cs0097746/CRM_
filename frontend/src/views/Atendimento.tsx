@@ -3,6 +3,7 @@ import { Alert, Spinner, Button, ButtonGroup, Toast, ToastContainer } from 'reac
 import axios from 'axios';
 import type { Conversa, StatusConversa } from '../types/Conversa';
 import ChatWindow from '../components/ChatWindow';
+import ContatoInfo from '../components/ContatoInfo';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
 import { getToken } from "../function/validateToken.tsx";
@@ -482,13 +483,41 @@ export default function Atendimento() {
       ]);
 
       setConversaAtiva(conversaResponse.data);
-      setConversas(listResponse.data);
+      // @ts-ignore
+      setConversas(listResponse.data.results);
 
       showToastWithSound(`Status alterado para: ${getStatusText(novoStatus)}`, 'success', 'success');
     } catch (error) {
       console.error('Erro ao atualizar status da conversa:', error);
       setError('Erro ao atualizar status da conversa.');
       showToastWithSound('Erro ao atualizar status da conversa', 'danger', 'alert');
+    }
+  };
+
+  const handleTagsChange = async (newTags: string) => {
+    if (!conversaAtiva) return;
+
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
+      await api.patch(`conversas/${conversaAtiva.id}/`, { tags: newTags }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const [conversaResponse, listResponse] = await Promise.all([
+        api.get<Conversa>(`conversas/${conversaAtiva.id}/`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+
+      setConversaAtiva(conversaResponse.data);
+      // @ts-ignore
+      setConversas(listResponse.data.results);
+
+      showToastWithSound('Tags atualizadas com sucesso!', 'success', 'success');
+    } catch (error) {
+      console.error('Erro ao atualizar tags:', error);
+      showToastWithSound('Erro ao atualizar tags', 'danger', 'alert');
     }
   };
 
@@ -961,6 +990,14 @@ export default function Atendimento() {
               </div>
             )}
           </div>
+
+          {/* Painel Direito - Informações do Contato */}
+          {conversaAtiva && (
+            <ContatoInfo
+              conversa={conversaAtiva}
+              onTagsChange={handleTagsChange}
+            />
+          )}
         </div>
 
         {/* Toast */}

@@ -33,8 +33,6 @@ ALLOWED_HOSTS = [
     "crm.loomiecrm.com",
     "localhost",
     "127.0.0.1",
-    "a5ad08236761.ngrok-free.app",
-    "792d38fa1167.ngrok-free.app",
     "backend.localhost",
     "crm.localhost"
 ]

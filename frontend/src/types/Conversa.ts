@@ -60,6 +60,7 @@ export interface Conversa {
   assunto: string;
   origem: string;
   prioridade: string;
+  tags?: string | null;
   criado_em: string;
   atualizado_em: string;
   finalizada_em?: string | null;

@@ -68,6 +68,7 @@ class ConversaDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'contato', 'contato_nome', 'contato_telefone',
             'status', 'criado_em', 'atualizado_em', 'operador', 'operador_atual',
+            'tags', 'assunto', 'origem', 'prioridade',
             'interacoes'
         ]
     
@@ -104,7 +105,8 @@ class ConversaListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'contato', 'contato_nome', 'contato_telefone',
             'status', 'criado_em', 'atualizado_em',
-            'operador', 'operador_nome', 'ultima_mensagem'
+            'operador', 'operador_nome', 'ultima_mensagem',
+            'tags', 'assunto', 'origem', 'prioridade'
         ]
     
     def get_contato(self, obj):
