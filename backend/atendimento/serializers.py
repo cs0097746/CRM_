@@ -251,3 +251,42 @@ class ConversaCreateSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Contato é obrigatório")
         return value
+
+
+class ConversaUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para atualizar conversas (PATCH/PUT)"""
+    
+    class Meta:
+        model = Conversa
+        fields = [
+            'status', 'operador', 'assunto', 'origem', 
+            'prioridade', 'tags', 'finalizada_em'
+        ]
+        extra_kwargs = {
+            'status': {'required': False},
+            'operador': {'required': False},
+            'assunto': {'required': False},
+            'origem': {'required': False},
+            'prioridade': {'required': False},
+            'tags': {'required': False},
+            'finalizada_em': {'required': False}
+        }
+    
+    def validate_status(self, value):
+        """Validar status"""
+        valid_statuses = ['entrada', 'atendimento', 'pendente', 'finalizada', 'perdida']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(
+                f"Status inválido. Opções: {', '.join(valid_statuses)}"
+            )
+        return value
+    
+    def update(self, instance, validated_data):
+        """Atualizar conversa com lógica adicional"""
+        # Se status mudou para finalizada, registrar data
+        if validated_data.get('status') == 'finalizada' and instance.status != 'finalizada':
+            validated_data['finalizada_em'] = timezone.now()
+        elif validated_data.get('status') != 'finalizada':
+            validated_data['finalizada_em'] = None
+            
+        return super().update(instance, validated_data)

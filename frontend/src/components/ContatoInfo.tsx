@@ -139,12 +139,17 @@ export default function ContatoInfo({ conversa, onTagsChange }: ContatoInfoProps
                   <Badge 
                     bg={
                       conversa.status === 'entrada' ? 'danger' :
-                      conversa.status === 'atendimento' ? 'warning' : 'success'
+                      conversa.status === 'atendimento' ? 'warning' :
+                      conversa.status === 'pendente' ? 'info' :
+                      conversa.status === 'finalizada' ? 'success' : 'secondary'
                     }
                     style={{ fontSize: '11px', padding: '6px 12px' }}
                   >
                     {conversa.status === 'entrada' ? '⏳ Aguardando' :
-                     conversa.status === 'atendimento' ? '💬 Em Atendimento' : '✅ Resolvida'}
+                     conversa.status === 'atendimento' ? '💬 Em Atendimento' :
+                     conversa.status === 'pendente' ? '⏸️ Pendente' :
+                     conversa.status === 'finalizada' ? '✅ Finalizada' :
+                     conversa.status === 'perdida' ? '❌ Perdida' : conversa.status}
                   </Badge>
                 </div>
               </ListGroup.Item>

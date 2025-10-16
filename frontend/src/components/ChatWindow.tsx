@@ -357,7 +357,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               <span className={`chat-status status-${conversa.status}`}>
                 {conversa.status === 'entrada' && 'Aguardando'}
                 {conversa.status === 'atendimento' && 'Em Atendimento'}
-                {conversa.status === 'resolvida' && 'Resolvida'}
+                {conversa.status === 'finalizada' && 'Finalizada'}
               </span>
             </div>
           </div>
@@ -417,14 +417,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               value={novaMensagem}
               onChange={handleChange}
               onKeyPress={handleKeyPress}
-              disabled={enviando || conversa.status === 'resolvida'}
+              disabled={enviando || conversa.status === 'finalizada'}
               maxLength={1000}
             />
             
             <button
               className="send-button-inline"
               onClick={enviarMensagem}
-              disabled={!novaMensagem.trim() || enviando || conversa.status === 'resolvida'}
+              disabled={!novaMensagem.trim() || enviando || conversa.status === 'finalizada'}
             >
               {enviando ? (
                 <Spinner animation="border" size="sm" style={{ width: '14px', height: '14px' }} />

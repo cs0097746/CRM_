@@ -1,6 +1,6 @@
 // frontend/src/types/Conversa.ts - CORRIGIR COMPLETAMENTE:
 
-export type StatusConversa = 'entrada' | 'atendimento' | 'resolvida';
+export type StatusConversa = 'entrada' | 'atendimento' | 'pendente' | 'finalizada' | 'perdida';
 
 // ✅ INTERFACE CONTATO
 export interface Contato {

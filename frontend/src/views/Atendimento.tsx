@@ -265,10 +265,16 @@ export default function Atendimento() {
       box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
     }
 
-    .status-resolvida {
+    .status-finalizada {
       background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(56, 142, 60, 0.15) 100%);
       color: #2e7d32;
       box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+    }
+    
+    .status-pendente {
+      background: linear-gradient(135deg, rgba(156, 39, 176, 0.15) 0%, rgba(123, 31, 162, 0.15) 100%);
+      color: #6a1b9a;
+      box-shadow: 0 2px 8px rgba(156, 39, 176, 0.2);
     }
 
     .action-button {
@@ -525,7 +531,9 @@ export default function Atendimento() {
     switch (status) {
       case 'entrada': return 'Aguardando';
       case 'atendimento': return 'Em Atendimento';
-      case 'resolvida': return 'Resolvida';
+      case 'pendente': return 'Pendente';
+      case 'finalizada': return 'Finalizada';
+      case 'perdida': return 'Perdida';
       default: return status;
     }
   };
@@ -630,7 +638,7 @@ export default function Atendimento() {
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text'
                 }}>
-                  CRM Professional
+                  Loomie
                 </h5>
                 <small style={{
                   color: '#6c757d',
@@ -761,10 +769,10 @@ export default function Atendimento() {
                   Atendimento
                 </button>
                 <button
-                  className={`filter-tab ${filtroStatus === 'resolvida' ? 'active' : ''}`}
-                  onClick={() => setFiltroStatus('resolvida')}
+                  className={`filter-tab ${filtroStatus === 'finalizada' ? 'active' : ''}`}
+                  onClick={() => setFiltroStatus('finalizada')}
                 >
-                  Resolvidas
+                  Finalizadas
                 </button>
               </div>
 
@@ -929,11 +937,11 @@ export default function Atendimento() {
                           Atendimento
                         </Button>
                         <Button
-                          variant={conversaAtiva.status === 'resolvida' ? 'success' : 'outline-success'}
-                          onClick={() => handleStatusChange('resolvida')}
+                          variant={conversaAtiva.status === 'finalizada' ? 'success' : 'outline-success'}
+                          onClick={() => handleStatusChange('finalizada')}
                           style={{ fontSize: '12px' }}
                         >
-                          Resolvida
+                          Finalizada
                         </Button>
                       </ButtonGroup>
                     </div>

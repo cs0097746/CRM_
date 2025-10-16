@@ -374,8 +374,14 @@ class ConversaDetailView(generics.RetrieveUpdateAPIView):
     queryset = Conversa.objects.all().prefetch_related(
         'interacoes__operador__user'
     )
-    serializer_class = ConversaDetailSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usar serializer apropriado baseado no método HTTP"""
+        if self.request.method in ['PATCH', 'PUT']:
+            from .serializers import ConversaUpdateSerializer
+            return ConversaUpdateSerializer
+        return ConversaDetailSerializer
     
     def get_serializer_context(self):
         """✅ GARANTIR request context para URLs completas"""
