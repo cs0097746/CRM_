@@ -7,9 +7,16 @@ export interface Contato {
   id: number;
   nome: string;
   telefone?: string | null;
-  email?: string;
+  email?: string | null;
+  whatsapp_id?: string | null;
   empresa?: string | null;
   cargo?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  data_nascimento?: string | null;
+  observacoes?: string | null;
   criado_em: string;
   atualizado_em: string;
 }

@@ -58,6 +58,8 @@ class InteracaoSerializer(serializers.ModelSerializer):
         return data
 
 class ConversaDetailSerializer(serializers.ModelSerializer):
+    contato = ContatoSerializer(read_only=True)  # ✅ EXPANDIR dados completos do contato
+    operador = OperadorSerializer(read_only=True)  # ✅ EXPANDIR dados do operador
     interacoes = serializers.SerializerMethodField()
     contato_nome = serializers.CharField(source='contato.nome', read_only=True)
     contato_telefone = serializers.CharField(source='contato.telefone', read_only=True)
@@ -68,7 +70,7 @@ class ConversaDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'contato', 'contato_nome', 'contato_telefone',
             'status', 'criado_em', 'atualizado_em', 'operador', 'operador_atual',
-            'tags', 'assunto', 'origem', 'prioridade',
+            'tags', 'assunto', 'origem', 'prioridade', 'finalizada_em',
             'interacoes'
         ]
     

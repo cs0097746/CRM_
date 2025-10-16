@@ -373,7 +373,7 @@ class ConversaDetailView(generics.RetrieveUpdateAPIView):
     """
     queryset = Conversa.objects.all().prefetch_related(
         'interacoes__operador__user'
-    )
+    ).select_related('contato', 'operador__user')  # ✅ Otimizar queries
     permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
@@ -388,6 +388,22 @@ class ConversaDetailView(generics.RetrieveUpdateAPIView):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+    
+    def update(self, request, *args, **kwargs):
+        """
+        ✅ Sobrescrever update para retornar dados completos após PATCH/PUT
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Usar ConversaUpdateSerializer para validar e salvar
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        # ✅ RETORNAR dados completos usando ConversaDetailSerializer
+        detail_serializer = ConversaDetailSerializer(instance, context=self.get_serializer_context())
+        return Response(detail_serializer.data)
     
 
 class InteracaoListView(generics.ListAPIView):
