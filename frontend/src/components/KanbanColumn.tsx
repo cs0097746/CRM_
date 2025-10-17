@@ -11,9 +11,20 @@ interface KanbanColumnProps {
   negocios: Negocio[];
   token: string;
   onNegocioCreated: () => void;
+  onNegocioUpdate: (updatedNegocio: Negocio) => void;
+  onNegocioDelete: (negocioId: number) => void;
+  onCustomAttributeChange: (negocioId: number, attribute: string, value: any) => void;
 }
 
-export default function KanbanColumn({ estagio, negocios, token, onNegocioCreated }: KanbanColumnProps) {
+export default function KanbanColumn({
+    estagio,
+    negocios,
+    token,
+    onNegocioCreated,
+    onNegocioUpdate,
+    onNegocioDelete,
+    onCustomAttributeChange
+}: KanbanColumnProps) {
 
     return (
     <div className="col-12 col-sm-6 col-md-4 col-lg-3 mb-3">
@@ -85,7 +96,14 @@ export default function KanbanColumn({ estagio, negocios, token, onNegocioCreate
             >
               {negocios.length > 0 ? (
                 negocios.map((negocio, index) => (
-                  <KanbanTask key={negocio.id} negocio={negocio} index={index} />
+                  <KanbanTask
+                    key={negocio.id}
+                    negocio={negocio}
+                    index={index}
+                    onNegocioUpdate={onNegocioUpdate}
+                    onNegocioDelete={onNegocioDelete}
+                    onCustomAttributeChange={onCustomAttributeChange}
+                  />
                 ))
               ) : (
                 <p
