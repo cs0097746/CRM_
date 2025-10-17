@@ -3,6 +3,8 @@ from .models import AtributoPersonalizavel, TypeChoices, PresetAtributos
 
 class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     arquivo = serializers.FileField(required=False, allow_null=True)
+    label = serializers.CharField(required=False, allow_blank=True)
+    valor = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = AtributoPersonalizavel
