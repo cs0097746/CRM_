@@ -18,8 +18,9 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        tipo = data.get('type')
-        arquivo = data.get('arquivo')
+        instance = getattr(self, 'instance', None)
+        tipo = data.get('type', getattr(instance, 'type', None))
+        arquivo = data.get('arquivo', getattr(instance, 'arquivo', None))
 
         if tipo == TypeChoices.FILE and not arquivo:
             raise serializers.ValidationError("O campo 'arquivo' é obrigatório quando type='file'.")
