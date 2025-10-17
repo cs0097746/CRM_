@@ -3,6 +3,8 @@ from .models import AtributoPersonalizavel, TypeChoices, PresetAtributos
 
 class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     arquivo = serializers.FileField(required=False, allow_null=True)
+    label = serializers.CharField(required=False, allow_blank=True)
+    valor = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = AtributoPersonalizavel
@@ -18,8 +20,9 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        tipo = data.get('type')
-        arquivo = data.get('arquivo')
+        instance = getattr(self, 'instance', None)
+        tipo = data.get('type', getattr(instance, 'type', None))
+        arquivo = data.get('arquivo', getattr(instance, 'arquivo', None))
 
         if tipo == TypeChoices.FILE and not arquivo:
             raise serializers.ValidationError("O campo 'arquivo' é obrigatório quando type='file'.")
@@ -27,6 +30,19 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
             data['arquivo'] = None
 
         return data
+
+    def update(self, instance, validated_data):
+        new_label = validated_data.get('label', None)
+        if new_label is not None:
+            if not new_label or (isinstance(new_label, str) and new_label.strip() == "") or new_label == instance.label:
+                validated_data.pop('label', None)
+
+        new_valor = validated_data.get('valor', None)
+        if new_valor is not None:
+            if not new_valor or (isinstance(new_valor, str) and new_valor.strip() == "") or new_valor == instance.valor:
+                validated_data.pop('valor', None)
+
+        return super().update(instance, validated_data)
 
 class PresetAtributosSerializer(serializers.ModelSerializer):
     atributos = AtributoPersonalizavelSerializer(many=True)
