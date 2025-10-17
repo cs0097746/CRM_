@@ -16,10 +16,52 @@ const ConfiguracaoSistema: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [webhookConfigurado, setWebhookConfigurado] = useState(false);
 
   useEffect(() => {
     fetchConfig();
   }, []);
+
+  // 🔗 Auto-configurar webhook quando entrar na tela
+  useEffect(() => {
+    const configurarWebhookAutomatico = async () => {
+      // Só executar uma vez
+      if (webhookConfigurado) return;
+      
+      // Aguardar config carregar
+      if (!config.evolution_api_url || !config.evolution_api_key || !config.whatsapp_instance_name) {
+        return;
+      }
+      
+      try {
+        const webhookUrl = `${config.evolution_api_url}/webhook/set/${config.whatsapp_instance_name}`;
+        
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'apikey': config.evolution_api_key,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            webhook: {
+              enabled: true,
+              url: "https://backend.loomiecrm.com/webhook/evolution/",
+              events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"]
+            }
+          })
+        });
+        
+        if (response.ok) {
+          console.log('✅ Webhook configurado automaticamente!');
+          setWebhookConfigurado(true);
+        }
+      } catch (error) {
+        console.log('⚠️ Não foi possível configurar webhook automaticamente:', error);
+      }
+    };
+    
+    configurarWebhookAutomatico();
+  }, [config, webhookConfigurado]);
 
   const fetchConfig = async () => {
     try {
