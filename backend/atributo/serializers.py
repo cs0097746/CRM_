@@ -32,13 +32,13 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         new_label = validated_data.get('label', None)
         if new_label is not None:
-            if new_label.strip() == "" or new_label == instance.label:
-                validated_data.pop('label')
+            if not new_label or (isinstance(new_label, str) and new_label.strip() == "") or new_label == instance.label:
+                validated_data.pop('label', None)
 
         new_valor = validated_data.get('valor', None)
         if new_valor is not None:
-            if (isinstance(new_valor, str) and new_valor.strip() == "") or new_valor == instance.valor:
-                validated_data.pop('valor')
+            if not new_valor or (isinstance(new_valor, str) and new_valor.strip() == "") or new_valor == instance.valor:
+                validated_data.pop('valor', None)
 
         return super().update(instance, validated_data)
 
