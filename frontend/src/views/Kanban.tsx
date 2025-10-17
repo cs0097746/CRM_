@@ -67,12 +67,20 @@ export default function Kanban() {
 
       const negocioId = Number(draggableId);
       const novoEstagioId = Number(destination.droppableId);
+      const novoEstagio = estagios.find(e => e.id === novoEstagioId);
       const originalNegocio = negocios.find(n => n.id === negocioId);
 
       setNegocios((prev) =>
         prev.map((n) =>
           n.id === negocioId
-            ? { ...n, estagio: { ...n.estagio, id: novoEstagioId } }
+            ? {
+                ...n,
+                estagio: {
+                    ...n.estagio,
+                    id: novoEstagioId,
+                    nome: novoEstagio ? novoEstagio.nome : n.estagio.nome
+                }
+              }
             : n
         )
       );
