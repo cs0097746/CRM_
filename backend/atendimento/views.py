@@ -406,6 +406,76 @@ class ConversaDetailView(generics.RetrieveUpdateAPIView):
         return Response(detail_serializer.data)
     
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_atendimento_humano(request, conversa_id):
+    """
+    🤖 Ativa/Desativa o atendimento humano (pausa o bot por 15 minutos)
+    
+    POST /conversas/<id>/atendimento-humano/
+    Body:
+    {
+        "ativar": true  // true = ligar (15 min), false = desligar imediatamente
+    }
+    
+    Resposta:
+    {
+        "success": true,
+        "atendimento_humano": true,
+        "atendimento_humano_ate": "2025-10-18T15:30:00Z",
+        "mensagem": "Atendimento humano ativado por 15 minutos"
+    }
+    """
+    from datetime import timedelta
+    from tarefas.tasks import desativar_atendimento_humano
+    
+    try:
+        conversa = Conversa.objects.get(id=conversa_id)
+        ativar = request.data.get('ativar', True)
+        
+        if ativar:
+            # ✅ ATIVAR: Bot pausado por 15 minutos
+            conversa.atendimento_humano = True
+            conversa.atendimento_humano_ate = timezone.now() + timedelta(minutes=15)
+            conversa.save()
+            
+            # 🕐 Agendar tarefa para desativar após 15 minutos
+            desativar_atendimento_humano.apply_async(
+                args=[conversa_id],
+                countdown=15 * 60  # 15 minutos em segundos
+            )
+            
+            return Response({
+                'success': True,
+                'atendimento_humano': True,
+                'atendimento_humano_ate': conversa.atendimento_humano_ate.isoformat(),
+                'mensagem': '🤖 Bot pausado! Atendimento humano ativo por 15 minutos'
+            })
+        else:
+            # ❌ DESATIVAR: Bot volta imediatamente
+            conversa.atendimento_humano = False
+            conversa.atendimento_humano_ate = None
+            conversa.save()
+            
+            return Response({
+                'success': True,
+                'atendimento_humano': False,
+                'atendimento_humano_ate': None,
+                'mensagem': '✅ Bot reativado! Atendimento humano desativado'
+            })
+            
+    except Conversa.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Conversa não encontrada'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 class InteracaoListView(generics.ListAPIView):
     """
     ✅ API: Lista interações com URLs locais
@@ -1104,6 +1174,9 @@ def enviar_mensagem_view(request):
 
         if resultado['success']:
             # ✅ Salvar no CRM se conversa_id fornecido
+            atendimento_humano_ativo = False  # 🤖 Estado do bot para o n8n
+            atendimento_humano_ate = None
+            
             if conversa_id:
                 try:
                     conversa = Conversa.objects.get(id=conversa_id)
@@ -1121,6 +1194,10 @@ def enviar_mensagem_view(request):
                     conversa.atualizado_em = timezone.now()
                     conversa.save()
                     
+                    # 🤖 PEGAR estado do atendimento humano para enviar ao n8n
+                    atendimento_humano_ativo = conversa.atendimento_humano
+                    atendimento_humano_ate = conversa.atendimento_humano_ate.isoformat() if conversa.atendimento_humano_ate else None
+                    
                     logger.info("💾 Interação salva no CRM e conversa atualizada")
                 except Exception as e:
                     logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
@@ -1130,7 +1207,9 @@ def enviar_mensagem_view(request):
                 'message': 'Mensagem enviada com sucesso',
                 'data': resultado['data'],
                 'whatsapp_id': resultado.get('whatsapp_id'),
-                'status': resultado.get('status', 'pending')
+                'status': resultado.get('status', 'pending'),
+                'atendimento_humano': atendimento_humano_ativo,  # 🤖 Para o n8n saber se bot está pausado
+                'atendimento_humano_ate': atendimento_humano_ate  # 🤖 Quando o bot volta
             })
         else:
             return Response({

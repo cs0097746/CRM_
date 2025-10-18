@@ -366,27 +366,6 @@ export default function Atendimento() {
       }
     }, []);
 
-  const criarChamadoTeste = async () => {
-    try {
-      const token = await getToken();
-      if (!token) throw new Error("Não foi possível autenticar.");
-
-      await api.patch('conversas/1/', {
-        operador_id: null,
-        status: 'entrada'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      showToastWithSound('Chamado de teste criado', 'success', 'success');
-      await fetchConversas();
-    } catch (error) {
-      console.error('Erro ao criar chamado teste:', error);
-      showToastWithSound('Erro ao criar chamado de teste', 'danger', 'alert');
-    }
-  };
-
-
   const pegarProximoChamado = useCallback(async () => {
     if (pegandoChamado) return;
 
@@ -427,6 +406,46 @@ export default function Atendimento() {
       setPegandoChamado(false);
     }
   }, [conversas, pegandoChamado]);
+
+  // 🤖 Toggle Atendimento Humano (pausa o bot por 15 minutos)
+  const toggleAtendimentoHumano = async (ativar: boolean) => {
+    if (!conversaAtiva) return;
+
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Não foi possível autenticar.");
+
+      const response = await api.post(
+        `conversas/${conversaAtiva.id}/atendimento-humano/`,
+        { ativar },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        // Atualizar o estado local da conversa
+        const conversaAtualizada = {
+          ...conversaAtiva,
+          atendimento_humano: response.data.atendimento_humano,
+          atendimento_humano_ate: response.data.atendimento_humano_ate
+        };
+        setConversaAtiva(conversaAtualizada);
+
+        // Atualizar na lista de conversas
+        setConversas(conversas.map(c =>
+          c.id === conversaAtiva.id ? conversaAtualizada : c
+        ));
+
+        const mensagem = ativar
+          ? '🤖 Bot pausado! Atendimento humano ativo por 15 minutos'
+          : '✅ Bot reativado! Atendimento automático retomado';
+        
+        showToastWithSound(mensagem, 'success', 'success');
+      }
+    } catch (error) {
+      console.error('Erro ao alternar atendimento humano:', error);
+      showToastWithSound('Erro ao alternar modo de atendimento', 'danger', 'alert');
+    }
+  };
 
   const handleConversaSelect = async (conversa: Conversa) => {
     try {
@@ -723,9 +742,6 @@ export default function Atendimento() {
                   {chamadosAguardando > 0 && (
                     <span className="notification-badge">{chamadosAguardando}</span>
                   )}
-                  <button className="action-button secondary" onClick={criarChamadoTeste}>
-                    Teste
-                  </button>
                   <button
                     className="action-button"
                     onClick={pegarProximoChamado}
@@ -944,6 +960,35 @@ export default function Atendimento() {
                           Finalizada
                         </Button>
                       </ButtonGroup>
+                      
+                      {/* 🤖 Botão Toggle Atendimento Humano */}
+                      <Button
+                        variant={conversaAtiva.atendimento_humano ? 'primary' : 'outline-secondary'}
+                        size="sm"
+                        onClick={() => toggleAtendimentoHumano(!conversaAtiva.atendimento_humano)}
+                        className="ms-2"
+                        style={{ 
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          padding: '6px 12px'
+                        }}
+                        title={conversaAtiva.atendimento_humano 
+                          ? 'Bot pausado - Clique para reativar'
+                          : 'Bot ativo - Clique para pausar por 15 minutos'
+                        }
+                      >
+                        {conversaAtiva.atendimento_humano ? (
+                          <>
+                            <i className="bi bi-person-fill me-1"></i>
+                            Humano Ativo
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-robot me-1"></i>
+                            Bot Ativo
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>

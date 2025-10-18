@@ -89,3 +89,33 @@ def enviar_webhook_task(destinatario, assunto, link_webhook_n8n, codigo=None):
     print("Assunto", assunto)
 
     chamar_webhook_n8n(link_webhook_n8n, "webhook", destinatario, codigo, assunto)
+
+
+@shared_task
+def desativar_atendimento_humano(conversa_id):
+    """
+    🤖 Tarefa agendada para desativar o atendimento humano após 15 minutos
+    Esta tarefa é executada automaticamente pelo Celery
+    """
+    from atendimento.models import Conversa
+    
+    try:
+        conversa = Conversa.objects.get(id=conversa_id)
+        
+        # Verificar se ainda está em atendimento humano
+        if conversa.atendimento_humano:
+            # Verificar se o tempo expirou
+            if conversa.atendimento_humano_ate and timezone.now() >= conversa.atendimento_humano_ate:
+                conversa.atendimento_humano = False
+                conversa.atendimento_humano_ate = None
+                conversa.save()
+                print(f"✅ Bot reativado automaticamente para conversa {conversa_id}")
+            else:
+                print(f"⚠️ Atendimento humano ainda ativo para conversa {conversa_id}")
+        else:
+            print(f"ℹ️ Atendimento humano já estava desativado para conversa {conversa_id}")
+            
+    except Conversa.DoesNotExist:
+        print(f"❌ Conversa {conversa_id} não encontrada")
+    except Exception as e:
+        print(f"❌ Erro ao desativar atendimento humano: {e}")
