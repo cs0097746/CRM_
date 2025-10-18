@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import axios from "axios";
 import backend_url, { CLIENT_ID, CLIENT_SECRET } from "../config/env.ts";
-import {logout} from "../function/validateToken.tsx";
+import { logout } from "../function/validateToken.tsx";
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -11,9 +11,11 @@ interface LoginFormProps {
 export function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,12 +37,10 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("refresh_token", refresh_token);
       localStorage.setItem("access_token_time", String(Date.now()));
-
       localStorage.setItem("user", JSON.stringify({ username }));
 
       console.log("✅ Login realizado com sucesso!");
       setSuccess("Login realizado com sucesso!");
-
       setTimeout(() => onLoginSuccess(), 1000);
     } catch (err: any) {
       console.error("❌ Erro no login:", err);
@@ -51,32 +51,36 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
     }
   };
 
-  const criarUsuarioTeste = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
+    try {
       const res = await fetch(`${backend_url}auth/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "testuser",
-          password: "test123",
-          email: "test@test.com",
+          username,
+          password,
+          email,
         }),
       });
 
       const data = await res.json();
       if (data.success) {
-        setUsername("testuser");
-        setPassword("test123");
-        setSuccess("✅ Usuário teste criado! Use: testuser / test123");
+        setSuccess("✅ Usuário registrado com sucesso! Faça login.");
+        setIsRegisterMode(false);
+        setUsername("");
+        setPassword("");
+        setEmail("");
       } else {
-        setError(data.message || "Erro ao criar usuário teste");
+        setError(data.message || "Erro ao registrar usuário");
       }
     } catch (err) {
-      console.error("💥 Erro ao criar usuário teste:", err);
-      setError("Erro ao criar usuário teste");
+      console.error("💥 Erro ao registrar usuário:", err);
+      setError("Erro ao registrar usuário");
     } finally {
       setLoading(false);
     }
@@ -96,7 +100,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
               {error && <Alert variant="danger" className="mb-3">❌ {error}</Alert>}
               {success && <Alert variant="success" className="mb-3">{success}</Alert>}
 
-              <Form onSubmit={handleLogin}>
+              <Form onSubmit={isRegisterMode ? handleRegister : handleLogin}>
                 <Form.Group className="mb-3">
                   <Form.Label>👤 Usuário</Form.Label>
                   <Form.Control
@@ -121,35 +125,41 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   />
                 </Form.Group>
 
+                {isRegisterMode && (
+                  <Form.Group className="mb-3">
+                    <Form.Label>📧 Email</Form.Label>
+                    <Form.Control
+                      type="email"
+                      placeholder="Digite seu email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </Form.Group>
+                )}
+
                 <div className="d-grid gap-2">
                   <Button variant="primary" type="submit" disabled={loading} size="lg">
                     {loading ? (
                       <>
                         <Spinner as="span" animation="border" size="sm" role="status" className="me-2" />
-                        Entrando...
+                        {isRegisterMode ? "Registrando..." : "Entrando..."}
                       </>
                     ) : (
-                      "🔑 Entrar"
+                      isRegisterMode ? "📝 Registrar" : "🔑 Entrar"
                     )}
                   </Button>
 
                   <Button
                     variant="outline-secondary"
-                    onClick={criarUsuarioTeste}
+                    onClick={() => setIsRegisterMode(!isRegisterMode)}
                     disabled={loading}
                   >
-                    👤 Criar Usuário Teste
+                    {isRegisterMode ? "🔙 Voltar para Login" : "📝 Registrar-se"}
                   </Button>
                 </div>
               </Form>
-
-              <div className="text-center mt-3">
-                <small className="text-muted">
-                  💡 Primeiro clique em "Criar Usuário Teste"
-                  <br />
-                  Depois use: <strong>testuser</strong> / <strong>test123</strong>
-                </small>
-              </div>
             </Card.Body>
           </Card>
         </Col>
