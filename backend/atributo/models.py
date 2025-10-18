@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import TextChoices
 from datetime import datetime
@@ -27,6 +28,7 @@ class AtributoPersonalizavel(models.Model):
         choices=TypeChoices.choices,
         default=TypeChoices.STRING
     )
+    criado_por = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return f"{self.label}: {self.valor or self.arquivo or ''} ({self.type})"
@@ -57,6 +59,7 @@ class PresetAtributos(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(blank=True, null=True)
     atributos = models.ManyToManyField(AtributoPersonalizavel, related_name='presets', blank=True)
+    criado_por = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return self.nome

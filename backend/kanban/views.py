@@ -13,35 +13,36 @@ from negocio.serializers import NegocioSerializer
 
 class EstagioListView(generics.ListCreateAPIView):
     """API: Lista estágios"""
-    queryset = Estagio.objects.all()
     serializer_class = EstagioSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         kanban_id = self.kwargs.get("kanban_id")
-        return Estagio.objects.filter(kanban_id=kanban_id)
+        return Estagio.objects.filter(kanban__id=kanban_id, kanban__criado_por=self.request.user)
 
-    def post(self, request, *args, **kwargs):
+    def perform_create(self, serializer):
         kanban_id = self.kwargs.get("kanban_id")
-        kanban = get_object_or_404(Kanban, id=kanban_id)
-
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(kanban=kanban)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        kanban = get_object_or_404(Kanban, id=kanban_id, criado_por=self.request.user)
+        serializer.save(kanban=kanban)
 
 class EstagioDetailView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalhe, update e delete de estágio"""
-    queryset = Estagio.objects.all()
     serializer_class = EstagioSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return Estagio.objects.filter(kanban__criado_por=self.request.user)
+
 class KanbanListView(generics.ListCreateAPIView):
     """API: Lista kanban"""
-    queryset = Kanban.objects.all()
     serializer_class = KanbanSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Kanban.objects.filter(criado_por=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(criado_por=self.request.user)
 
 class KanbanUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalha e atualiza kanban"""

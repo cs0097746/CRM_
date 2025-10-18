@@ -43,7 +43,6 @@ from atendimento.utils import get_instance_config
 
 class ContatoListCreateView(generics.ListCreateAPIView):
     """API: Listar e criar contatos"""
-    queryset = Contato.objects.all()
     serializer_class = ContatoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -51,11 +50,21 @@ class ContatoListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['nome', 'criado_em']
     ordering = ['nome']
 
+    def get_queryset(self):
+        user = self.request.user
+        return Contato.objects.filter(criado_por=user)
+
+    def perform_create(self, serializer):
+        serializer.save(criado_por=self.request.user)
+
 class ContatoDetailView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalhar, atualizar e deletar contato"""
-    queryset = Contato.objects.all()
     serializer_class = ContatoSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Contato.objects.filter(criado_por=user)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
