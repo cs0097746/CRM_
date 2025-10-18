@@ -1,6 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
 import AtendimentoDashboard from './views/AtendimentoDashboard';
@@ -8,6 +8,7 @@ import { LoginForm } from './components/LoginForm';
 import ConfiguracaoSistema from './views/ConfiguracaoSistema';
 import TestePage from './views/TestePage';
 import ConfiguracaoWhatsApp from './views/ConfiguracaoWhatsApp';
+import {useAuthValidation} from "./function/useAuthValidation.tsx";
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -35,20 +36,7 @@ const AppContent = () => {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      console.log('✅ Usuário já logado');
-      setIsLoggedIn(true);
-    } else {
-      console.log('❌ Usuário não logado');
-      setIsLoggedIn(false);
-    }
-    
-    setLoading(false);
-  }, []);
+  useAuthValidation(setIsLoggedIn, setLoading);
 
   const handleCloseNav = () => setShowNav(false);
   const handleShowNav = () => setShowNav(true);
