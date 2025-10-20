@@ -294,7 +294,10 @@ def criar_subordinado(request):
         usuarios_inclusos = User.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
 
         if usuarios_inclusos >= limite_usuarios:
-            raise ValidationError(f"Limite de {limite_usuarios} usuários atingido para este plano.")
+            return Response(
+                {'error': f"Limite de {limite_usuarios} usuários atingido para este plano."},
+                status=400
+            )
 
         user, created = User.objects.get_or_create(
             username=username,

@@ -68,10 +68,47 @@ export default function CriarUsuarioView() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         console.error('💥 Erro na requisição:', err.response?.data || err.message);
-        if (err.response?.status === 401) {
-          setError("Não autorizado. Seu token expirou ou você não tem permissão.");
+
+        const errorResponse = err.response;
+
+        if (errorResponse) {
+            if (errorResponse.status === 400) {
+                const errorData = errorResponse.data;
+                let errorMessage = "Erro de validação nos dados fornecidos.";
+
+                if (errorData.error && typeof errorData.error === 'string') {
+                    const cleanMessage = errorData.error.replace(/Erro interno: \[ErrorDetail\(string='|', code='invalid'\)\]/g, '').trim();
+                    errorMessage = cleanMessage;
+                }
+                else if (typeof errorData === 'string' && errorData) {
+                    errorMessage = errorData;
+                }
+                else if (Array.isArray(errorData) && errorData.length > 0 && typeof errorData[0] === 'string') {
+                    errorMessage = errorData[0];
+                }
+                else if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                }
+                else if (Object.keys(errorData).length > 0) {
+                    const firstKey = Object.keys(errorData)[0];
+                    const firstError = errorData[firstKey];
+
+                    if (Array.isArray(firstError) && firstError.length > 0) {
+                        errorMessage = `Campo "${firstKey}": ${firstError[0]}`;
+                    } else if (typeof firstError === 'string') {
+                        errorMessage = `Campo "${firstKey}": ${firstError}`;
+                    }
+                }
+
+                setError(errorMessage);
+            }
+            else if (errorResponse.status === 401) {
+              setError("Não autorizado. Seu token expirou ou você não tem permissão.");
+            } else {
+              setError(`Erro do servidor (${errorResponse.status}). Tente novamente mais tarde.`);
+            }
         } else {
-          setError(`Erro de rede ou servidor: ${err.message}.`);
+            setError(`Erro de rede ou servidor: ${err.message}.`);
         }
       } else if (err instanceof Error) {
         console.error('💥 Erro genérico:', err);

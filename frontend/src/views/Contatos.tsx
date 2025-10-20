@@ -267,9 +267,22 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
 
         } catch (err) {
             const defaultMessage = isEditMode ? 'Não foi possível atualizar o contato.' : 'Não foi possível criar o contato.';
-            const errorMessage = axios.isAxiosError(err) && err.response?.data?.detail
-                ? err.response.data.detail
-                : defaultMessage + ' Verifique os dados e a conexão com a API.';
+            let errorMessage = defaultMessage + ' Verifique os dados e a conexão com a API.';
+
+            if (axios.isAxiosError(err) && err.response) {
+                const errorData = err.response.data;
+
+                if (Array.isArray(errorData) && errorData.length > 0 && typeof errorData[0] === 'string') {
+                    errorMessage = errorData[0];
+                }
+                else if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                }
+                else if (errorData.non_field_errors && errorData.non_field_errors.length > 0) {
+                    errorMessage = errorData.non_field_errors[0];
+                }
+            }
+
             setError(errorMessage);
             console.error(`Erro ao ${isEditMode ? 'atualizar' : 'criar'} contato:`, err);
         } finally {

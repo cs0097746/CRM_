@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import type { Kanban } from "../types/Kanban.ts";
 import backend_url from "../config/env.ts";
-import { Container, Row, Col, Card, Button, Modal, Form, Badge, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Modal, Form, Badge, Spinner, Alert } from 'react-bootstrap';
 import {getToken} from "../function/validateToken.tsx";
 
-// Estilos Profissionais
 const styles = `
     .kanbans-container {
         min-height: 100vh;
@@ -76,6 +75,7 @@ export default function Kanbans() {
   const [editingKanban, setEditingKanban] = useState<Kanban | null>(null);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const api = axios.create({ baseURL: `${backend_url}` });
 
@@ -111,12 +111,15 @@ export default function Kanbans() {
       setNome("");
       setDescricao("");
     }
+    setErrorMessage(null);
     setModalOpen(true);
   };
 
   const saveKanban = async () => {
     const token = await getToken();
     if (!token) throw new Error("Autenticação falhou.");
+
+    setErrorMessage(null);
 
     try {
       if (editingKanban) {
@@ -132,10 +135,34 @@ export default function Kanbans() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
+
       fetchKanbans();
       setModalOpen(false);
     } catch (err) {
-      console.error("Erro ao salvar kanban:", err);
+        console.error("Erro completo ao salvar kanban:", err);
+
+        setErrorMessage(null);
+
+        if (axios.isAxiosError(err) && err.response) {
+            const errorData = err.response.data;
+            let message = "Ocorreu um erro desconhecido do servidor.";
+
+            if (Array.isArray(errorData) && errorData.length > 0 && typeof errorData[0] === 'string') {
+                message = errorData[0];
+            }
+            else if (errorData.non_field_errors && errorData.non_field_errors.length > 0) {
+                message = errorData.non_field_errors[0];
+            } else if (errorData.detail) {
+                message = errorData.detail;
+            }
+            else if (typeof errorData === 'string') {
+                message = errorData;
+            }
+
+            setErrorMessage(message);
+        } else {
+            setErrorMessage("Erro de conexão ou desconhecido.");
+        }
     }
   };
 
@@ -165,7 +192,6 @@ export default function Kanbans() {
     <>
       <style>{styles}</style>
       <Container className="py-5 kanbans-container">
-
         <div className="d-flex justify-content-between align-items-center mb-5">
           <h1 className="fw-bold" style={{ color: "#316dbd" }}>
             🎯 Gestão de Pipeline
@@ -189,7 +215,6 @@ export default function Kanbans() {
             <Col key={kanban.id} xs={12} md={6} lg={4}>
               <Card
                 className="kanban-card"
-                // Removendo onMouseEnter/onMouseLeave inline e usando CSS
                 onClick={() => window.location.href = `/kanban/${kanban.id}`}
               >
                 <Card.Body className="d-flex flex-column">
@@ -233,7 +258,6 @@ export default function Kanbans() {
         </Row>
       </Container>
 
-      {/* Modal de Criação/Edição */}
       {modalOpen && (
         <Modal
             show={modalOpen}
@@ -247,6 +271,11 @@ export default function Kanbans() {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            {errorMessage && (
+                <Alert variant="danger" onClose={() => setErrorMessage(null)} dismissible>
+                    ⚠️ **Erro:** {errorMessage}
+                </Alert>
+            )}
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>Nome do Kanban</Form.Label>
