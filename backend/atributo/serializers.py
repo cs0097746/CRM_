@@ -9,7 +9,7 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     class Meta:
         model = AtributoPersonalizavel
         fields = ['id', 'label', 'valor', 'type', 'arquivo', 'criado_por']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'criado_por']
 
     def validate_type(self, value):
         valid_types = [choice[0] for choice in TypeChoices.choices]
@@ -50,12 +50,11 @@ class PresetAtributosSerializer(serializers.ModelSerializer):
     class Meta:
         model = PresetAtributos
         fields = ['id', 'nome', 'descricao', 'atributos', 'criado_por']
+        read_only_fields = ['id', 'criado_por']
 
     def create(self, validated_data):
         atributos_data = validated_data.pop('atributos', [])
         preset = PresetAtributos.objects.create(**validated_data)
-
-        print("Atributos data", atributos_data)
 
         for attr_data in atributos_data:
             atributo = AtributoPersonalizavel.objects.create(**attr_data)

@@ -8,10 +8,12 @@ from .serializers import AtributoPersonalizavelSerializer, PresetAtributosSerial
 from negocio.models import Negocio
 
 class AtributoPersonalizavelDeleteView(generics.DestroyAPIView):
-    queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
+
+    def get_queryset(self):
+        return AtributoPersonalizavel.objects.filter(criado_por=self.request.user)
 
     def get_object(self):
         try:
@@ -20,11 +22,12 @@ class AtributoPersonalizavelDeleteView(generics.DestroyAPIView):
             raise NotFound("AtributoPersonalizavel não encontrado.")
 
 class AtributoPersonalizavelCreateView(generics.CreateAPIView):
-    queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
     permission_classes = [IsAuthenticated]
-
     parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def get_queryset(self):
+        return AtributoPersonalizavel.objects.filter(criado_por=self.request.user)
 
     def perform_create(self, serializer):
         negocio_id = self.kwargs.get('negocio_id')
@@ -37,37 +40,45 @@ class AtributoPersonalizavelCreateView(generics.CreateAPIView):
         except Negocio.DoesNotExist:
             raise NotFound(f"Negócio com ID {negocio_id} não encontrado.")
 
-        atributo = serializer.save()
-
+        atributo = serializer.save(criado_por=self.request.user)
         negocio.atributos_personalizados.add(atributo)
         negocio.save(update_fields=['atualizado_em'])
 
 class PresetAtributosListView(generics.ListCreateAPIView):
-    queryset = PresetAtributos.objects.prefetch_related('atributos').all()
     serializer_class = PresetAtributosSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return PresetAtributos.objects.prefetch_related('atributos').filter(criado_por=self.request.user)
+
     def create(self, request, *args, **kwargs):
-        print("Request d ata", request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        preset = serializer.save()
+        preset = serializer.save(criado_por=request.user)
+        for atributo in preset.atributos.all():
+            if not atributo.criado_por:
+                atributo.criado_por = request.user
+                atributo.save(update_fields=['criado_por'])
         return Response(
             PresetAtributosSerializer(preset).data,
             status=status.HTTP_201_CREATED
         )
 
 class PresetAtributosDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = PresetAtributos.objects.prefetch_related('atributos').all()
     serializer_class = PresetAtributosSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
 
+    def get_queryset(self):
+        return PresetAtributos.objects.prefetch_related('atributos').filter(criado_por=self.request.user)
+
 class AtributoPersonalizavelUpdateView(generics.UpdateAPIView):
-    queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def get_queryset(self):
+        return AtributoPersonalizavel.objects.filter(criado_por=self.request.user)
 
     def patch(self, request, *args, **kwargs):
         try:
