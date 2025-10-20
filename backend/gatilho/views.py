@@ -5,13 +5,14 @@ from rest_framework import status
 from .models import Gatilho
 from kanban.models import Estagio
 from .serializers import GatilhoSerializer, EstagioSerializer
-
+from core.utils import get_ids_visiveis
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def listar_gatilhos(request):
     try:
-        gatilhos = Gatilho.objects.filter(criado_por=request.user).order_by('-id')
+        ids_visiveis = get_ids_visiveis(request.user)
+        gatilhos = Gatilho.objects.filter(criado_por__id__in=ids_visiveis).order_by('-id')
         serializer = GatilhoSerializer(gatilhos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
@@ -41,7 +42,9 @@ def criar_gatilho(request):
 @permission_classes([IsAuthenticated])
 def excluir_gatilho(request, pk):
     try:
-        gatilho = Gatilho.objects.get(pk=pk, criado_por=request.user)
+        ids_visiveis = get_ids_visiveis(request.user)
+
+        gatilho = Gatilho.objects.get(pk=pk, criado_por__id__in=ids_visiveis)
         gatilho.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except Gatilho.DoesNotExist:
@@ -53,7 +56,8 @@ def excluir_gatilho(request, pk):
 @permission_classes([IsAuthenticated])
 def listar_estagios(request):
     try:
-        estagios = Estagio.objects.filter(kanban__criado_por=request.user).order_by('ordem')
+        ids_visiveis = get_ids_visiveis(request.user)
+        estagios = Estagio.objects.filter(kanban__criado_por__id__in=ids_visiveis).order_by('ordem')
         serializer = EstagioSerializer(estagios, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:

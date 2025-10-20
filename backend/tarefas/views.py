@@ -7,6 +7,7 @@ import json
 from .models import Tarefa
 from .serializers import TarefaSerializer
 import datetime
+from core.utils import get_ids_visiveis
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -115,7 +116,8 @@ def criar_tarefa(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def listar_tarefas(request):
-    tarefas = Tarefa.objects.filter(criado_por=request.user)
+    ids_visiveis = get_ids_visiveis(request.user)
+    tarefas = Tarefa.objects.filter(criado_por__id__in=ids_visiveis)
     resultado = []
 
     for tarefa in tarefas:

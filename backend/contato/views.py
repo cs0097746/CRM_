@@ -39,6 +39,7 @@ from atendimento.serializers import (
 from kanban.serializers import EstagioSerializer, KanbanSerializer
 from negocio.serializers import NegocioSerializer
 from atendimento.utils import get_instance_config
+from core.utils import get_ids_visiveis
 # ===== VIEWS DE API - CONTATOS =====
 
 class ContatoListCreateView(generics.ListCreateAPIView):
@@ -52,7 +53,9 @@ class ContatoListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return Contato.objects.filter(criado_por=user)
+        ids_visiveis = get_ids_visiveis(user)
+
+        return Contato.objects.filter(criado_por__id__in=ids_visiveis)
 
     def perform_create(self, serializer):
         serializer.save(criado_por=self.request.user)
@@ -64,7 +67,8 @@ class ContatoDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        return Contato.objects.filter(criado_por=user)
+        ids_visiveis = get_ids_visiveis(user)
+        return Contato.objects.filter(criado_por__id__in=ids_visiveis)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

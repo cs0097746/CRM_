@@ -4,11 +4,12 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.contrib.auth.models import User
 from .models import Estagio, Kanban
 from .serializers import EstagioSerializer, KanbanSerializer
 from negocio.models import Negocio
 from negocio.serializers import NegocioSerializer
+from core.utils import get_ids_visiveis
 # ===== CRM/KANBAN =====
 
 class EstagioListView(generics.ListCreateAPIView):
@@ -18,7 +19,9 @@ class EstagioListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         kanban_id = self.kwargs.get("kanban_id")
-        return Estagio.objects.filter(kanban__id=kanban_id, kanban__criado_por=self.request.user)
+        ids_visiveis = get_ids_visiveis(self.request.user)
+
+        return Estagio.objects.filter(kanban__id=kanban_id, kanban__criado_por__id__in=ids_visiveis)
 
     def perform_create(self, serializer):
         kanban_id = self.kwargs.get("kanban_id")
@@ -31,7 +34,9 @@ class EstagioDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Estagio.objects.filter(kanban__criado_por=self.request.user)
+        ids_visiveis = get_ids_visiveis(self.request.user)
+
+        return Estagio.objects.filter(kanban__criado_por__id__in=ids_visiveis)
 
 class KanbanListView(generics.ListCreateAPIView):
     """API: Lista kanban"""
@@ -39,7 +44,9 @@ class KanbanListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Kanban.objects.filter(criado_por=self.request.user)
+        ids_visiveis = get_ids_visiveis(self.request.user)
+
+        return Kanban.objects.filter(criado_por__id__in=ids_visiveis)
 
     def perform_create(self, serializer):
         serializer.save(criado_por=self.request.user)
