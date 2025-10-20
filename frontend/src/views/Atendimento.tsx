@@ -179,6 +179,86 @@ export default function Atendimento() {
       backdrop-filter: blur(10px);
     }
 
+    /* 🎨 Toggle Switch Moderno - Atendimento Humano */
+    .toggle-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px 16px;
+      border-radius: 50px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      transition: all 0.3s ease;
+    }
+
+    .toggle-container:hover {
+      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+    }
+
+    .toggle-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #495057;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.3s ease;
+    }
+
+    .toggle-label.active {
+      color: #667eea;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      background: #d1d5db;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .toggle-switch.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toggle-switch.active .toggle-slider {
+      transform: translateX(24px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .toggle-icon {
+      font-size: 11px;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-switch:not(.active) .toggle-icon {
+      color: #9ca3af;
+    }
+
+    .toggle-switch.active .toggle-icon {
+      color: #667eea;
+    }
+
     .search-input:focus {
       outline: none;
       border-color: #667eea;
@@ -408,16 +488,19 @@ export default function Atendimento() {
   }, [conversas, pegandoChamado]);
 
   // 🤖 Toggle Atendimento Humano (pausa o bot por 15 minutos)
-  const toggleAtendimentoHumano = async (ativar: boolean) => {
+  const toggleAtendimentoHumano = async () => {
     if (!conversaAtiva) return;
 
     try {
       const token = await getToken();
       if (!token) throw new Error("Não foi possível autenticar.");
 
+      // Toggle: se está ativo (true), desativa (false) e vice-versa
+      const novoEstado = !conversaAtiva.atendimento_humano;
+
       const response = await api.post(
         `conversas/${conversaAtiva.id}/atendimento-humano/`,
-        { ativar },
+        { ativar: novoEstado },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -435,7 +518,7 @@ export default function Atendimento() {
           c.id === conversaAtiva.id ? conversaAtualizada : c
         ));
 
-        const mensagem = ativar
+        const mensagem = novoEstado
           ? '🤖 Bot pausado! Atendimento humano ativo por 15 minutos'
           : '✅ Bot reativado! Atendimento automático retomado';
         
@@ -961,34 +1044,35 @@ export default function Atendimento() {
                         </Button>
                       </ButtonGroup>
                       
-                      {/* 🤖 Botão Toggle Atendimento Humano */}
-                      <Button
-                        variant={conversaAtiva.atendimento_humano ? 'primary' : 'outline-secondary'}
-                        size="sm"
-                        onClick={() => toggleAtendimentoHumano(!conversaAtiva.atendimento_humano)}
-                        className="ms-2"
-                        style={{ 
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          padding: '6px 12px'
-                        }}
-                        title={conversaAtiva.atendimento_humano 
-                          ? 'Bot pausado - Clique para reativar'
-                          : 'Bot ativo - Clique para pausar por 15 minutos'
-                        }
-                      >
-                        {conversaAtiva.atendimento_humano ? (
-                          <>
-                            <i className="bi bi-person-fill me-1"></i>
-                            Humano Ativo
-                          </>
-                        ) : (
-                          <>
-                            <i className="bi bi-robot me-1"></i>
-                            Bot Ativo
-                          </>
-                        )}
-                      </Button>
+                      {/* 🎨 Toggle Switch Moderno - Atendimento Humano */}
+                      <div className="toggle-container ms-3">
+                        <div className={`toggle-label ${conversaAtiva.atendimento_humano ? 'active' : ''}`}>
+                          {conversaAtiva.atendimento_humano ? (
+                            <>
+                              <i className="bi bi-person-fill"></i>
+                              <span>Humano</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="bi bi-robot"></i>
+                              <span>Bot</span>
+                            </>
+                          )}
+                        </div>
+                        
+                        <div 
+                          className={`toggle-switch ${conversaAtiva.atendimento_humano ? 'active' : ''}`}
+                          onClick={toggleAtendimentoHumano}
+                          title={conversaAtiva.atendimento_humano 
+                            ? 'Atendimento humano ATIVO (15 min) - Clique para reativar bot'
+                            : 'Bot ATIVO - Clique para pausar por 15 minutos'
+                          }
+                        >
+                          <div className="toggle-slider">
+                            <i className={`toggle-icon bi ${conversaAtiva.atendimento_humano ? 'bi-person-fill' : 'bi-robot'}`}></i>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

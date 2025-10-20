@@ -439,17 +439,16 @@ def toggle_atendimento_humano(request, conversa_id):
             conversa.atendimento_humano_ate = timezone.now() + timedelta(minutes=15)
             conversa.save()
             
-            # 🕐 Agendar tarefa para desativar após 15 minutos
             desativar_atendimento_humano.apply_async(
                 args=[conversa_id],
-                countdown=15 * 60  # 15 minutos em segundos
+                countdown=15 * 60
             )
             
             return Response({
                 'success': True,
                 'atendimento_humano': True,
                 'atendimento_humano_ate': conversa.atendimento_humano_ate.isoformat(),
-                'mensagem': '🤖 Bot pausado! Atendimento humano ativo por 15 minutos'
+                'mensagem': 'Atendimento humano ativado por 15 minutos'
             })
         else:
             # ❌ DESATIVAR: Bot volta imediatamente
@@ -461,7 +460,7 @@ def toggle_atendimento_humano(request, conversa_id):
                 'success': True,
                 'atendimento_humano': False,
                 'atendimento_humano_ate': None,
-                'mensagem': '✅ Bot reativado! Atendimento humano desativado'
+                'mensagem': 'Bot reativado manualmente'
             })
             
     except Conversa.DoesNotExist:

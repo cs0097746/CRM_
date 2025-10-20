@@ -94,28 +94,29 @@ def enviar_webhook_task(destinatario, assunto, link_webhook_n8n, codigo=None):
 @shared_task
 def desativar_atendimento_humano(conversa_id):
     """
-    🤖 Tarefa agendada para desativar o atendimento humano após 15 minutos
-    Esta tarefa é executada automaticamente pelo Celery
+    Desativa automaticamente o atendimento humano após o timer expirar
     """
     from atendimento.models import Conversa
     
     try:
         conversa = Conversa.objects.get(id=conversa_id)
         
-        # Verificar se ainda está em atendimento humano
         if conversa.atendimento_humano:
-            # Verificar se o tempo expirou
-            if conversa.atendimento_humano_ate and timezone.now() >= conversa.atendimento_humano_ate:
+            agora = timezone.now()
+            
+            if conversa.atendimento_humano_ate and agora >= conversa.atendimento_humano_ate:
                 conversa.atendimento_humano = False
                 conversa.atendimento_humano_ate = None
                 conversa.save()
-                print(f"✅ Bot reativado automaticamente para conversa {conversa_id}")
+                
+                return {"success": True, "message": "Bot reativado", "conversa_id": conversa_id}
             else:
-                print(f"⚠️ Atendimento humano ainda ativo para conversa {conversa_id}")
+                tempo_restante = (conversa.atendimento_humano_ate - agora).total_seconds() if conversa.atendimento_humano_ate else 0
+                return {"success": False, "message": "Ainda não expirou", "tempo_restante": tempo_restante}
         else:
-            print(f"ℹ️ Atendimento humano já estava desativado para conversa {conversa_id}")
+            return {"success": True, "message": "Já estava desativado", "conversa_id": conversa_id}
             
     except Conversa.DoesNotExist:
-        print(f"❌ Conversa {conversa_id} não encontrada")
+        return {"success": False, "error": "Conversa não encontrada"}
     except Exception as e:
-        print(f"❌ Erro ao desativar atendimento humano: {e}")
+        return {"success": False, "error": str(e)}
