@@ -16,6 +16,9 @@ from contato.serializers import ContatoSerializer
 from atendimento.views import verificar_status_instancia
 from core.models import ConfiguracaoSistema
 from django.http import JsonResponse
+from usuario.models import PlanoUsuario
+from core.utils import get_ids_visiveis
+from rest_framework.exceptions import ValidationError
 
 
 @api_view(['GET'])
@@ -280,6 +283,18 @@ def criar_subordinado(request):
             chefe = User.objects.get(username=chefe_username)
         except User.DoesNotExist:
             return Response({'success': False, 'message': 'Chefe não encontrado'})
+
+        plano_chefe = None
+        if request.user.criado_por is None:
+            plano_chefe = PlanoUsuario.objects.get(usuario=request.user).plano
+        else:
+            plano_chefe = PlanoUsuario.objects.get(usuario=request.user.criado_por).plano
+
+        limite_usuarios = plano_chefe.usuarios_inclusos
+        usuarios_inclusos = User.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
+
+        if usuarios_inclusos >= limite_usuarios:
+            raise ValidationError(f"Limite de {limite_usuarios} usuários atingido para este plano.")
 
         user, created = User.objects.get_or_create(
             username=username,

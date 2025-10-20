@@ -40,6 +40,9 @@ from kanban.serializers import EstagioSerializer, KanbanSerializer
 from negocio.serializers import NegocioSerializer
 from atendimento.utils import get_instance_config
 from core.utils import get_ids_visiveis
+from usuario.models import PlanoUsuario
+from rest_framework.exceptions import ValidationError
+
 # ===== VIEWS DE API - CONTATOS =====
 
 class ContatoListCreateView(generics.ListCreateAPIView):
@@ -58,6 +61,18 @@ class ContatoListCreateView(generics.ListCreateAPIView):
         return Contato.objects.filter(criado_por__id__in=ids_visiveis)
 
     def perform_create(self, serializer):
+        plano_chefe = None
+        if self.request.user.criado_por is None:
+            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user).plano
+        else:
+            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user.criado_por).plano
+
+        limite_contatos = plano_chefe.contatos_inclusos
+        contatos_inclusos = Contato.objects.filter(criado_por__id__in=get_ids_visiveis(self.request.user)).count()
+
+        if contatos_inclusos >= limite_contatos:
+            raise ValidationError(f"Limite de {limite_contatos} contatos atingido para este plano.")
+
         serializer.save(criado_por=self.request.user)
 
 class ContatoDetailView(generics.RetrieveUpdateDestroyAPIView):

@@ -10,6 +10,9 @@ from .serializers import EstagioSerializer, KanbanSerializer
 from negocio.models import Negocio
 from negocio.serializers import NegocioSerializer
 from core.utils import get_ids_visiveis
+from usuario.models import PlanoUsuario
+from rest_framework.exceptions import ValidationError
+
 # ===== CRM/KANBAN =====
 
 class EstagioListView(generics.ListCreateAPIView):
@@ -49,6 +52,18 @@ class KanbanListView(generics.ListCreateAPIView):
         return Kanban.objects.filter(criado_por__id__in=ids_visiveis)
 
     def perform_create(self, serializer):
+        plano_chefe = None
+        if self.request.user.criado_por is None:
+            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user).plano
+        else:
+            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user.criado_por).plano
+
+        limite_pipelines = plano_chefe.pipelines_inclusos
+        pipelines_inclusos = Kanban.objects.filter(criado_por__id__in=get_ids_visiveis(self.request.user)).count()
+
+        if pipelines_inclusos >= limite_pipelines:
+            raise ValidationError(f"Limite de {limite_pipelines} pipelines atingido para este plano.")
+
         serializer.save(criado_por=self.request.user)
 
 class KanbanUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
