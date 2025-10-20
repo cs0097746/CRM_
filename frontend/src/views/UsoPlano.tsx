@@ -137,7 +137,7 @@ export default function PlanUsageDashboard() {
             <Container className="py-5 plan-container">
                 <div className="d-flex justify-content-between align-items-center mb-5">
                     <h1 className="fw-bold" style={{ color: "#316dbd" }}>
-                        ✨ Meu Plano: {planData.plano}
+                        Meu Plano: {planData.plano}
                     </h1>
                     <Button
                         className="btn-upgrade-plan"
