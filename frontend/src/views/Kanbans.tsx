@@ -273,7 +273,7 @@ export default function Kanbans() {
           <Modal.Body>
             {errorMessage && (
                 <Alert variant="danger" onClose={() => setErrorMessage(null)} dismissible>
-                    ⚠️ **Erro:** {errorMessage}
+                    ⚠️ <strong>Erro:</strong> {errorMessage}
                 </Alert>
             )}
             <Form>

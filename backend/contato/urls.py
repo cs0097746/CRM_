@@ -11,6 +11,7 @@ from atributo import views as atributos_views
 from notificacao import views as notificacao_views
 from tarefas import views as tarefas_views
 from gatilho import views as gatilho_views
+from usuario.views import uso_plano
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -121,6 +122,9 @@ urlpatterns = [
     path('criar_gatilho/', gatilho_views.criar_gatilho, name='criar_gatilho'),
     path('excluir_gatilho/<int:pk>/', gatilho_views.excluir_gatilho, name='excluir_gatilho'),
     path('listar_estagios/', gatilho_views.listar_estagios, name='listar_estagios'),
+
+    # api de uso de planos
+    path('plan_usage/', uso_plano, name='plan_usage'),
 
     # ===== ROUTER URLS =====
     path("health/", core_views.health),
