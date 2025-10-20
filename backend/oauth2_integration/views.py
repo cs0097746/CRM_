@@ -13,6 +13,8 @@ from .serializers import ContatoOAuthSerializer, ConversaOAuthSerializer, Intera
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import time
 import json
+from oauth2_provider.views import TokenView
+from oauth2_provider.models import AccessToken
 
 # ===== CONFIGURAÇÃO DE AUTENTICAÇÃO =====
 
@@ -924,3 +926,20 @@ def conversations_public_endpoint(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+class CustomTokenView(TokenView):
+    def create_token_response(self, request):
+        url, headers, body, status = super().create_token_response(request)
+
+        body_data = json.loads(body)
+
+        access_token_value = body_data.get("access_token")
+        try:
+            token = AccessToken.objects.select_related("user").get(token=access_token_value)
+            user = token.user
+            body_data["is_chefe"] = user.criado_por is None
+        except AccessToken.DoesNotExist:
+            body_data["is_chefe"] = False
+
+        body = json.dumps(body_data)
+        return url, headers, body, status

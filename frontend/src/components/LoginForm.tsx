@@ -32,12 +32,13 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
     try {
       const res = await axios.post(`${backend_url}o/token/`, params);
-      const { access_token, refresh_token } = res.data;
+      const { access_token, refresh_token, is_chefe } = res.data;
 
       localStorage.setItem("access_token", access_token);
       localStorage.setItem("refresh_token", refresh_token);
       localStorage.setItem("access_token_time", String(Date.now()));
       localStorage.setItem("user", JSON.stringify({ username }));
+      localStorage.setItem("is_chefe", is_chefe);
 
       console.log("✅ Login realizado com sucesso!");
       setSuccess("Login realizado com sucesso!");

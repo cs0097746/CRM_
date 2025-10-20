@@ -23,8 +23,8 @@ urlpatterns = [
     # ===== AUTENTICAÇÃO =====
     path('auth/token/', core_views.obter_token_auth, name='obter_token'),
     path('auth/register/', core_views.criar_usuario_teste, name='criar_usuario'),
+    path('auth/register/subordinado/', core_views.criar_subordinado, name='criar_subordinado'),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
-    
     # ===== DASHBOARD & STATS =====
     path('dashboard/stats/', core_views.dashboard_stats, name='dashboard_stats'),
     path('health/', core_views.health_check, name='health_check'),

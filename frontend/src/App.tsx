@@ -23,6 +23,7 @@ const ListarGatilhos = lazy(()=>import('./views/ListarGatilhos'));
 const ListarPresets = lazy(() => import('./views/ListarPresets'));
 const Presets = lazy(() => import('./views/Presets'));
 const EditarPreset = lazy(() => import('./views/EditarPreset'));
+const CriarUsuario = lazy(()=>import('./views/CriarUsuario'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -48,6 +49,10 @@ const AppContent = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('access_token_time');
+    localStorage.removeItem('is_chefe');
     setIsLoggedIn(false);
     setShowNav(false);
   };
@@ -93,6 +98,16 @@ const AppContent = () => {
             <Route path="/presets" element={<ListarPresets />} />
             <Route path="/criar_preset" element={<Presets />} />
             <Route path="/presets/:presetId/editar" element={<EditarPreset />} />
+            <Route
+              path="/criar-usuario"
+              element={
+                localStorage.getItem("is_chefe") === "true" ? (
+                  <CriarUsuario />
+                ) : (
+                  <Home />
+                )
+              }
+            />
           </Routes>
         </Suspense>
       </div>
@@ -118,6 +133,11 @@ const AppContent = () => {
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
             <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
             <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
+            {localStorage.getItem("is_chefe") === "true" && (
+                <NavLink to="/criar-usuario" className="nav-link" onClick={handleCloseNav}>
+                  Criar Usuários
+                </NavLink>
+              )}
             <hr />
             <Button 
               variant="outline-danger" 

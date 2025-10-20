@@ -264,7 +264,58 @@ def criar_usuario_teste(request):
             'error': f'Erro interno: {str(e)}'
         }, status=500)
     
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_subordinado(request):
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email')
+        chefe_username = request.data.get('chefe_username')
 
+        if not all([username, password, email, chefe_username]):
+            return Response({'success': False, 'message': 'Todos os campos são obrigatórios'})
+
+        try:
+            chefe = User.objects.get(username=chefe_username)
+        except User.DoesNotExist:
+            return Response({'success': False, 'message': 'Chefe não encontrado'})
+
+        user, created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                'email': email,
+                'first_name': 'Sub',
+                'last_name': 'Usuario',
+                'criado_por': chefe
+            }
+        )
+
+        if created:
+            user.set_password(password)
+            user.save()
+
+            operador, op_created = Operador.objects.get_or_create(
+                user=user,
+                defaults={
+                    'ativo': True,
+                    'ramal': '1001',
+                    'setor': 'Atendimento'
+                }
+            )
+
+            return Response({
+                'success': True,
+                'message': 'Subordinado criado com sucesso',
+                'user_id': user.pk,
+                'operador_id': operador.pk
+            })
+
+        else:
+            return Response({'success': False, 'message': 'Usuário já existe'})
+
+    except Exception as e:
+        return Response({'error': f'Erro interno: {str(e)}'}, status=500)
 
 
 @api_view(['GET', 'PUT'])
