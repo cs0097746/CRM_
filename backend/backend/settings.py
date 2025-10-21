@@ -34,7 +34,9 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "backend.localhost",
-    "crm.localhost"
+    "crm.localhost",
+    ".ngrok-free.app",  # 🔧 NGROK: Permitir qualquer subdomínio ngrok
+    ".ngrok.io",        # 🔧 NGROK: Formato antigo também
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -48,6 +50,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://crm.loomiecrm.com",
     "http://crm.localhost",
     "http://backend.localhost",
+    # 🔧 NGROK: URLs dinâmicas (atualize com sua URL real)
+    # "https://abc123def456.ngrok-free.app",  # Descomente e cole sua URL ngrok aqui
 ]
 
 # =========================
@@ -85,7 +89,8 @@ LOCAL_APPS = [
     'core',
     'notificacao',
     'tarefas',
-    'gatilho'
+    'gatilho',
+    'message_translator',  
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -201,6 +206,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # =========================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Adicionar trailing slash automaticamente
+APPEND_SLASH = True
 
 # =========================
 # OAUTH2 PROVIDER

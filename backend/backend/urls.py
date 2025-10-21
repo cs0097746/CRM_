@@ -21,6 +21,7 @@ urlpatterns = [
     # ===== MAIN API =====
     path('', include('contato.urls')),
     path('', include('core.urls')),  # Mantém sem prefixo como estava
+    path('translator/', include('message_translator.urls')),  # 🔄 Message Translator
 ]
 
 # ===== STATIC/MEDIA FILES =====

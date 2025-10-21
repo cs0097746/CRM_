@@ -1452,6 +1452,38 @@ def evolution_webhook(request):
             conversa.save()
             logger.info("📝 Conversa atualizada para ordenação correta.")
 
+        # 🔄 WEBHOOK DUPLO: Enviar também para o Message Translator (paralelo)
+        try:
+            logger.info("🔄 Enviando payload para Message Translator (webhook duplo)...")
+            translator_payload = {
+                "canal_tipo": "whatsapp",
+                "canal_id": 1,  # ID do canal Evolution configurado
+                "payload": payload  # Payload original completo
+            }
+            
+            # Enviar de forma assíncrona (não bloquear o webhook principal)
+            import threading
+            def enviar_para_translator():
+                try:
+                    response = requests.post(
+                        'http://backend:8000/translator/incoming/',
+                        json=translator_payload,
+                        timeout=5
+                    )
+                    if response.status_code == 200:
+                        logger.info(f"✅ Tradutor processou: {response.json().get('message_id')}")
+                    else:
+                        logger.warning(f"⚠️ Tradutor respondeu {response.status_code}")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao enviar para tradutor: {e}")
+            
+            # Executar em thread separada para não bloquear
+            threading.Thread(target=enviar_para_translator, daemon=True).start()
+            logger.info("🚀 Requisição para tradutor iniciada em background")
+            
+        except Exception as e:
+            logger.error(f"⚠️ Erro no webhook duplo (não crítico): {e}")
+
         return Response({
             'status': 'processed',
             'contato_id': contato.id,
