@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils import timezone
+from django.core.validators import URLValidator
+from django.contrib.auth.models import User
 
 
 class CanalConfig(models.Model):
@@ -40,6 +42,24 @@ class CanalConfig(models.Model):
         help_text="Lista de destinos: ['crm', 'n8n', 'outro_canal']"
     )
     
+    # Auditoria
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='canais_criados',
+        help_text="Usuário que criou este canal"
+    )
+    atualizado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='canais_atualizados',
+        help_text="Último usuário que atualizou este canal"
+    )
+    
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
@@ -50,7 +70,121 @@ class CanalConfig(models.Model):
     
     def __str__(self):
         status = "✅" if self.ativo else "❌"
-        return f"{status} {self.nome} ({self.get_tipo_display()})"
+        return f"{status} {self.nome} (Prioridade {self.prioridade})"
+
+
+class WebhookCustomizado(models.Model):
+    """
+    Webhooks customizados configurados pelo cliente
+    Permite enviar mensagens para URLs externas
+    """
+    nome = models.CharField(max_length=100, help_text="Nome do webhook (ex: 'Enviar para Make.com')")
+    url = models.URLField(max_length=500, help_text="URL do webhook customizado")
+    ativo = models.BooleanField(default=True, help_text="Webhook ativo/inativo")
+    
+    # Filtros
+    FILTRO_CANAL_CHOICES = [
+        ('todos', 'Todos os Canais'),
+        ('whatsapp', 'Apenas WhatsApp'),
+        ('telegram', 'Apenas Telegram'),
+        ('instagram', 'Apenas Instagram'),
+        ('evo', 'Apenas Evolution API'),
+    ]
+    
+    filtro_canal = models.CharField(
+        max_length=20,
+        choices=FILTRO_CANAL_CHOICES,
+        default='todos',
+        help_text="Filtrar mensagens por canal específico"
+    )
+    
+    FILTRO_DIRECAO_CHOICES = [
+        ('ambas', 'Entrada e Saída'),
+        ('entrada', 'Apenas Entrada'),
+        ('saida', 'Apenas Saída'),
+    ]
+    
+    filtro_direcao = models.CharField(
+        max_length=10,
+        choices=FILTRO_DIRECAO_CHOICES,
+        default='ambas',
+        help_text="Filtrar por direção da mensagem"
+    )
+    
+    # Headers customizados (opcional)
+    headers = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Headers HTTP customizados. Exemplo: {"Authorization": "Bearer token123"}'
+    )
+    
+    # Método HTTP
+    METODO_CHOICES = [
+        ('POST', 'POST'),
+        ('PUT', 'PUT'),
+        ('PATCH', 'PATCH'),
+    ]
+    
+    metodo_http = models.CharField(
+        max_length=10,
+        choices=METODO_CHOICES,
+        default='POST',
+        help_text="Método HTTP para enviar"
+    )
+    
+    # Timeout em segundos
+    timeout = models.IntegerField(default=10, help_text="Timeout em segundos (padrão: 10)")
+    
+    # Retry (tentar novamente em caso de falha)
+    retry_em_falha = models.BooleanField(default=True, help_text="Tentar novamente em caso de erro")
+    max_tentativas = models.IntegerField(default=3, help_text="Máximo de tentativas (padrão: 3)")
+    
+    # Estatísticas
+    total_enviados = models.IntegerField(default=0, help_text="Total de mensagens enviadas")
+    total_erros = models.IntegerField(default=0, help_text="Total de erros")
+    ultima_execucao = models.DateTimeField(null=True, blank=True, help_text="Última vez que foi executado")
+    
+    # Auditoria
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='webhooks_criados',
+        help_text="Usuário que criou este webhook"
+    )
+    atualizado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='webhooks_atualizados',
+        help_text="Último usuário que atualizou este webhook"
+    )
+    
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Webhook Customizado"
+        verbose_name_plural = "Webhooks Customizados"
+        ordering = ['-ativo', 'nome']
+    
+    def __str__(self):
+        status = "✅" if self.ativo else "❌"
+        return f"{status} {self.nome} → {self.url}"
+    
+    def incrementar_enviado(self):
+        """Incrementa contador de enviados"""
+        self.total_enviados += 1
+        self.ultima_execucao = timezone.now()
+        self.save(update_fields=['total_enviados', 'ultima_execucao'])
+    
+    def incrementar_erro(self):
+        """Incrementa contador de erros"""
+        self.total_erros += 1
+        self.ultima_execucao = timezone.now()
+        self.save(update_fields=['total_erros', 'ultima_execucao'])
 
 
 class MensagemLog(models.Model):
@@ -109,6 +243,16 @@ class MensagemLog(models.Model):
     erro_mensagem = models.TextField(blank=True, help_text="Mensagem de erro, se houver")
     tempo_processamento = models.FloatField(null=True, blank=True, help_text="Tempo em segundos")
     
+    # Auditoria (opcional - para rastrear processamento automático vs manual)
+    processado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mensagens_processadas',
+        help_text="Usuário/Sistema que processou esta mensagem"
+    )
+    
     criado_em = models.DateTimeField(auto_now_add=True)
     processado_em = models.DateTimeField(null=True, blank=True)
     
@@ -156,6 +300,24 @@ class RegrasRoteamento(models.Model):
             "notificar_operador": true
         }
         """
+    )
+    
+    # Auditoria
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='regras_criadas',
+        help_text="Usuário que criou esta regra"
+    )
+    atualizado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='regras_atualizadas',
+        help_text="Último usuário que atualizou esta regra"
     )
     
     criado_em = models.DateTimeField(auto_now_add=True)

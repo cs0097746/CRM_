@@ -22,6 +22,7 @@ const ListarGatilhos = lazy(()=>import('./views/ListarGatilhos'));
 const ListarPresets = lazy(() => import('./views/ListarPresets'));
 const Presets = lazy(() => import('./views/Presets'));
 const EditarPreset = lazy(() => import('./views/EditarPreset'));
+const MessageTranslator = lazy(() => import('./pages/MessageTranslator'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -105,6 +106,7 @@ const AppContent = () => {
             <Route path="/presets" element={<ListarPresets />} />
             <Route path="/criar_preset" element={<Presets />} />
             <Route path="/presets/:presetId/editar" element={<EditarPreset />} />
+            <Route path="/message-translator" element={<MessageTranslator />} />
           </Routes>
         </Suspense>
       </div>
@@ -130,6 +132,7 @@ const AppContent = () => {
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
             <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
             <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
+            <NavLink to="/message-translator" className="nav-link" onClick={handleCloseNav}>🔄 Message Translator</NavLink>
             <hr />
             <Button 
               variant="outline-danger" 

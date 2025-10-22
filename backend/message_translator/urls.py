@@ -9,6 +9,7 @@ router = DefaultRouter()
 router.register(r'canais', views.CanalConfigViewSet, basename='canal')
 router.register(r'logs', views.MensagemLogViewSet, basename='mensagem-log')
 router.register(r'regras', views.RegrasRoteamentoViewSet, basename='regra-roteamento')
+router.register(r'webhooks-customizados', views.WebhookCustomizadoViewSet, basename='webhook-customizado')
 
 urlpatterns = [
     # Webhooks principais

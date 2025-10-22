@@ -211,6 +211,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 APPEND_SLASH = True
 
 # =========================
+# MESSAGE TRANSLATOR - N8N INTEGRATION
+# =========================
+
+# URL do webhook n8n para receber mensagens traduzidas
+N8N_WEBHOOK_URL = config('N8N_WEBHOOK_URL', default=None)
+# Exemplo: https://seu-n8n.com/webhook/loomie-messages
+
+# =========================
 # OAUTH2 PROVIDER
 # =========================
 

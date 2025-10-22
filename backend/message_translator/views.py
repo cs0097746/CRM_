@@ -10,14 +10,15 @@ from django.db import transaction
 import time
 import logging
 
-from .models import CanalConfig, MensagemLog, RegrasRoteamento
+from .models import CanalConfig, MensagemLog, RegrasRoteamento, WebhookCustomizado
 from .schemas import LoomieMessage
 from .translators import get_translator
 from .router import processar_mensagem_entrada, enviar_mensagem_saida
 from .serializers import (
     CanalConfigSerializer,
     MensagemLogSerializer,
-    RegrasRoteamentoSerializer
+    RegrasRoteamentoSerializer,
+    WebhookCustomizadoSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -234,6 +235,14 @@ class CanalConfigViewSet(viewsets.ModelViewSet):
     serializer_class = CanalConfigSerializer
     permission_classes = [IsAuthenticated]
     
+    def perform_create(self, serializer):
+        """Auto-preencher criado_por ao criar"""
+        serializer.save(criado_por=self.request.user)
+    
+    def perform_update(self, serializer):
+        """Auto-preencher atualizado_por ao atualizar"""
+        serializer.save(atualizado_por=self.request.user)
+    
     @action(detail=True, methods=['post'])
     def testar_conexao(self, request, pk=None):
         """
@@ -291,3 +300,103 @@ class RegrasRoteamentoViewSet(viewsets.ModelViewSet):
     queryset = RegrasRoteamento.objects.all()
     serializer_class = RegrasRoteamentoSerializer
     permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        """Auto-preencher criado_por ao criar"""
+        serializer.save(criado_por=self.request.user)
+    
+    def perform_update(self, serializer):
+        """Auto-preencher atualizado_por ao atualizar"""
+        serializer.save(atualizado_por=self.request.user)
+
+
+class WebhookCustomizadoViewSet(viewsets.ModelViewSet):
+    """
+    CRUD para webhooks customizados
+    """
+    queryset = WebhookCustomizado.objects.all()
+    serializer_class = WebhookCustomizadoSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        """Auto-preencher criado_por ao criar"""
+        serializer.save(criado_por=self.request.user)
+    
+    def perform_update(self, serializer):
+        """Auto-preencher atualizado_por ao atualizar"""
+        serializer.save(atualizado_por=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def testar(self, request, pk=None):
+        """
+        Testa webhook com payload de exemplo
+        """
+        from .router import enviar_para_webhook_customizado
+        from datetime import datetime
+        
+        webhook = self.get_object()
+        
+        # Criar mensagem de teste
+        mensagem_teste = {
+            "message_id": f"test_{datetime.now().timestamp()}",
+            "channel_type": "whatsapp",
+            "sender": "whatsapp:5511999999999",
+            "recipient": "system:test",
+            "content_type": "text",
+            "text": "🧪 Mensagem de teste do Message Translator",
+            "timestamp": datetime.now().isoformat(),
+            "status": "sent"
+        }
+        
+        try:
+            sucesso = enviar_para_webhook_customizado(webhook, mensagem_teste)
+            
+            if sucesso:
+                return Response({
+                    'success': True,
+                    'message': f'✅ Webhook testado com sucesso! Verifique seu endpoint.'
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': 'Falha ao enviar. Verifique os logs e configurações do webhook.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            logger.error(f"❌ Erro ao testar webhook: {e}", exc_info=True)
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def estatisticas(self, request):
+        """
+        Retorna estatísticas gerais de todos os webhooks
+        """
+        from django.db.models import Sum, Avg
+        
+        webhooks = WebhookCustomizado.objects.filter(ativo=True)
+        
+        stats = {
+            'total_webhooks': webhooks.count(),
+            'total_enviados': webhooks.aggregate(Sum('total_enviados'))['total_enviados__sum'] or 0,
+            'total_erros': webhooks.aggregate(Sum('total_erros'))['total_erros__sum'] or 0,
+            'webhooks': []
+        }
+        
+        for webhook in webhooks:
+            taxa_sucesso = 0
+            if webhook.total_enviados > 0:
+                taxa_sucesso = ((webhook.total_enviados - webhook.total_erros) / webhook.total_enviados) * 100
+            
+            stats['webhooks'].append({
+                'id': webhook.id,
+                'nome': webhook.nome,
+                'total_enviados': webhook.total_enviados,
+                'total_erros': webhook.total_erros,
+                'taxa_sucesso': round(taxa_sucesso, 2),
+                'ultima_execucao': webhook.ultima_execucao
+            })
+        
+        return Response(stats)
