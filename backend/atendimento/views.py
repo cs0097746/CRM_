@@ -926,7 +926,7 @@ def whatsapp_dashboard(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # ✅ PERMITIR sem autenticação (setup inicial)
 def whatsapp_qr_code(request):
     """Obter QR Code para conectar - USA CONFIG DO BANCO"""
     try:
@@ -1070,7 +1070,7 @@ def whatsapp_disconnect(request):
         }, status=500)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # ✅ PERMITIR sem autenticação (verificação pública)
 def whatsapp_status(request):
     """Status detalhado da conexão - USA CONFIG DO BANCO"""
     try:

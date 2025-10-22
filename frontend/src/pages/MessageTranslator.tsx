@@ -31,6 +31,8 @@ import axios from 'axios';
 import backend_url from '../config/env';
 import { getToken } from '../function/validateToken';
 import { CanalDialog, WebhookDialog } from '../components/message-translator';
+import CanalCard from '../components/message-translator/CanalCard';
+import WhatsAppDialog from '../components/message-translator/WhatsAppDialog';
 
 // Interface para Canal
 interface Canal {
@@ -96,6 +98,9 @@ const MessageTranslator: React.FC = () => {
   const [canais, setCanais] = useState<Canal[]>([]);
   const [canalDialogOpen, setCanalDialogOpen] = useState(false);
   const [canalEditando, setCanalEditando] = useState<Canal | null>(null);
+  
+  // Estados para Conexão Visual (WhatsApp)
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   
   // Estados para Webhooks
   const [webhooks, setWebhooks] = useState<WebhookCustomizado[]>([]);
@@ -213,6 +218,27 @@ const MessageTranslator: React.FC = () => {
     }
   };
 
+  // ==================== CONEXÃO VISUAL (WHATSAPP) ====================
+  
+  const abrirWhatsAppDialog = () => {
+    setWhatsappDialogOpen(true);
+  };
+
+  const fecharWhatsAppDialog = () => {
+    setWhatsappDialogOpen(false);
+  };
+
+  const handleWhatsAppSuccess = (canalId: number) => {
+    setSuccess(`✅ WhatsApp conectado com sucesso! Canal ID: ${canalId}`);
+    carregarDados(); // Recarregar para atualizar o status da card
+    setTimeout(() => setSuccess(null), 5000);
+  };
+
+  // Verificar se WhatsApp já está conectado
+  const whatsappConectado = canais.some(
+    (canal) => canal.tipo === 'evo' && canal.ativo
+  );
+
   // ==================== WEBHOOKS ====================
   
   const abrirDialogWebhook = (webhook?: WebhookCustomizado) => {
@@ -317,71 +343,138 @@ const MessageTranslator: React.FC = () => {
 
       {/* Tab 1: Canais */}
       {tabValue === 0 && (
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-              <Typography variant="h6">Canais de Comunicação</Typography>
-              <Button
-                startIcon={<AddIcon />}
-                variant="contained"
-                onClick={() => abrirDialogCanal()}
-              >
-                Adicionar Canal
-              </Button>
-            </Box>
+        <Box>
+          {/* 📋 Grid de Cards Visuais */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+              gap: 3,
+              mb: 4,
+            }}
+          >
+            {/* 🟢 CARD: WhatsApp Evolution API */}
+            <CanalCard
+              logo="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg"
+              titulo="WhatsApp"
+              descricao="Conecte seu WhatsApp Evolution API para receber e enviar mensagens"
+              conectado={whatsappConectado}
+              onConectar={abrirWhatsAppDialog}
+              onGerenciar={abrirWhatsAppDialog}
+              onGerarQR={() => {
+                // Redirecionar para /whatsapp-config
+                window.location.href = '/whatsapp-config';
+              }}
+            />
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Nome</TableCell>
-                    <TableCell>Tipo</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Prioridade</TableCell>
-                    <TableCell>Entrada/Saída</TableCell>
-                    <TableCell>Destinos</TableCell>
-                    <TableCell>Ações</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {canais.map((canal: Canal) => (
-                    <TableRow key={canal.id}>
-                      <TableCell>{canal.nome}</TableCell>
-                      <TableCell>
-                        <Chip label={canal.tipo_display} size="small" />
-                      </TableCell>
-                      <TableCell>
-                        {canal.ativo ? (
-                          <Chip icon={<CheckCircleIcon />} label="Ativo" color="success" size="small" />
-                        ) : (
-                          <Chip icon={<ErrorIcon />} label="Inativo" color="error" size="small" />
-                        )}
-                      </TableCell>
-                      <TableCell>{canal.prioridade}</TableCell>
-                      <TableCell>
-                        {canal.recebe_entrada && <Chip label="↓ Entrada" size="small" sx={{ mr: 0.5 }} />}
-                        {canal.envia_saida && <Chip label="↑ Saída" size="small" />}
-                      </TableCell>
-                      <TableCell>
-                        {canal.destinos.map((dest: string, idx: number) => (
-                          <Chip key={idx} label={dest} size="small" sx={{ mr: 0.5 }} />
-                        ))}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={() => abrirDialogCanal(canal)}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => deletarCanal(canal.id)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
+            {/* 🔵 CARD: Instagram (Desabilitado - Em breve) */}
+            <CanalCard
+              logo="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png"
+              titulo="Instagram"
+              descricao="Conecte seu Instagram Business para responder Direct Messages"
+              conectado={false}
+              onConectar={() => {}}
+              desabilitado={true}
+              mensagemDesabilitado="Em breve"
+            />
+
+            {/* 🟣 CARD: Telegram (Desabilitado - Em breve) */}
+            <CanalCard
+              logo="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg"
+              titulo="Telegram"
+              descricao="Conecte seu bot do Telegram para atender clientes"
+              conectado={false}
+              onConectar={() => {}}
+              desabilitado={true}
+              mensagemDesabilitado="Em breve"
+            />
+
+            {/* 🟠 CARD: Chat Widget (Desabilitado - Em breve) */}
+            <CanalCard
+              logo="https://cdn-icons-png.flaticon.com/512/724/724664.png"
+              titulo="Chat Widget"
+              descricao="Adicione um chat ao vivo em seu site"
+              conectado={false}
+              onConectar={() => {}}
+              desabilitado={true}
+              mensagemDesabilitado="Em breve"
+            />
+          </Box>
+
+          {/* 📊 Tabela de Canais Conectados (Gestão Avançada) */}
+          <Card sx={{ mt: 4 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6">Gestão Avançada</Typography>
+                <Button
+                  startIcon={<AddIcon />}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => abrirDialogCanal()}
+                >
+                  Configuração Manual
+                </Button>
+              </Box>
+
+              {canais.length === 0 ? (
+                <Alert severity="info">
+                  Nenhum canal conectado. Use os cards acima para conectar seus canais de comunicação.
+                </Alert>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Nome</TableCell>
+                        <TableCell>Tipo</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Prioridade</TableCell>
+                        <TableCell>Entrada/Saída</TableCell>
+                        <TableCell>Destinos</TableCell>
+                        <TableCell>Ações</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {canais.map((canal: Canal) => (
+                        <TableRow key={canal.id}>
+                          <TableCell>{canal.nome}</TableCell>
+                          <TableCell>
+                            <Chip label={canal.tipo_display} size="small" />
+                          </TableCell>
+                          <TableCell>
+                            {canal.ativo ? (
+                              <Chip icon={<CheckCircleIcon />} label="Ativo" color="success" size="small" />
+                            ) : (
+                              <Chip icon={<ErrorIcon />} label="Inativo" color="error" size="small" />
+                            )}
+                          </TableCell>
+                          <TableCell>{canal.prioridade}</TableCell>
+                          <TableCell>
+                            {canal.recebe_entrada && <Chip label="↓ Entrada" size="small" sx={{ mr: 0.5 }} />}
+                            {canal.envia_saida && <Chip label="↑ Saída" size="small" />}
+                          </TableCell>
+                          <TableCell>
+                            {canal.destinos.map((dest: string, idx: number) => (
+                              <Chip key={idx} label={dest} size="small" sx={{ mr: 0.5 }} />
+                            ))}
+                          </TableCell>
+                          <TableCell>
+                            <IconButton size="small" onClick={() => abrirDialogCanal(canal)}>
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => deletarCanal(canal.id)} color="error">
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
       )}
 
       {/* Tab 2: Webhooks Customizados */}
@@ -533,6 +626,13 @@ const MessageTranslator: React.FC = () => {
         webhook={webhookEditando}
         onClose={fecharDialogWebhook}
         onSave={salvarWebhook}
+      />
+
+      {/* 🟢 Dialog para Conectar WhatsApp */}
+      <WhatsAppDialog
+        open={whatsappDialogOpen}
+        onClose={fecharWhatsAppDialog}
+        onSuccess={handleWhatsAppSuccess}
       />
     </Box>
   );

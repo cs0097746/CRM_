@@ -400,3 +400,389 @@ class WebhookCustomizadoViewSet(viewsets.ModelViewSet):
             })
         
         return Response(stats)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def conectar_whatsapp(request):
+    """
+    🟢 Conecta/Salva WhatsApp Evolution API
+    
+    POST /translator/conectar-whatsapp/
+    
+    Body:
+    {
+        "nome": "WhatsApp Principal",
+        "base_url": "https://evo.loomiecrm.com",
+        "api_key": "B6D711FCDE4D4FD5936544120E713976",
+        "instance": "crm_teste_2025"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "canal_id": 1,
+        "conectado": true/false,
+        "estado": "✅ Conectado" ou "⚠️ Aguardando QR Code",
+        "requer_qr": true/false,
+        "mensagem": "WhatsApp conectado com sucesso!"
+    }
+    """
+    import requests
+    
+    try:
+        # 1️⃣ VALIDAR INPUT
+        nome = request.data.get('nome', 'WhatsApp Principal')
+        base_url = request.data.get('base_url', '').strip().rstrip('/')
+        api_key = request.data.get('api_key', '').strip()
+        instance = request.data.get('instance', '').strip()
+        
+        logger.info(f"📝 Tentando conectar WhatsApp: {instance}")
+        
+        if not all([base_url, api_key, instance]):
+            return Response({
+                'success': False,
+                'error': 'Campos obrigatórios: base_url, api_key, instance'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 2️⃣ VALIDAR CREDENCIAIS (SEM EXIGIR CONEXÃO)
+        headers = {
+            'apikey': api_key,
+            'Content-Type': 'application/json'
+        }
+        
+        state = 'close'  # Padrão: desconectado
+        estado_conexao = 'Credenciais salvas - aguardando QR Code'
+        
+        try:
+            # Tentar obter estado da conexão (opcional)
+            connection_url = f"{base_url}/instance/connectionState/{instance}"
+            logger.info(f"🔍 Testando credenciais: {connection_url}")
+            
+            conn_response = requests.get(
+                connection_url,
+                headers=headers,
+                timeout=10
+            )
+            
+            # ✅ VALIDAR CREDENCIAIS (não conexão)
+            if conn_response.status_code == 401:
+                return Response({
+                    'success': False,
+                    'error': 'API Key inválida. Verifique suas credenciais.'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if conn_response.status_code == 404:
+                return Response({
+                    'success': False,
+                    'error': f'Instância "{instance}" não encontrada. Crie a instância primeiro na Evolution API.'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Se chegou aqui, credenciais estão OK
+            if conn_response.status_code == 200:
+                connection_data = conn_response.json()
+                state = connection_data.get('state', 'close')
+                
+                if state == 'open':
+                    estado_conexao = '✅ Conectado'
+                    logger.info(f"✅ WhatsApp já conectado: {instance}")
+                else:
+                    estado_conexao = '⚠️ Aguardando QR Code'
+                    logger.info(f"⚠️ WhatsApp aguardando QR Code: {instance}")
+            
+        except requests.exceptions.Timeout:
+            logger.warning("⏱️ Timeout ao testar conexão. Salvando credenciais mesmo assim.")
+            estado_conexao = '⚠️ Timeout - Credenciais salvas'
+        
+        except requests.exceptions.ConnectionError:
+            return Response({
+                'success': False,
+                'error': 'Não foi possível conectar ao servidor Evolution API. Verifique a URL.'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        
+        # 3️⃣ SALVAR/ATUALIZAR CANALCONFIG (SEMPRE SALVA)
+        with transaction.atomic():
+            # Buscar por canal do mesmo usuário com tipo 'evo'
+            canal, criado = CanalConfig.objects.update_or_create(
+                tipo='evo',
+                criado_por=request.user,  # ✅ Apenas 1 canal por usuário
+                defaults={
+                    'nome': nome,
+                    'ativo': (state == 'open'),  # ✅ Só ativo se conectado
+                    'prioridade': 1,
+                    'credenciais': {  # ✅ CORREÇÃO: 'credenciais' não 'configuracao'
+                        'base_url': base_url,
+                        'api_key': api_key,
+                        'instance': instance,
+                        'estado_conexao': state
+                    },
+                    'recebe_entrada': True,
+                    'envia_saida': True,
+                    'destinos': ['crm'],
+                    'atualizado_por': request.user
+                }
+            )
+            
+            logger.info(f"{'✅ Canal criado' if criado else '🔄 Canal atualizado'}: ID {canal.pk} - {canal.nome}")
+        
+        # 4️⃣ CONFIGURAR WEBHOOK (OPCIONAL - SÓ SE CONECTADO)
+        webhook_configurado = False
+        webhook_url = f"{request.scheme}://{request.get_host()}/translator/incoming/"
+        
+        if state == 'open':
+            try:
+                webhook_config_url = f"{base_url}/webhook/set/{instance}"
+                webhook_payload = {
+                    "enabled": True,
+                    "url": webhook_url,
+                    "webhookByEvents": False,
+                    "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "SEND_MESSAGE"]
+                }
+                
+                webhook_response = requests.post(
+                    webhook_config_url,
+                    headers=headers,
+                    json=webhook_payload,
+                    timeout=10
+                )
+                
+                webhook_configurado = (webhook_response.status_code == 200)
+                logger.info(f"{'✅' if webhook_configurado else '⚠️'} Webhook: {webhook_configurado}")
+            
+            except Exception as webhook_error:
+                logger.error(f"❌ Erro ao configurar webhook: {webhook_error}")
+        
+        # 5️⃣ RETORNAR RESPOSTA
+        return Response({
+            'success': True,
+            'canal_id': canal.pk,
+            'conectado': (state == 'open'),
+            'estado': estado_conexao,
+            'requer_qr': (state != 'open'),
+            'webhook_configurado': webhook_configurado,
+            'mensagem': f"✅ {nome} salvo com sucesso!" if criado else f"🔄 {nome} atualizado!",
+            'criado': criado
+        }, status=status.HTTP_201_CREATED if criado else status.HTTP_200_OK)
+    
+    except Exception as e:
+        logger.error(f"❌ Erro ao conectar WhatsApp: {e}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def gerar_qr_code_whatsapp(request, canal_id):
+    """
+    🔑 Gera QR Code para conectar WhatsApp usando credenciais do canal
+    
+    POST /translator/gerar-qr-code/<canal_id>/
+    
+    Returns:
+    {
+        "success": true,
+        "qr_code": "data:image/png;base64,...",
+        "connected": false,
+        "message": "Escaneie o QR Code"
+    }
+    """
+    import requests
+    
+    try:
+        # 1️⃣ BUSCAR CANAL DO USUÁRIO
+        canal = CanalConfig.objects.filter(
+            id=canal_id,
+            criado_por=request.user,
+            tipo='evo'
+        ).first()
+        
+        if not canal:
+            return Response({
+                'success': False,
+                'error': 'Canal não encontrado ou não pertence ao usuário'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 2️⃣ EXTRAIR CREDENCIAIS
+        credenciais = canal.credenciais
+        base_url = credenciais.get('base_url', '').rstrip('/')
+        api_key = credenciais.get('api_key')
+        instance = credenciais.get('instance')
+        
+        if not all([base_url, api_key, instance]):
+            return Response({
+                'success': False,
+                'error': 'Credenciais incompletas no canal'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        headers = {
+            'apikey': api_key,
+            'Content-Type': 'application/json'
+        }
+        
+        # 3️⃣ VERIFICAR SE JÁ ESTÁ CONECTADO
+        status_url = f"{base_url}/instance/connectionState/{instance}"
+        
+        try:
+            status_response = requests.get(status_url, headers=headers, timeout=10)
+            
+            if status_response.status_code == 200:
+                connection_data = status_response.json()
+                state = connection_data.get('instance', {}).get('state', 'close')
+                
+                if state == 'open':
+                    # ✅ JÁ CONECTADO - Atualizar banco
+                    canal.ativo = True
+                    canal.credenciais['estado_conexao'] = 'open'
+                    canal.save()
+                    
+                    logger.info(f"✅ Canal {canal_id} já está conectado")
+                    
+                    return Response({
+                        'success': True,
+                        'connected': True,
+                        'qr_code': None,
+                        'message': 'WhatsApp já está conectado!'
+                    })
+        
+        except requests.exceptions.RequestException:
+            pass  # Continuar para gerar QR Code
+        
+        # 4️⃣ GERAR QR CODE
+        qr_url = f"{base_url}/instance/connect/{instance}"
+        
+        logger.info(f"🔄 Gerando QR Code para canal {canal_id}: {qr_url}")
+        
+        qr_response = requests.get(qr_url, headers=headers, timeout=15)
+        
+        if qr_response.status_code == 200:
+            qr_data = qr_response.json()
+            qr_code = qr_data.get('qrcode') or qr_data.get('base64')
+            
+            if qr_code:
+                # ✅ ATUALIZAR ESTADO NO BANCO
+                canal.ativo = False
+                canal.credenciais['estado_conexao'] = 'aguardando_qr'
+                canal.save()
+                
+                logger.info(f"✅ QR Code gerado para canal {canal_id}")
+                
+                return Response({
+                    'success': True,
+                    'connected': False,
+                    'qr_code': qr_code,
+                    'message': 'Escaneie o QR Code com seu WhatsApp'
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': 'QR Code não encontrado na resposta da API'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        else:
+            return Response({
+                'success': False,
+                'error': f'Erro ao gerar QR Code: HTTP {qr_response.status_code}',
+                'details': qr_response.text[:200]
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        logger.error(f"❌ Erro ao gerar QR Code: {e}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def verificar_status_canal(request, canal_id):
+    """
+    🔍 Verifica APENAS o status de conexão do canal (sem gerar QR Code)
+    
+    GET /translator/status-canal/<canal_id>/
+    
+    Returns:
+    {
+        "success": true,
+        "ativo": true,
+        "estado_conexao": "open"  // 'open', 'close', 'aguardando_qr'
+    }
+    """
+    import requests
+    
+    try:
+        # 1️⃣ BUSCAR CANAL DO USUÁRIO
+        canal = CanalConfig.objects.filter(
+            id=canal_id,
+            criado_por=request.user,
+            tipo='evo'
+        ).first()
+        
+        if not canal:
+            return Response({
+                'success': False,
+                'error': 'Canal não encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # 2️⃣ EXTRAIR CREDENCIAIS
+        credenciais = canal.credenciais
+        base_url = credenciais.get('base_url', '').rstrip('/')
+        api_key = credenciais.get('api_key')
+        instance = credenciais.get('instance')
+        
+        if not all([base_url, api_key, instance]):
+            return Response({
+                'success': True,
+                'ativo': canal.ativo,
+                'estado_conexao': credenciais.get('estado_conexao', 'unknown')
+            })
+        
+        # 3️⃣ VERIFICAR STATUS NA EVOLUTION API
+        status_url = f"{base_url}/instance/connectionState/{instance}"
+        headers = {'apikey': api_key}
+        
+        try:
+            status_response = requests.get(status_url, headers=headers, timeout=5)
+            
+            if status_response.status_code == 200:
+                connection_data = status_response.json()
+                state = connection_data.get('instance', {}).get('state', 'close')
+                
+                # 4️⃣ ATUALIZAR BANCO SE MUDOU
+                if state == 'open' and not canal.ativo:
+                    canal.ativo = True
+                    canal.credenciais['estado_conexao'] = 'open'
+                    canal.save()
+                    logger.info(f"✅ Canal {canal_id} conectado!")
+                
+                elif state == 'close' and canal.ativo:
+                    canal.ativo = False
+                    canal.credenciais['estado_conexao'] = 'close'
+                    canal.save()
+                    logger.warning(f"⚠️ Canal {canal_id} desconectado!")
+                
+                return Response({
+                    'success': True,
+                    'ativo': canal.ativo,
+                    'estado_conexao': state
+                })
+        
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erro ao verificar status: {e}")
+            
+            # Retornar status do banco
+            return Response({
+                'success': True,
+                'ativo': canal.ativo,
+                'estado_conexao': credenciais.get('estado_conexao', 'unknown')
+            })
+    
+    except Exception as e:
+        logger.error(f"❌ Erro ao verificar status: {e}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
