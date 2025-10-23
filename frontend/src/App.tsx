@@ -5,7 +5,6 @@ import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
 import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm';
-import ConfiguracaoSistema from './views/ConfiguracaoSistema';
 import TestePage from './views/TestePage';
 import ConfiguracaoWhatsApp from './views/ConfiguracaoWhatsApp';
 import {useAuthValidation} from "./function/useAuthValidation.tsx";
@@ -25,6 +24,7 @@ const Presets = lazy(() => import('./views/Presets'));
 const EditarPreset = lazy(() => import('./views/EditarPreset'));
 const CriarUsuario = lazy(()=>import('./views/CriarUsuario'));
 const UsoPLano = lazy(()=>import('./views/UsoPlano'));
+const GerarTokenBearer = lazy(()=>import('./views/GerarTokenBearer'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -89,7 +89,7 @@ const AppContent = () => {
             <Route path="/contatos" element={<Contatos />} />
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
             <Route path="*" element={<NotFound />} />
-            <Route path="/configuracao" element={<ConfiguracaoSistema />} />
+            <Route path="/token-bearer" element={<GerarTokenBearer />} />
             <Route path="/teste" element={<TestePage />} />
             <Route path="/whatsapp-config" element={<ConfiguracaoWhatsApp />} />
             <Route path="/criar_tarefas" element={<CriarTarefas />} />
@@ -138,7 +138,7 @@ const AppContent = () => {
             <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
             <NavLink to="/contatos" className="nav-link" onClick={handleCloseNav}>Contatos</NavLink>
 
-            <NavLink to="/configuracao" className="nav-link" onClick={handleCloseNav}>Configurações</NavLink>
+            <NavLink to="/token-bearer" className="nav-link" onClick={handleCloseNav}>Tokens</NavLink>
             <NavLink to="/whatsapp-config" className="nav-link" onClick={handleCloseNav}>WhatsApp</NavLink>
             <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
