@@ -1333,169 +1333,27 @@ def processar_mensagem_media(message_data):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """Webhook Evolution API - SUPORTE COMPLETO BASE64 E URL"""
-    print("WEBHOOK EVOLUTION CHAMADO!")
-    logger.info("WEBHOOK EVOLUTION CHAMADO!")
+    """
+    ⚠️ WEBHOOK DESATIVADO - Agora usando Message Translator
+    
+    Este webhook foi substituído por:
+    /translator/evolution-webhook/
+    
+    Todas as mensagens agora são processadas pelo Message Translator que:
+    1. Traduz de Evolution → Loomie
+    2. Processa mídias com descriptografia
+    3. Envia para o CRM automaticamente
+    
+    Mantido aqui apenas para compatibilidade com código legado.
+    """
+    logger.info("⚠️ [ATENDIMENTO] Webhook DESATIVADO - usar /translator/evolution-webhook/")
+    
+    return Response({
+        "success": False,
+        "message": "Este webhook foi desativado. Use /translator/evolution-webhook/",
+        "redirect": "/translator/evolution-webhook/"
+    }, status=status.HTTP_410_GONE)
 
-    try:
-        payload = request.data
-        print(f"📦 Payload recebido: {payload}")
-        logger.info(f"📦 Payload completo: {json.dumps(payload, indent=2, ensure_ascii=False)}")
-
-        if not payload:
-            logger.error("PAYLOAD VAZIO")
-            return Response({'status': 'empty_payload'}, status=400)
-
-        event_type = payload.get('event')
-        data = payload.get('data', {})
-        if event_type != 'messages.upsert':
-            logger.info(f"ℹ️ Evento ignorado: {event_type}")
-            return Response({'status': f'event_ignored_{event_type}'}, status=200)
-
-        # Extração dos dados principais
-        key = data.get('key', {})
-        message = data.get('message', {})
-        if body := data.get('body'):
-            message['body'] = body
-        push_name = data.get('pushName', 'Usuário')
-        remote_jid = key.get('remoteJid', '')
-        from_me = key.get('fromMe', False)
-        message_id = key.get('id', '')
-
-        logger.info(f"Remote JID: {remote_jid} | From me: {from_me} | ID: {message_id}")
-
-        if from_me:
-            logger.info("Mensagem própria ignorada")
-            return Response({'status': 'own_message_ignored'}, status=200)
-
-        # Buscar ou criar contato
-        numero_contato = remote_jid.split('@')[0]
-        contato, _ = Contato.objects.get_or_create(
-            telefone=numero_contato,
-            defaults={'nome': push_name}
-        )
-        conversa, _ = Conversa.objects.get_or_create(
-            contato=contato,
-            defaults={'status': 'entrada'}
-        )
-
-        # Processar mensagem e mídia usando o novo sistema unificado
-        message_with_base64 = message.copy()
-        message_with_base64['base64'] = data.get('base64', '')
-        texto_mensagem, tipo_mensagem, message_info, media_filename, media_size, media_duration, media_mimetype, base64Text = processar_mensagem_media(message_with_base64)
-
-        logger.info(f"📝 Texto: {texto_mensagem}")
-        logger.info(f"🏷️ Tipo: {tipo_mensagem}")
-        logger.info(f"📦 Dados estruturados: {'SIM' if message_info else 'NÃO'}")
-
-        media_local_path = None
-
-        try:
-            # Processar mídia usando o novo processador unificado
-            if tipo_mensagem in ['imagem', 'audio', 'video', 'documento', 'sticker']:
-                from .media_processor import WhatsAppMediaProcessor
-                
-                logger.info(f"🔄 Processando {tipo_mensagem} com processador unificado...")
-                
-                # Usar o novo processador unificado
-                result = WhatsAppMediaProcessor.process_media(
-                    message_info, 
-                    tipo_mensagem, 
-                    base64Text
-                )
-                
-                if result['success']:
-                    media_local_path = result['media_local_path']
-                    media_filename = result['filename']
-                    media_size = result['size']
-                    
-                    if result.get('conversion_applied'):
-                        logger.info(f"✅ {tipo_mensagem.capitalize()} processado com conversão: {media_filename}")
-                    else:
-                        logger.info(f"✅ {tipo_mensagem.capitalize()} processado: {media_filename}")
-                else:
-                    logger.error(f"❌ Erro no processamento de {tipo_mensagem}: {result.get('error', 'Erro desconhecido')}")
-                    media_local_path = None
-                    media_size = None
-            elif tipo_mensagem == 'texto':
-                logger.info("💬 Mensagem de texto - nenhum processamento de mídia necessário")
-            else:
-                logger.info(f"ℹ️ Tipo de mensagem não processável: {tipo_mensagem}")
-
-        except Exception as e:
-            logger.error(f"💥 Erro ao processar mídia: {str(e)}")
-            media_local_path = None
-            media_size = None
-
-        # Salva a interação
-        if texto_mensagem and texto_mensagem.strip():
-            interacao = Interacao.objects.create(
-                conversa=conversa,
-                mensagem=texto_mensagem,
-                remetente='cliente',
-                tipo=tipo_mensagem,
-                whatsapp_id=message_id,
-                media_url=media_local_path,
-                media_filename=media_filename,
-                media_size=media_size,
-                media_duration=media_duration
-            )
-            logger.info(f"✅ Interação criada: ID {interacao.pk}")
-            logger.info(f"🔍 NOME ARQUIVO NO BANCO: {media_filename}")
-            
-            # ✅ ATUALIZAR timestamp da conversa para ordenação correta
-            conversa.atualizado_em = timezone.now()
-            
-            if conversa.status == 'finalizada':
-                conversa.status = 'entrada'
-            
-            conversa.save()
-            logger.info("📝 Conversa atualizada para ordenação correta.")
-
-        # 🔄 WEBHOOK DUPLO: Enviar também para o Message Translator (paralelo)
-        try:
-            logger.info("🔄 Enviando payload para Message Translator (webhook duplo)...")
-            translator_payload = {
-                "canal_tipo": "whatsapp",
-                "canal_id": 1,  # ID do canal Evolution configurado
-                "payload": payload  # Payload original completo
-            }
-            
-            # Enviar de forma assíncrona (não bloquear o webhook principal)
-            import threading
-            def enviar_para_translator():
-                try:
-                    response = requests.post(
-                        'http://backend:8000/translator/incoming/',
-                        json=translator_payload,
-                        timeout=5
-                    )
-                    if response.status_code == 200:
-                        logger.info(f"✅ Tradutor processou: {response.json().get('message_id')}")
-                    else:
-                        logger.warning(f"⚠️ Tradutor respondeu {response.status_code}")
-                except Exception as e:
-                    logger.error(f"❌ Erro ao enviar para tradutor: {e}")
-            
-            # Executar em thread separada para não bloquear
-            threading.Thread(target=enviar_para_translator, daemon=True).start()
-            logger.info("🚀 Requisição para tradutor iniciada em background")
-            
-        except Exception as e:
-            logger.error(f"⚠️ Erro no webhook duplo (não crítico): {e}")
-
-        return Response({
-            'status': 'processed',
-            'contato_id': contato.id,
-            'conversa_id': conversa.id,
-            'tipo': tipo_mensagem,
-            'media_downloaded': bool(media_local_path)
-        }, status=200)
-
-    except Exception as e:
-        logger.error(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
-        logger.error(f"💥 TRACEBACK: {traceback.format_exc()}")
-        return Response({'status': 'error', 'error': str(e)}, status=500)
     
 @api_view(['POST'])
 @permission_classes([AllowAny])

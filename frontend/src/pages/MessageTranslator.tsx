@@ -361,10 +361,6 @@ const MessageTranslator: React.FC = () => {
               conectado={whatsappConectado}
               onConectar={abrirWhatsAppDialog}
               onGerenciar={abrirWhatsAppDialog}
-              onGerarQR={() => {
-                // Redirecionar para /whatsapp-config
-                window.location.href = '/whatsapp-config';
-              }}
             />
 
             {/* 🔵 CARD: Instagram (Desabilitado - Em breve) */}

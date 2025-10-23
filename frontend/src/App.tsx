@@ -7,7 +7,6 @@ import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm';
 import ConfiguracaoSistema from './views/ConfiguracaoSistema';
 import TestePage from './views/TestePage';
-import ConfiguracaoWhatsApp from './views/ConfiguracaoWhatsApp';
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -98,7 +97,6 @@ const AppContent = () => {
             <Route path="*" element={<NotFound />} />
             <Route path="/configuracao" element={<ConfiguracaoSistema />} />
             <Route path="/teste" element={<TestePage />} />
-            <Route path="/whatsapp-config" element={<ConfiguracaoWhatsApp />} />
             <Route path="/criar_tarefas" element={<CriarTarefas />} />
             <Route path="/tarefas" element={<ListarTarefas />} />
             <Route path="/gatilhos"  element={<ListarGatilhos />} />
@@ -127,7 +125,6 @@ const AppContent = () => {
             <NavLink to="/contatos" className="nav-link" onClick={handleCloseNav}>Contatos</NavLink>
 
             <NavLink to="/configuracao" className="nav-link" onClick={handleCloseNav}>Configurações</NavLink>
-            <NavLink to="/whatsapp-config" className="nav-link" onClick={handleCloseNav}>WhatsApp</NavLink>
             <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
             <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>

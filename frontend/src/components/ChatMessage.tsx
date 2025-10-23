@@ -38,7 +38,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ mensagem, onCopiar }) => {
       boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
     };
 
-    switch (mensagem.media_type) {
+    // ✅ USAR mensagem.media_type que vem do backend como 'tipo'
+    const mediaType = mensagem.media_type;
+
+    switch (mediaType) {
       case 'imagem':
         return (
           <div className="mt-2">
@@ -48,7 +51,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ mensagem, onCopiar }) => {
               style={commonStyle}
               onClick={() => setShowMediaModal(true)}
               onError={(e) => {
-                e.currentTarget.src = '/placeholder-image.png'; // Imagem de fallback
+                console.error('❌ Erro ao carregar imagem:', mensagem.media_url);
+                e.currentTarget.style.display = 'none'; // ✅ OCULTAR ao invés de loop infinito
               }}
             />
           </div>

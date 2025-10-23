@@ -118,6 +118,102 @@ def webhook_entrada(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])  # 🔓 Webhook público para Evolution API
+def webhook_evolution(request):
+    """
+    🟢 Webhook dedicado para Evolution API
+    
+    POST /translator/evolution-webhook/
+    
+    Recebe payloads direto da Evolution e processa
+    """
+    inicio = time.time()
+    
+    try:
+        logger.info(f"📱 Webhook Evolution recebido")
+        logger.debug(f"📦 Payload: {request.data}")
+        
+        # Evolution API envia eventos assim:
+        # {
+        #   "event": "messages.upsert",
+        #   "instance": "crm_teste_2025",
+        #   "data": { ... }
+        # }
+        
+        event = request.data.get('event')
+        instance = request.data.get('instance')
+        data = request.data.get('data')
+        
+        # Filtrar apenas mensagens recebidas
+        if event != 'messages.upsert':
+            logger.debug(f"⏭️ Evento ignorado: {event}")
+            return Response({'success': True, 'message': 'Evento ignorado'})
+        
+        # Buscar canal pelo nome da instância
+        try:
+            canal = CanalConfig.objects.get(
+                credenciais__instance=instance,
+                tipo='evo',
+                ativo=True
+            )
+            logger.info(f"✅ Canal encontrado: {canal.nome} (ID: {canal.pk})")
+        except CanalConfig.DoesNotExist:
+            logger.error(f"❌ Instância {instance} não encontrada no banco")
+            return Response({
+                'success': False,
+                'error': f'Instância {instance} não configurada'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Traduzir para formato Loomie
+        translator = get_translator('evo')
+        loomie_message = translator.to_loomie(data)
+        loomie_message.channel_id = canal.pk
+        
+        # Criar log inicial
+        log = MensagemLog.objects.create(
+            message_id=loomie_message.message_id,
+            direcao='entrada',
+            status='processando',
+            canal_origem=canal,
+            payload_original=data,
+            payload_loomie=loomie_message.to_dict(),
+            remetente=loomie_message.sender,
+            destinatario=loomie_message.recipient
+        )
+        
+        # Processar e rotear
+        resultado = processar_mensagem_entrada(loomie_message, canal)
+        
+        # Atualizar log
+        tempo_total = time.time() - inicio
+        log.status = 'enviada'
+        log.processado_em = timezone.now()
+        log.tempo_processamento = tempo_total
+        log.save()
+        
+        logger.info(f"✅ Mensagem {loomie_message.message_id} processada em {tempo_total:.2f}s")
+        
+        return Response({
+            'success': True,
+            'message_id': loomie_message.message_id,
+            'tempo_processamento': tempo_total
+        })
+    
+    except Exception as e:
+        logger.error(f"❌ Erro no webhook_evolution: {e}", exc_info=True)
+        
+        if 'log' in locals():
+            log.status = 'erro'
+            log.erro_mensagem = str(e)
+            log.save()
+        
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
 @permission_classes([AllowAny])  # 🔓 Webhook público (n8n/CRM precisam acessar)
 def webhook_saida(request):
     """

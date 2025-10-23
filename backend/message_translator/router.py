@@ -76,42 +76,110 @@ def processar_mensagem_entrada(loomie_message: LoomieMessage, canal: Optional[Ca
 
 def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
     """
-    Envia mensagem para o CRM (cria Interação)
+    🔥 Envia mensagem para o CRM (cria Interação) COM SUPORTE COMPLETO A MÍDIAS
+    
+    Usa a mesma lógica do atendimento/views.py que já funciona
     """
     try:
         from contato.models import Contato
         from atendimento.models import Conversa, Interacao
+        from django.utils import timezone
+        
+        logger.info(f"📤 [CRM] Processando mensagem: {loomie_message.message_id}")
+        logger.info(f"📝 [CRM] Tipo: {loomie_message.content_type}, Texto: {loomie_message.text[:50] if loomie_message.text else 'N/A'}")
         
         # Extrair número WhatsApp
-        sender = loomie_message.sender.replace('whatsapp:', '').replace('evo:', '')
+        sender = loomie_message.sender.replace('whatsapp:', '').replace('evo:', '').replace('telegram:', '')
         
         # Buscar/criar contato
-        contato, _ = Contato.objects.get_or_create(
+        contato, created = Contato.objects.get_or_create(
             telefone=sender,
             defaults={'nome': loomie_message.sender_name or 'Usuário'}
         )
         
+        if created:
+            logger.info(f"👤 [CRM] Novo contato criado: {contato.nome} ({contato.telefone})")
+        
         # Buscar/criar conversa
-        conversa, _ = Conversa.objects.get_or_create(
+        conversa, created = Conversa.objects.get_or_create(
             contato=contato,
             defaults={'status': 'entrada'}
         )
         
+        if created:
+            logger.info(f"💬 [CRM] Nova conversa criada: ID {conversa.id}")
+        
+        # Determinar tipo da mensagem baseado no content_type
+        if loomie_message.content_type == 'text':
+            tipo_mensagem = 'texto'
+            texto_mensagem = loomie_message.text or ''
+        elif loomie_message.content_type == 'media' and loomie_message.media:
+            # Pegar tipo da mídia
+            media = loomie_message.media[0]
+            tipo_map = {
+                'image': 'imagem',
+                'video': 'video',
+                'audio': 'audio',
+                'document': 'documento',
+                'sticker': 'sticker'
+            }
+            tipo_mensagem = tipo_map.get(media.tipo, 'outros')
+            
+            # Texto da mensagem
+            if media.legenda:
+                texto_mensagem = media.legenda
+            elif loomie_message.text:
+                texto_mensagem = loomie_message.text
+            else:
+                texto_mensagem = f"[{tipo_mensagem.capitalize()}]"
+            
+            logger.info(f"📎 [CRM] Mídia detectada: {tipo_mensagem}, URL: {media.url}")
+        else:
+            tipo_mensagem = 'outros'
+            texto_mensagem = loomie_message.text or '[Mensagem não suportada]'
+        
+        # Extrair dados da mídia se existir
+        media_url = None
+        media_filename = None
+        media_size = None
+        media_duration = None
+        
+        if loomie_message.media:
+            media = loomie_message.media[0]
+            media_url = media.url  # URL local já processada pelo tradutor
+            media_filename = media.filename
+            media_size = media.tamanho
+            media_duration = media.duracao
+            
+            logger.info(f"📦 [CRM] Dados da mídia: URL={media_url}, Nome={media_filename}, Tamanho={media_size}")
+        
         # Criar interação
-        Interacao.objects.create(
+        interacao = Interacao.objects.create(
             conversa=conversa,
-            mensagem=loomie_message.text or '[Mídia]',
+            mensagem=texto_mensagem,
             remetente='cliente',
-            tipo=loomie_message.content_type,
+            tipo=tipo_mensagem,
             whatsapp_id=loomie_message.external_id,
-            media_url=loomie_message.media[0].url if loomie_message.media else None
+            media_url=media_url,
+            media_filename=media_filename,
+            media_size=media_size,
+            media_duration=media_duration
         )
         
-        logger.info(f"✅ [CRM] Interação salva: {loomie_message.message_id}")
+        logger.info(f"✅ [CRM] Interação criada: ID {interacao.id}, Tipo: {tipo_mensagem}")
+        
+        # Atualizar timestamp da conversa
+        conversa.atualizado_em = timezone.now()
+        if conversa.status == 'finalizada':
+            conversa.status = 'entrada'
+        conversa.save()
+        
+        logger.info(f"✅ [CRM] Conversa atualizada: ID {conversa.id}")
+        
         return True
     
     except Exception as e:
-        logger.error(f"❌ [CRM] Erro ao salvar: {e}")
+        logger.error(f"❌ [CRM] Erro ao salvar: {e}", exc_info=True)
         return False
 
 
