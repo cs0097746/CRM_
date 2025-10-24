@@ -82,7 +82,8 @@ def webhook_n8n_lead(request):
             defaults={
                 'nome': nome,
                 'observacoes': f'Interesse: {tipo_interesse}'
-            }
+            },
+            criado_por=request.user
         )
 
         # Criar conversa se não existir
