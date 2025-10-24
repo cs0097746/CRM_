@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { User, Lock, Mail, ServerCrash, CheckCircle, Save, Type, Type as IconType } from 'lucide-react';
+import { User, Lock, Mail, ServerCrash, CheckCircle, Save, Type, Type as IconType, KeyRound, X, Check } from 'lucide-react';
 import axios from 'axios';
 import backend_url from "../config/env.ts";
 import {getToken} from "../function/validateToken.tsx";
 
+
+const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+={}\[\]:;<>,.?/~\\-]).{8,}$/;
+
 export default function CriarUsuarioView() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -18,6 +22,27 @@ export default function CriarUsuarioView() {
 
   const chefeUsername = JSON.parse(localStorage.getItem("user") || "{}").username || 'Chefe';
 
+  const lengthRegex = /^.{8,}$/;
+  const uppercaseRegex = /(?=.*[A-Z])/;
+  const numberRegex = /(?=.*[0-9])/;
+  const specialCharRegex = /(?=.*[!@#$%^&*()_+={}\[\]:;<>,.?/~\\-])/;
+
+  const getPasswordValidationStatus = (pwd: string) => {
+    const isLengthValid = lengthRegex.test(pwd);
+    const hasUppercase = uppercaseRegex.test(pwd);
+    const hasNumber = numberRegex.test(pwd);
+    const hasSpecialChar = specialCharRegex.test(pwd);
+    const isOverallValid = passwordRegex.test(pwd);
+
+    return {
+      isLengthValid,
+      hasUppercase,
+      hasNumber,
+      hasSpecialChar,
+      isOverallValid,
+      errorMessage: isOverallValid ? null : "A senha não atende a todos os requisitos.",
+    };
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,8 +50,21 @@ export default function CriarUsuarioView() {
     setError('');
     setSuccess('');
 
-    if (!username || !password || !email || !firstName || !lastName) {
-      setError("Todos os campos (Usuário, Nome, Sobrenome, Senha, Email) são obrigatórios.");
+    if (!username || !password || !confirmPassword || !email || !firstName || !lastName) {
+      setError("Todos os campos (Usuário, Nome, Sobrenome, Senha, Confirmação de Senha, Email) são obrigatórios.");
+      setLoading(false);
+      return;
+    }
+
+    const validationStatus = getPasswordValidationStatus(password);
+    if (!validationStatus.isOverallValid) {
+      setError("⚠️ Erro na Senha: A senha deve ter no mínimo 8 caracteres, 1 maiúsculo, 1 número e 1 caractere especial.");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("A Senha e a Confirmação de Senha não coincidem.");
       setLoading(false);
       return;
     }
@@ -60,15 +98,13 @@ export default function CriarUsuarioView() {
         }
       );
 
-
-
       const data = response.data;
 
       if (data.success) {
         setSuccess(`✅ Subordinado "${username}" (Nome: ${firstName} ${lastName}) criado com sucesso! User ID: ${data.user_id}`);
-        // Limpar todos os campos
         setUsername('');
         setPassword('');
+        setConfirmPassword('');
         setEmail('');
         setFirstName('');
         setLastName('');
@@ -124,13 +160,25 @@ export default function CriarUsuarioView() {
         console.error('💥 Erro genérico:', err);
         setError(`Erro: ${err.message}`);
       } else {
-        console.error('💥 Erro desconhecido:', err);
+        console.error('💥 Erro desconhecida:', err);
         setError("Erro desconhecido.");
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const validationStatus = getPasswordValidationStatus(password);
+  const isPasswordValid = validationStatus.isOverallValid;
+  const passwordMatch = password === confirmPassword;
+
+  const ChecklistItem = ({ isValid, children }: { isValid: boolean, children: React.ReactNode }) => (
+    <div className={`d-flex align-items-center ${isValid ? 'text-success' : 'text-muted'}`} style={{ fontSize: '0.875em' }}>
+      {isValid ? <Check size={14} className="me-2" /> : <X size={14} className="me-2" />}
+      {children}
+    </div>
+  );
+
 
   return (
     <Container fluid className="d-flex align-items-center justify-content-center min-vh-100 bg-light p-4">
@@ -214,10 +262,52 @@ export default function CriarUsuarioView() {
                     placeholder="Defina a senha inicial"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    isInvalid={!!password && !isPasswordValid}
+                    isValid={!!password && isPasswordValid}
                     required
                     disabled={loading}
                   />
+
+                  <div className="mt-1">
+                    <ChecklistItem isValid={validationStatus.isLengthValid}>
+                      Mínimo de **8 caracteres**
+                    </ChecklistItem>
+                    <ChecklistItem isValid={validationStatus.hasUppercase}>
+                      Pelo menos **1 letra maiúscula**
+                    </ChecklistItem>
+                    <ChecklistItem isValid={validationStatus.hasNumber}>
+                      Pelo menos **1 número**
+                    </ChecklistItem>
+                    <ChecklistItem isValid={validationStatus.hasSpecialChar}>
+                      Pelo menos **1 caractere especial**
+                    </ChecklistItem>
+                  </div>
+
                 </Form.Group>
+
+                <Form.Group className="mb-3" controlId="formConfirmPassword">
+                  <Form.Label className="d-flex align-items-center">
+                    <KeyRound size={16} className="me-2" /> Confirmar Senha
+                  </Form.Label>
+                  <Form.Control
+                    type="password"
+                    placeholder="Repita a senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    isInvalid={!!confirmPassword && password.length > 0 && !passwordMatch}
+                    isValid={!!confirmPassword && password.length > 0 && passwordMatch}
+                    required
+                    disabled={loading}
+                  />
+
+                  <Form.Control.Feedback type="invalid">
+                    As senhas não coincidem.
+                  </Form.Control.Feedback>
+                  <Form.Control.Feedback type="valid">
+                    Senhas coincidem!
+                  </Form.Control.Feedback>
+                </Form.Group>
+
 
                 <Form.Group className="mb-4" controlId="formEmail">
                   <Form.Label className="d-flex align-items-center">
@@ -236,7 +326,7 @@ export default function CriarUsuarioView() {
                 <Button
                   variant="success"
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isPasswordValid || !passwordMatch}
                   className="w-100 py-2 fw-bold d-flex justify-content-center align-items-center"
                 >
                   {loading ? (

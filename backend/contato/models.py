@@ -56,3 +56,9 @@ class Contato(models.Model):
         verbose_name = "Contato"
         verbose_name_plural = "Contatos"
         ordering = ['nome']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['criado_por', 'whatsapp_id'],
+                name='unique_contato_por_usuario'
+            )
+        ]

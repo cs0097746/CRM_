@@ -73,6 +73,13 @@ class ContatoListCreateView(generics.ListCreateAPIView):
         if contatos_inclusos >= limite_contatos:
             raise ValidationError(f"Limite de {limite_contatos} contatos atingido para este plano.")
 
+        telefone = serializer.validated_data.get('telefone')
+        whatsapp_id = serializer.validated_data.get('whatsapp_id')
+        if (telefone and Contato.objects.filter(criado_por=self.request.user, telefone=telefone).exists()) or \
+           (whatsapp_id and Contato.objects.filter(criado_por=self.request.user, whatsapp_id=whatsapp_id).exists()):
+            raise ValidationError("Você já possui um contato com este telefone ou WhatsApp ID.")
+
+
         serializer.save(criado_por=self.request.user)
 
 class ContatoDetailView(generics.RetrieveUpdateDestroyAPIView):

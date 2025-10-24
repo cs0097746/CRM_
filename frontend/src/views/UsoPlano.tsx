@@ -163,7 +163,7 @@ export default function PlanUsageDashboard() {
                 <Row className="g-4 mb-5">
                     <Col xs={12} md={4}>
                         <ResourceCard
-                            title="👥 Usuários da Equipe"
+                            title="👥 Usuários da Equipe (EM DESENVOLVIMENTO)"
                             used={planData.usuarios_utilizados}
                             limit={planData.limite_usuarios}
                             progress={userProgress}
@@ -192,7 +192,7 @@ export default function PlanUsageDashboard() {
                             limit={planData.limite_contatos}
                             progress={contactProgress}
                             ctaText="Gerenciar Contatos"
-                            ctaLink="/contacts"
+                            ctaLink="/contatos"
                             limitWarningText="Limite de contatos atingido! Faça a limpeza ou upgrade."
                         />
                     </Col>
