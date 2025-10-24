@@ -16,11 +16,14 @@ def processar_mensagem_entrada(loomie_message: LoomieMessage, canal: Optional[Ca
     """
     Processa mensagem de entrada e roteia para destinos configurados
     
-    Fluxo:
+    Fluxo Simplificado:
     1. Recebe mensagem em formato Loomie
-    2. Identifica destinos (CRM, n8n, outros canais)
-    3. Envia para cada destino em paralelo (ou sequencial)
+    2. Salva no CRM (Interação)
+    3. Dispara Webhooks Customizados (n8n, Make.com, etc)
     4. Retorna resultado
+    
+    NOTA: n8n e outras integrações são feitas via Webhooks Customizados,
+          não há mais lógica separada para cada integração.
     """
     resultados = {
         'success': True,
@@ -28,43 +31,28 @@ def processar_mensagem_entrada(loomie_message: LoomieMessage, canal: Optional[Ca
         'erros': []
     }
     
-    # Determinar destinos
-    destinos = []
-    if canal and canal.destinos:
-        destinos = canal.destinos
-    else:
-        # Destinos padrão
-        destinos = ['crm', 'n8n']
+    logger.info(f"� [ENTRADA] Processando mensagem: {loomie_message.message_id}")
     
-    logger.info(f"📤 Roteando mensagem {loomie_message.message_id} para: {destinos}")
+    # 1️⃣ SEMPRE salvar no CRM
+    try:
+        sucesso = enviar_para_crm(loomie_message)
+        if sucesso:
+            resultados['destinos_enviados'].append('crm')
+            logger.info(f"✅ Salvo no CRM")
+        else:
+            resultados['erros'].append('Falha ao salvar no CRM')
+            logger.warning(f"⚠️ Falha ao salvar no CRM")
+    except Exception as e:
+        erro_msg = f"Erro ao salvar no CRM: {str(e)}"
+        resultados['erros'].append(erro_msg)
+        logger.error(f"❌ {erro_msg}")
     
-    # Enviar para cada destino
-    for destino in destinos:
-        try:
-            if destino == 'crm':
-                sucesso = enviar_para_crm(loomie_message)
-            elif destino == 'n8n':
-                sucesso = enviar_para_n8n(loomie_message)
-            else:
-                # Outro canal
-                sucesso = enviar_para_canal(destino, loomie_message)
-            
-            if sucesso:
-                resultados['destinos_enviados'].append(destino)
-                logger.info(f"✅ Enviado para {destino}")
-            else:
-                resultados['erros'].append(f"Falha ao enviar para {destino}")
-                logger.warning(f"⚠️ Falha ao enviar para {destino}")
-        
-        except Exception as e:
-            erro_msg = f"Erro ao enviar para {destino}: {str(e)}"
-            resultados['erros'].append(erro_msg)
-            logger.error(f"❌ {erro_msg}")
-    
-    # ✨ Processar webhooks customizados
+    # 2️⃣ Processar webhooks customizados (n8n, Make.com, etc)
     try:
         webhooks_enviados = processar_webhooks_customizados(loomie_message, direcao='entrada')
-        resultados['destinos_enviados'].extend(webhooks_enviados)
+        if webhooks_enviados:
+            resultados['destinos_enviados'].extend(webhooks_enviados)
+            logger.info(f"✅ {len(webhooks_enviados)} webhook(s) disparado(s)")
     except Exception as e:
         logger.error(f"❌ Erro ao processar webhooks customizados: {str(e)}")
     
@@ -183,35 +171,6 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
         return False
 
 
-def enviar_para_n8n(loomie_message: LoomieMessage) -> bool:
-    """
-    Envia mensagem para n8n via webhook
-    """
-    try:
-        # Buscar URL do webhook n8n (pode vir de settings ou banco)
-        webhook_url = getattr(settings, 'N8N_WEBHOOK_URL', None)
-        
-        if not webhook_url:
-            logger.warning("N8N_WEBHOOK_URL não configurado")
-            return False
-        
-        # Payload para n8n
-        payload = loomie_message.to_dict()
-        
-        response = requests.post(
-            webhook_url,
-            json=payload,
-            timeout=10,
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        response.raise_for_status()
-        logger.info(f"📨 Mensagem enviada para n8n: {loomie_message.message_id}")
-        return True
-    
-    except requests.RequestException as e:
-        logger.error(f"Erro ao enviar para n8n: {e}")
-        return False
 
 
 def enviar_para_canal(canal_nome: str, loomie_message: LoomieMessage) -> bool:
@@ -256,8 +215,7 @@ def enviar_mensagem_saida(loomie_message: LoomieMessage, canal: CanalConfig, pay
         elif canal.tipo == 'telegram':
             resultado = enviar_telegram(canal, payload)
         
-        elif canal.tipo == 'n8n':
-            resultado = enviar_n8n_direto(canal, payload)
+        # n8n removido - agora é WebhookCustomizado
         
         else:
             return {
@@ -455,34 +413,9 @@ def enviar_telegram(canal: CanalConfig, payload: Dict) -> Dict:
         }
 
 
-def enviar_n8n_direto(canal: CanalConfig, payload: Dict) -> Dict:
-    """
-    Envia mensagem diretamente para webhook n8n
-    """
-    try:
-        credenciais = canal.credenciais
-        webhook_url = credenciais.get('webhook_url')
-        
-        if not webhook_url:
-            return {
-                'success': False,
-                'error': 'Webhook URL não configurado'
-            }
-        
-        response = requests.post(webhook_url, json=payload, timeout=15)
-        response.raise_for_status()
-        
-        return {
-            'success': True,
-            'external_id': ''
-        }
-    
-    except requests.RequestException as e:
-        logger.error(f"Erro ao enviar para n8n: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
+
+
+# REMOVIDO: enviar_n8n_direto() - n8n agora é WebhookCustomizado
 
 
 def enviar_para_webhook_customizado(webhook, loomie_data: Dict, tentativa: int = 1) -> bool:

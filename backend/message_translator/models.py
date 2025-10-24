@@ -15,7 +15,7 @@ class CanalConfig(models.Model):
         ('email', 'Email'),
         ('sms', 'SMS'),
         ('evo', 'Evolution API'),
-        ('n8n', 'n8n Webhook'),
+        # n8n agora é WebhookCustomizado
         ('outro', 'Outro'),
     ]
     
@@ -35,11 +35,12 @@ class CanalConfig(models.Model):
     recebe_entrada = models.BooleanField(default=True, help_text="Recebe mensagens de entrada")
     envia_saida = models.BooleanField(default=True, help_text="Envia mensagens de saída")
     
-    # Destinos para onde enviar (ao receber mensagem deste canal)
+    # DEPRECADO: Use WebhookCustomizado ao invés de destinos
+    # Destinos agora são configurados via WebhookCustomizado (mais flexível)
     destinos = models.JSONField(
         default=list,
         blank=True,
-        help_text="Lista de destinos: ['crm', 'n8n', 'outro_canal']"
+        help_text="[DEPRECADO] Use WebhookCustomizado. Lista de destinos: ['crm', 'n8n', 'outro_canal']"
     )
     
     # Auditoria

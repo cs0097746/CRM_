@@ -214,7 +214,7 @@ def webhook_evolution(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])  # 🔓 Webhook público (n8n/CRM precisam acessar)
+@permission_classes([AllowAny])  # 🔓 Webhook público (CRM interno precisa acessar)
 def webhook_saida(request):
     """
     🔴 Endpoint principal de SAÍDA de mensagens
