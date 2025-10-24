@@ -343,26 +343,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       `}</style>
 
       <div className="chat-container">
-        {/* Header do chat */}
-        <div className="chat-header">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h6>{conversa?.contato?.nome || 'Conversa'}</h6>
-              <div className="subtitle">
-                <span className="online-indicator"></span>
-                {conversa?.contato?.telefone}
-              </div>
-            </div>
-            <div>
-              <span className={`chat-status status-${conversa.status}`}>
-                {conversa.status === 'entrada' && 'Aguardando'}
-                {conversa.status === 'atendimento' && 'Em Atendimento'}
-                {conversa.status === 'finalizada' && 'Finalizada'}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Área das mensagens */}
         <div className="messages-area">
           {mensagens.length === 0 ? (

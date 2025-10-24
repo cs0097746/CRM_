@@ -89,3 +89,34 @@ def enviar_webhook_task(destinatario, assunto, link_webhook_n8n, codigo=None):
     print("Assunto", assunto)
 
     chamar_webhook_n8n(link_webhook_n8n, "webhook", destinatario, codigo, assunto)
+
+
+@shared_task
+def desativar_atendimento_humano(conversa_id):
+    """
+    Desativa automaticamente o atendimento humano após o timer expirar
+    """
+    from atendimento.models import Conversa
+    
+    try:
+        conversa = Conversa.objects.get(id=conversa_id)
+        
+        if conversa.atendimento_humano:
+            agora = timezone.now()
+            
+            if conversa.atendimento_humano_ate and agora >= conversa.atendimento_humano_ate:
+                conversa.atendimento_humano = False
+                conversa.atendimento_humano_ate = None
+                conversa.save()
+                
+                return {"success": True, "message": "Bot reativado", "conversa_id": conversa_id}
+            else:
+                tempo_restante = (conversa.atendimento_humano_ate - agora).total_seconds() if conversa.atendimento_humano_ate else 0
+                return {"success": False, "message": "Ainda não expirou", "tempo_restante": tempo_restante}
+        else:
+            return {"success": True, "message": "Já estava desativado", "conversa_id": conversa_id}
+            
+    except Conversa.DoesNotExist:
+        return {"success": False, "error": "Conversa não encontrada"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

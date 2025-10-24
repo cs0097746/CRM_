@@ -6,7 +6,6 @@ import './App.css';
 import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm';
 import TestePage from './views/TestePage';
-import ConfiguracaoWhatsApp from './views/ConfiguracaoWhatsApp';
 import {useAuthValidation} from "./function/useAuthValidation.tsx";
 
 const Home = lazy(() => import("./views/Home"));
@@ -25,6 +24,7 @@ const EditarPreset = lazy(() => import('./views/EditarPreset'));
 const CriarUsuario = lazy(()=>import('./views/CriarUsuario'));
 const UsoPLano = lazy(()=>import('./views/UsoPlano'));
 const GerarTokenBearer = lazy(()=>import('./views/GerarTokenBearer'));
+const MessageTranslator = lazy(() => import('./pages/MessageTranslator'));
 
 const MenuIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
@@ -91,7 +91,6 @@ const AppContent = () => {
             <Route path="*" element={<NotFound />} />
             <Route path="/token-bearer" element={<GerarTokenBearer />} />
             <Route path="/teste" element={<TestePage />} />
-            <Route path="/whatsapp-config" element={<ConfiguracaoWhatsApp />} />
             <Route path="/criar_tarefas" element={<CriarTarefas />} />
             <Route path="/tarefas" element={<ListarTarefas />} />
             <Route path="/gatilhos"  element={<ListarGatilhos />} />
@@ -119,6 +118,7 @@ const AppContent = () => {
                 )
               }
             />
+            <Route path="/message-translator" element={<MessageTranslator />} />
           </Routes>
         </Suspense>
       </div>
@@ -137,13 +137,13 @@ const AppContent = () => {
             <NavLink to="/kanbans" className="nav-link" onClick={handleCloseNav}>Kanbans</NavLink>
             <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
             <NavLink to="/contatos" className="nav-link" onClick={handleCloseNav}>Contatos</NavLink>
-
             <NavLink to="/token-bearer" className="nav-link" onClick={handleCloseNav}>Tokens</NavLink>
             <NavLink to="/whatsapp-config" className="nav-link" onClick={handleCloseNav}>WhatsApp</NavLink>
             <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
             <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
             <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
             <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
+            <NavLink to="/message-translator" className="nav-link" onClick={handleCloseNav}>Message Translator</NavLink>
             {localStorage.getItem("is_chefe") === "true" && (
               <>
                 <NavLink to="/criar-usuario" className="nav-link" onClick={handleCloseNav}>

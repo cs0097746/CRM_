@@ -34,6 +34,11 @@ class Conversa(models.Model):
     origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default='whatsapp')
     prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
     tags = models.CharField(max_length=200, blank=True, null=True, help_text="Tags separadas por vírgula")
+    
+    # 🤖 Controle de Atendimento Humano (pausa o bot por 15 minutos)
+    atendimento_humano = models.BooleanField(default=False, help_text="Se True, o bot está pausado e o humano está atendendo")
+    atendimento_humano_ate = models.DateTimeField(null=True, blank=True, help_text="Data/hora até quando o bot ficará pausado")
+    
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     finalizada_em = models.DateTimeField(null=True, blank=True)

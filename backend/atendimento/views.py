@@ -406,6 +406,75 @@ class ConversaDetailView(generics.RetrieveUpdateAPIView):
         return Response(detail_serializer.data)
     
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_atendimento_humano(request, conversa_id):
+    """
+    🤖 Ativa/Desativa o atendimento humano (pausa o bot por 15 minutos)
+    
+    POST /conversas/<id>/atendimento-humano/
+    Body:
+    {
+        "ativar": true  // true = ligar (15 min), false = desligar imediatamente
+    }
+    
+    Resposta:
+    {
+        "success": true,
+        "atendimento_humano": true,
+        "atendimento_humano_ate": "2025-10-18T15:30:00Z",
+        "mensagem": "Atendimento humano ativado por 15 minutos"
+    }
+    """
+    from datetime import timedelta
+    from tarefas.tasks import desativar_atendimento_humano
+    
+    try:
+        conversa = Conversa.objects.get(id=conversa_id)
+        ativar = request.data.get('ativar', True)
+        
+        if ativar:
+            # ✅ ATIVAR: Bot pausado por 15 minutos
+            conversa.atendimento_humano = True
+            conversa.atendimento_humano_ate = timezone.now() + timedelta(minutes=15)
+            conversa.save()
+            
+            desativar_atendimento_humano.apply_async(
+                args=[conversa_id],
+                countdown=15 * 60
+            )
+            
+            return Response({
+                'success': True,
+                'atendimento_humano': True,
+                'atendimento_humano_ate': conversa.atendimento_humano_ate.isoformat(),
+                'mensagem': 'Atendimento humano ativado por 15 minutos'
+            })
+        else:
+            # ❌ DESATIVAR: Bot volta imediatamente
+            conversa.atendimento_humano = False
+            conversa.atendimento_humano_ate = None
+            conversa.save()
+            
+            return Response({
+                'success': True,
+                'atendimento_humano': False,
+                'atendimento_humano_ate': None,
+                'mensagem': 'Bot reativado manualmente'
+            })
+            
+    except Conversa.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Conversa não encontrada'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
 class InteracaoListView(generics.ListAPIView):
     """
     ✅ API: Lista interações com URLs locais
@@ -857,7 +926,7 @@ def whatsapp_dashboard(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # ✅ PERMITIR sem autenticação (setup inicial)
 def whatsapp_qr_code(request):
     """Obter QR Code para conectar - USA CONFIG DO BANCO"""
     try:
@@ -1001,7 +1070,7 @@ def whatsapp_disconnect(request):
         }, status=500)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # ✅ PERMITIR sem autenticação (verificação pública)
 def whatsapp_status(request):
     """Status detalhado da conexão - USA CONFIG DO BANCO"""
     try:
@@ -1050,93 +1119,159 @@ def enviar_mensagem_view(request):
     """API para enviar mensagem via WhatsApp"""
     try:
         logger.info(f"📤 Recebendo requisição para enviar mensagem")
-        logger.info(f"📋 Headers: {dict(request.headers)}")
-        logger.info(f"📋 Method: {request.method}")
-        logger.info(f"📋 Content-Type: {request.content_type}")
-        logger.info(f"📋 Raw body: {request.body}")
-        logger.info(f"📋 Request.data: {request.data}")
-        logger.info(f"📋 Request.POST: {request.POST}")
         
-        # Tentar diferentes formas de acessar os dados
-        data_sources = {
-            'request.data': request.data,
-            'request.POST': request.POST,
-            'json.loads(request.body)': None
-        }
-        
-        try:
-            import json
-            data_sources['json.loads(request.body)'] = json.loads(request.body.decode('utf-8'))
-        except:
-            pass
-            
-        logger.info(f"📋 Fontes de dados disponíveis: {data_sources}")
-        
-        # Usar request.data como padrão, mas com fallback
+        # Extrair dados
         data = request.data or {}
         if not data and request.body:
             try:
+                import json
                 data = json.loads(request.body.decode('utf-8'))
-                logger.info(f"📋 Usando dados do body JSON: {data}")
             except:
                 pass
         
-        numero = data.get('numero')
-        mensagem = data.get('mensagem')
+        numero = data.get('numero', '').strip()
+        mensagem = data.get('mensagem', '').strip()
         conversa_id = data.get('conversa_id')
         
-        logger.info(f"🔍 Campos extraídos - numero: '{numero}', mensagem: '{mensagem[:50] if mensagem else None}...', conversa_id: {conversa_id}")
+        logger.info(f"� Campos - numero: '{numero}', mensagem: '{mensagem[:50] if mensagem else None}...', conversa_id: {conversa_id}")
 
         if not numero or not mensagem:
-            logger.error(f"❌ Campos obrigatórios faltando - numero: {bool(numero)} ('{numero}'), mensagem: {bool(mensagem)} ('{mensagem[:50] if mensagem else None}...')")
+            logger.error(f"❌ Campos obrigatórios faltando")
             return Response({
                 'success': False,
-                'error': 'Campos obrigatórios: numero, mensagem',
-                'debug': {
-                    'received_data': data,
-                    'numero_present': bool(numero),
-                    'mensagem_present': bool(mensagem)
+                'error': 'Campos obrigatórios: numero, mensagem'
+            }, status=400)
+
+        # ✅ ENVIAR VIA MESSAGE TRANSLATOR
+        try:
+            from message_translator.schemas import LoomieMessage
+            from message_translator.router import enviar_mensagem_saida
+            from message_translator.models import CanalConfig
+            from message_translator.translators import get_translator
+            
+            # Buscar operador
+            operador = get_user_operador(request.user)
+            
+            # Criar LoomieMessage com metadata do operador
+            loomie_message = LoomieMessage(
+                sender=f"system:crm:user_{request.user.id}",
+                recipient=f"whatsapp:{numero}",
+                channel_type='whatsapp',
+                content_type='text',
+                text=mensagem,
+                metadata={
+                    'operador_id': operador.id if operador else None,
+                    'user_id': request.user.id,
+                    'conversa_id': conversa_id
                 }
-            }, status=400)
+            )
+            
+            # Buscar canal configurado
+            canal = CanalConfig.objects.filter(
+                tipo__in=['whatsapp', 'evo'],
+                ativo=True,
+                envia_saida=True
+            ).first()
+            
+            if not canal:
+                logger.error("❌ Nenhum canal WhatsApp configurado")
+                return Response({
+                    'success': False,
+                    'error': 'Nenhum canal WhatsApp configurado para envio'
+                }, status=404)
+            
+            # Traduzir para formato do canal
+            translator = get_translator(canal.tipo)
+            payload_canal = translator.from_loomie(loomie_message)
+            
+            # ✅ ENVIAR (isso já vai criar a Interação automaticamente)
+            resultado = enviar_mensagem_saida(loomie_message, canal, payload_canal)
+            
+            if resultado['success']:
+                # 🤖 Pegar estado do atendimento humano
+                atendimento_humano_ativo = False
+                atendimento_humano_ate = None
+                
+                if conversa_id:
+                    try:
+                        conversa = Conversa.objects.get(id=conversa_id)
+                        atendimento_humano_ativo = conversa.atendimento_humano
+                        atendimento_humano_ate = conversa.atendimento_humano_ate.isoformat() if conversa.atendimento_humano_ate else None
+                    except Conversa.DoesNotExist:
+                        pass
+                
+                logger.info(f"✅ Mensagem enviada com sucesso via Message Translator")
+                
+                return Response({
+                    'success': True,
+                    'message': 'Mensagem enviada com sucesso',
+                    'whatsapp_id': resultado.get('external_id'),
+                    'interacao_id': resultado.get('interacao_id'),  # ✅ NOVO
+                    'atendimento_humano': atendimento_humano_ativo,
+                    'atendimento_humano_ate': atendimento_humano_ate
+                })
+            else:
+                logger.error(f"❌ Erro ao enviar via Message Translator: {resultado.get('error')}")
+                return Response({
+                    'success': False,
+                    'error': resultado.get('error', 'Erro ao enviar mensagem')
+                }, status=400)
+        
+        except Exception as translator_error:
+            logger.error(f"❌ Erro no Message Translator: {translator_error}", exc_info=True)
+            
+            # FALLBACK: Tentar método antigo
+            logger.warning("⚠️ Usando método de envio legado como fallback")
+            resultado = enviar_mensagem_whatsapp(numero, mensagem)
 
-        # ✅ Enviar para WhatsApp
-        resultado = enviar_mensagem_whatsapp(numero, mensagem)
+            if resultado['success']:
+                atendimento_humano_ativo = False
+                atendimento_humano_ate = None
+                
+                if conversa_id:
+                    try:
+                        conversa = Conversa.objects.get(id=conversa_id)
+                        operador = get_user_operador(request.user)
 
-        if resultado['success']:
-            # ✅ Salvar no CRM se conversa_id fornecido
-            if conversa_id:
-                try:
-                    conversa = Conversa.objects.get(id=conversa_id)
-                    operador = get_user_operador(request.user)
+                        Interacao.objects.create(
+                            conversa=conversa,
+                            mensagem=mensagem,
+                            remetente='operador',
+                            tipo='texto',
+                            operador=operador
+                        )
+                        
+                        conversa.atualizado_em = timezone.now()
+                        conversa.save()
+                        
+                        atendimento_humano_ativo = conversa.atendimento_humano
+                        atendimento_humano_ate = conversa.atendimento_humano_ate.isoformat() if conversa.atendimento_humano_ate else None
+                        
+                        logger.info("💾 Interação salva no CRM (método legado)")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
 
-                    Interacao.objects.create(
-                        conversa=conversa,
-                        mensagem=mensagem,
-                        remetente='operador',
-                        tipo='texto',
-                        operador=operador
-                    )
-                    
-                    # ✅ ATUALIZAR timestamp da conversa para ordenação correta
-                    conversa.atualizado_em = timezone.now()
-                    conversa.save()
-                    
-                    logger.info("💾 Interação salva no CRM e conversa atualizada")
-                except Exception as e:
-                    logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
+                return Response({
+                    'success': True,
+                    'message': 'Mensagem enviada com sucesso',
+                    'data': resultado['data'],
+                    'whatsapp_id': resultado.get('whatsapp_id'),
+                    'status': resultado.get('status', 'pending'),
+                    'atendimento_humano': atendimento_humano_ativo,
+                    'atendimento_humano_ate': atendimento_humano_ate
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': resultado['error']
+                }, status=400)
 
-            return Response({
-                'success': True,
-                'message': 'Mensagem enviada com sucesso',
-                'data': resultado['data'],
-                'whatsapp_id': resultado.get('whatsapp_id'),
-                'status': resultado.get('status', 'pending')
-            })
-        else:
-            return Response({
-                'success': False,
-                'error': resultado['error']
-            }, status=400)
+    except Exception as e:
+        logger.error(f"Erro em enviar_mensagem_view: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)
 
     except Exception as e:
         logger.error(f"Erro em enviar_mensagem_view: {str(e)}")
@@ -1250,178 +1385,26 @@ def processar_mensagem_media(message_data):
     except Exception as e:
         logger.error(f"💥 Erro ao processar mensagem: {str(e)}", exc_info=True)
         return ("[Erro ao processar mensagem]", 'erro', None, None, None, None, None, None)
-    
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def evolution_webhook(request):
-    """Webhook Evolution API - SUPORTE COMPLETO BASE64 E URL"""
-    print("WEBHOOK EVOLUTION CHAMADO!")
-    logger.info("WEBHOOK EVOLUTION CHAMADO!")
 
-    try:
-        payload = request.data
-        print(f"📦 Payload recebido: {payload}")
-        logger.info(f"📦 Payload completo: {json.dumps(payload, indent=2, ensure_ascii=False)}")
+# ============================================================================
+# WEBHOOKS REMOVIDOS - Agora usando Message Translator
+# ============================================================================
+# 
+# Os webhooks evolution_webhook() e debug_webhook() foram removidos.
+# Todas as mensagens agora são processadas pelo Message Translator:
+# 
+# Endpoint atual: /translator/evolution-webhook/
+# Código: backend/message_translator/views.py
+# 
+# Vantagens:
+# - Suporte multi-canal (WhatsApp, Instagram, Telegram, etc)
+# - Código reutilizável e modular
+# - Processamento de mídias unificado
+# - Fácil adicionar novos canais
+# 
+# ============================================================================
 
-        if not payload:
-            logger.error("PAYLOAD VAZIO")
-            return Response({'status': 'empty_payload'}, status=400)
-
-        event_type = payload.get('event')
-        data = payload.get('data', {})
-        if event_type != 'messages.upsert':
-            logger.info(f"ℹ️ Evento ignorado: {event_type}")
-            return Response({'status': f'event_ignored_{event_type}'}, status=200)
-
-        # Extração dos dados principais
-        key = data.get('key', {})
-        message = data.get('message', {})
-        if body := data.get('body'):
-            message['body'] = body
-        push_name = data.get('pushName', 'Usuário')
-        remote_jid = key.get('remoteJid', '')
-        from_me = key.get('fromMe', False)
-        message_id = key.get('id', '')
-
-        logger.info(f"Remote JID: {remote_jid} | From me: {from_me} | ID: {message_id}")
-
-        if from_me:
-            logger.info("Mensagem própria ignorada")
-            return Response({'status': 'own_message_ignored'}, status=200)
-
-        # Buscar ou criar contato
-        numero_contato = remote_jid.split('@')[0]
-        contato, _ = Contato.objects.get_or_create(
-            telefone=numero_contato,
-            defaults={'nome': push_name}
-        )
-        conversa, _ = Conversa.objects.get_or_create(
-            contato=contato,
-            defaults={'status': 'entrada'}
-        )
-
-        # Processar mensagem e mídia usando o novo sistema unificado
-        message_with_base64 = message.copy()
-        message_with_base64['base64'] = data.get('base64', '')
-        texto_mensagem, tipo_mensagem, message_info, media_filename, media_size, media_duration, media_mimetype, base64Text = processar_mensagem_media(message_with_base64)
-
-        logger.info(f"📝 Texto: {texto_mensagem}")
-        logger.info(f"🏷️ Tipo: {tipo_mensagem}")
-        logger.info(f"📦 Dados estruturados: {'SIM' if message_info else 'NÃO'}")
-
-        media_local_path = None
-
-        try:
-            # Processar mídia usando o novo processador unificado
-            if tipo_mensagem in ['imagem', 'audio', 'video', 'documento', 'sticker']:
-                from .media_processor import WhatsAppMediaProcessor
-                
-                logger.info(f"🔄 Processando {tipo_mensagem} com processador unificado...")
-                
-                # Usar o novo processador unificado
-                result = WhatsAppMediaProcessor.process_media(
-                    message_info, 
-                    tipo_mensagem, 
-                    base64Text
-                )
-                
-                if result['success']:
-                    media_local_path = result['media_local_path']
-                    media_filename = result['filename']
-                    media_size = result['size']
-                    
-                    if result.get('conversion_applied'):
-                        logger.info(f"✅ {tipo_mensagem.capitalize()} processado com conversão: {media_filename}")
-                    else:
-                        logger.info(f"✅ {tipo_mensagem.capitalize()} processado: {media_filename}")
-                else:
-                    logger.error(f"❌ Erro no processamento de {tipo_mensagem}: {result.get('error', 'Erro desconhecido')}")
-                    media_local_path = None
-                    media_size = None
-            elif tipo_mensagem == 'texto':
-                logger.info("💬 Mensagem de texto - nenhum processamento de mídia necessário")
-            else:
-                logger.info(f"ℹ️ Tipo de mensagem não processável: {tipo_mensagem}")
-
-        except Exception as e:
-            logger.error(f"💥 Erro ao processar mídia: {str(e)}")
-            media_local_path = None
-            media_size = None
-
-        # Salva a interação
-        if texto_mensagem and texto_mensagem.strip():
-            interacao = Interacao.objects.create(
-                conversa=conversa,
-                mensagem=texto_mensagem,
-                remetente='cliente',
-                tipo=tipo_mensagem,
-                whatsapp_id=message_id,
-                media_url=media_local_path,
-                media_filename=media_filename,
-                media_size=media_size,
-                media_duration=media_duration
-            )
-            logger.info(f"✅ Interação criada: ID {interacao.pk}")
-            logger.info(f"🔍 NOME ARQUIVO NO BANCO: {media_filename}")
-            
-            # ✅ ATUALIZAR timestamp da conversa para ordenação correta
-            conversa.atualizado_em = timezone.now()
-            
-            if conversa.status == 'finalizada':
-                conversa.status = 'entrada'
-            
-            conversa.save()
-            logger.info("📝 Conversa atualizada para ordenação correta.")
-
-        return Response({
-            'status': 'processed',
-            'contato_id': contato.id,
-            'conversa_id': conversa.id,
-            'tipo': tipo_mensagem,
-            'media_downloaded': bool(media_local_path)
-        }, status=200)
-
-    except Exception as e:
-        logger.error(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
-        logger.error(f"💥 TRACEBACK: {traceback.format_exc()}")
-        return Response({'status': 'error', 'error': str(e)}, status=500)
-    
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def debug_webhook(request):
-    """Debug completo do webhook - VER DADOS RAW"""
-    try:
-        logger.info("🐛 DEBUG WEBHOOK - DADOS COMPLETOS:")
-        logger.info(f"📦 Request data: {request.data}")
-        
-        event_type = request.data.get('event')
-        event_data = request.data.get('data', {})
-        
-        if event_type == 'messages.upsert':
-            message_data = event_data.get('message', {})
-            
-            logger.info(f"🔍 Message data completo: {json.dumps(message_data, indent=2)}")
-            
-            # Verificar especificamente mídias
-            if message_data.get('imageMessage'):
-                logger.info(f"📷 IMAGEM DETECTADA: {json.dumps(message_data.get('imageMessage'), indent=2)}")
-            
-            if message_data.get('audioMessage'):
-                logger.info(f"🎵 ÁUDIO DETECTADO: {json.dumps(message_data.get('audioMessage'), indent=2)}")
-        
-        return Response({
-            'status': 'debug_processed',
-            'received_data': request.data,
-            'message': 'Debug completo nos logs'
-        })
-        
-    except Exception as e:
-        logger.error(f"💥 Erro no debug: {str(e)}")
-        return Response({
-            'status': 'debug_error',
-            'error': str(e)
-        })
 
 @api_view(['GET'])
 def atendimento_stats(request):

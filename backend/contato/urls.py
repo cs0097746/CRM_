@@ -41,6 +41,7 @@ urlpatterns = [
     # ===== CONVERSAS =====
     path('conversas/', atendimento_views.ConversaListView.as_view(), name='conversa_list'),
     path('conversas/<int:pk>/', atendimento_views.ConversaDetailView.as_view(), name='conversa_detail'),
+    path('conversas/<int:conversa_id>/atendimento-humano/', atendimento_views.toggle_atendimento_humano, name='toggle_atendimento_humano'),
     
     # ===== INTERAÇÕES/MENSAGENS =====
     path('conversas/<int:conversa_pk>/interacoes/', atendimento_views.InteracaoCreateView.as_view(), name='interacao_create'),
@@ -91,7 +92,6 @@ urlpatterns = [
     path('whatsapp/restart-debug/', contato_views.whatsapp_restart_debug, name='whatsapp_restart_debug'),
     
     # ===== WEBHOOKS =====
-    path('webhook/evolution/', atendimento_views.evolution_webhook, name='evolution_webhook'),
     path('webhook/n8n/lead/', core_views.webhook_n8n_lead, name='webhook_n8n_lead'),
 
     # ===== ESTATÍSTICAS AVANÇADAS =====

@@ -46,8 +46,8 @@ services:
     depends_on:
       - db
       - redis_crm
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     networks:
       - crm-network
       - loomie-network

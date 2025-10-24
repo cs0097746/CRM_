@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
     "@hello-pangea/dnd": "^18.0.1",
+    "@mui/icons-material": "^6.1.9",
+    "@mui/material": "^6.1.9",
     "axios": "^1.11.0",
     "bootstrap": "^5.3.8",
     "dotenv": "^17.2.2",

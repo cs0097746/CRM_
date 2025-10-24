@@ -72,6 +72,10 @@ export interface Conversa {
   atualizado_em: string;
   finalizada_em?: string | null;
   
+  // 🤖 Controle de Atendimento Humano (Bot)
+  atendimento_humano?: boolean;
+  atendimento_humano_ate?: string | null;
+  
   // Campos calculados:
   ultima_mensagem?: Mensagem | null;
   total_mensagens?: number;

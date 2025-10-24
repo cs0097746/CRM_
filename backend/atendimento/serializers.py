@@ -71,6 +71,7 @@ class ConversaDetailSerializer(serializers.ModelSerializer):
             'id', 'contato', 'contato_nome', 'contato_telefone',
             'status', 'criado_em', 'atualizado_em', 'operador', 'operador_atual',
             'tags', 'assunto', 'origem', 'prioridade', 'finalizada_em',
+            'atendimento_humano', 'atendimento_humano_ate',  # 🤖 Novos campos
             'interacoes'
         ]
     

@@ -34,7 +34,11 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "backend.localhost",
-    "crm.localhost"
+    "crm.localhost",
+    ".ngrok-free.app",  # 🔧 NGROK: Permitir qualquer subdomínio ngrok
+    ".ngrok.io",
+
+             # 🔧 NGROK: Formato antigo também
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -86,6 +90,7 @@ LOCAL_APPS = [
     'notificacao',
     'tarefas',
     'gatilho',
+    'message_translator',
     'plano',
     'usuario'
 ]
@@ -203,6 +208,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # =========================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Adicionar trailing slash automaticamente
+APPEND_SLASH = True
+
+# =========================
+# MESSAGE TRANSLATOR - N8N INTEGRATION
+# =========================
+
+# URL do webhook n8n para receber mensagens traduzidas
+N8N_WEBHOOK_URL = config('N8N_WEBHOOK_URL', default=None)
+# Exemplo: https://seu-n8n.com/webhook/loomie-messages
 
 # =========================
 # OAUTH2 PROVIDER
@@ -386,8 +402,6 @@ else:
 # =========================
 # CONFIGURAÇÕES DE SEGURANÇA PARA PRODUÇÃO
 # =========================
-
-print("IS DEBUG: ", DEBUG)
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
