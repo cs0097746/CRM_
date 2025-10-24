@@ -351,6 +351,45 @@ class CanalConfigViewSet(viewsets.ModelViewSet):
         """Auto-preencher atualizado_por ao atualizar"""
         serializer.save(atualizado_por=self.request.user)
     
+    def perform_destroy(self, instance):
+        """
+        🔌 Desconectar instância Evolution API ao deletar canal
+        """
+        import requests
+        
+        # Se for canal Evolution API, desconectar antes de deletar
+        if instance.tipo == 'evo':
+            try:
+                credenciais = instance.credenciais
+                base_url = credenciais.get('base_url', '').rstrip('/')
+                api_key = credenciais.get('api_key')
+                instance_name = credenciais.get('instance')
+                
+                if all([base_url, api_key, instance_name]):
+                    # 1️⃣ Desconectar (logout)
+                    logout_url = f"{base_url}/instance/logout/{instance_name}"
+                    headers = {'apikey': api_key}
+                    
+                    try:
+                        logout_response = requests.delete(logout_url, headers=headers, timeout=5)
+                        if logout_response.status_code == 200:
+                            logger.info(f"✅ Instância {instance_name} desconectada com sucesso")
+                        else:
+                            logger.warning(f"⚠️ Não foi possível desconectar {instance_name}: {logout_response.status_code}")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Erro ao desconectar {instance_name}: {e}")
+                    
+                    # 2️⃣ Deletar instância (opcional - comentado para segurança)
+                    # delete_url = f"{base_url}/instance/delete/{instance_name}"
+                    # requests.delete(delete_url, headers=headers, timeout=5)
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro ao processar desconexão: {e}")
+        
+        # Deletar o canal do banco
+        instance.delete()
+        logger.info(f"🗑️ Canal '{instance.nome}' (ID: {instance.pk}) deletado")
+    
     @action(detail=True, methods=['post'])
     def testar_conexao(self, request, pk=None):
         """
