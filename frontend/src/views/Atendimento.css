@@ -1,0 +1,366 @@
+/* ========================================
+   🎯 PAINEL DE ATENDIMENTO - LOOMIE CRM
+   Design profissional e responsivo
+   ======================================== */
+
+/* ========================================
+   📐 LAYOUT PRINCIPAL - 3 COLUNAS
+   ======================================== */
+.atendimento-container {
+  display: flex;
+  gap: 0;
+  height: calc(100vh - 60px); /* Altura total menos padding do App */
+  background: #f0f2f5;
+  overflow: hidden; /* IMPORTANTE: Previne scroll no container */
+}
+
+/* ========================================
+   📋 COLUNA 1: LISTA DE CONVERSAS (360px)
+   ======================================== */
+.conversas-sidebar {
+  width: 360px;
+  background: white;
+  border-right: 1px solid #e4e6eb;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden; /* Previne overflow */
+}
+
+.conversas-header {
+  padding: 20px;
+  border-bottom: 1px solid #e4e6eb;
+  background: white;
+  flex-shrink: 0;
+}
+
+.conversas-header h5 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #050505;
+  margin: 0 0 16px 0;
+}
+
+.conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f0f2f5;
+}
+
+.conversation-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.conversation-list::-webkit-scrollbar-track {
+  background: #f0f2f5;
+}
+
+.conversation-list::-webkit-scrollbar-thumb {
+  background: #bcc0c4;
+  border-radius: 4px;
+}
+
+.conversation-list::-webkit-scrollbar-thumb:hover {
+  background: #a8acb0;
+}
+
+.conversation-item {
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background: white;
+  border-bottom: 1px solid #e4e6eb;
+  position: relative;
+}
+
+.conversation-item:hover {
+  background: #f0f2f5;
+}
+
+.conversation-item.active {
+  background: #e7f3ff;
+  border-left: 4px solid #316dbd;
+  padding-left: 16px;
+}
+
+.conversation-item.urgent {
+  border-left: 4px solid #dc2626;
+  background: #fff5f5;
+  padding-left: 16px;
+}
+
+.conversation-item.urgent:hover {
+  background: #fee;
+}
+
+/* ========================================
+   💬 COLUNA 2: ÁREA DE CHAT (FLEX)
+   ======================================== */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  min-width: 0;
+  overflow: hidden; /* CRÍTICO: Previne scroll no container */
+}
+
+.chat-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e4e6eb;
+  background: white;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.empty-chat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f2f5;
+  text-align: center;
+  color: #65676b;
+}
+
+/* ========================================
+   🎨 COMPONENTES REUTILIZÁVEIS
+   ======================================== */
+
+/* Campo de busca */
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ccd0d5;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background: #f0f2f5;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #316dbd;
+  background: white;
+  box-shadow: 0 0 0 2px rgba(49, 109, 189, 0.1);
+}
+
+/* Abas de filtro */
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  padding: 8px 14px;
+  border: none;
+  background: #f0f2f5;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #65676b;
+}
+
+.filter-tab:hover {
+  background: #e4e6eb;
+}
+
+.filter-tab.active {
+  background: #316dbd;
+  color: white;
+}
+
+/* Badge de notificação */
+.notification-badge {
+  background: #dc2626;
+  color: white;
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Badge de status */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-entrada {
+  background: #fee;
+  color: #dc2626;
+}
+
+.status-atendimento {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-finalizada {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-pendente {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+/* Botões de ação */
+.btn-primary-custom {
+  background: #316dbd;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-custom:hover:not(:disabled) {
+  background: #2557a0;
+  transform: translateY(-1px);
+}
+
+.btn-primary-custom:disabled {
+  background: #e4e6eb;
+  color: #bcc0c4;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   🔘 TOGGLE SWITCH - ATENDIMENTO HUMANO
+   ======================================== */
+.toggle-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #e4e6eb;
+}
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #65676b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toggle-label.active {
+  color: #316dbd;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #ccd0d5;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.toggle-switch.active {
+  background: #316dbd;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch.active .toggle-slider {
+  transform: translateX(20px);
+}
+
+/* ========================================
+   ⚡ PONTO INDICADOR DE URGÊNCIA
+   ======================================== */
+.urgent-dot {
+  width: 8px;
+  height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 6px;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ========================================
+   📱 RESPONSIVIDADE
+   ======================================== */
+@media (max-width: 1200px) {
+  .conversas-sidebar {
+    width: 300px;
+  }
+}
+
+@media (max-width: 992px) {
+  .atendimento-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .conversas-sidebar {
+    width: 100%;
+    max-height: 40vh;
+  }
+
+  .chat-area {
+    min-height: 60vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .conversas-header {
+    padding: 16px;
+  }
+
+  .chat-header {
+    padding: 12px 16px;
+  }
+
+  .filter-tabs {
+    gap: 4px;
+  }
+
+  .filter-tab {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}

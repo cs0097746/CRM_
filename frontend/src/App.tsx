@@ -1,12 +1,9 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
 import { lazy, Suspense, useState, useEffect } from "react";
-import { Modal, Nav, Button } from 'react-bootstrap';
 import './App.css'; 
 import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm';
-import ConfiguracaoSistema from './views/ConfiguracaoSistema';
-import TestePage from './views/TestePage';
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -23,14 +20,7 @@ const Presets = lazy(() => import('./views/Presets'));
 const EditarPreset = lazy(() => import('./views/EditarPreset'));
 const MessageTranslator = lazy(() => import('./pages/MessageTranslator'));
 
-const MenuIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" className="bi bi-grid-3x3-gap-fill" viewBox="0 0 16 16">
-    <path d="M1 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zM1 7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zM1 12a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1zm5 0a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1z"/>
-  </svg>
-);
-
 const AppContent = () => {
-  const [showNav, setShowNav] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -50,21 +40,15 @@ const AppContent = () => {
     setLoading(false);
   }, []);
 
-  const handleCloseNav = () => setShowNav(false);
-  const handleShowNav = () => setShowNav(true);
-
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsLoggedIn(false);
-    setShowNav(false);
   };
 
-  const isFabHidden = location.pathname === '/atendimento';
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+  };
 
   if (loading) {
     return (
@@ -84,8 +68,94 @@ const AppContent = () => {
   }
 
   return (
-    <>
-      <div className="content-area">
+    <div className="app-container">
+      {/* 🎨 SIDEBAR HOVER - Recolhida por padrão, expande ao passar o mouse */}
+      <aside className="sidebar">
+        {/* Logo/Header */}
+        <div className="sidebar-header">
+          <div className="logo-container">
+            <div className="logo-circle">
+              <span>L</span>
+            </div>
+            <div className="logo-text">
+              <h5>Loomie CRM</h5>
+              <small>Sistema de Gestão</small>
+            </div>
+          </div>
+        </div>
+
+        {/* Menu Principal */}
+        <nav className="sidebar-nav">
+          <div className="nav-section">
+            <div className="nav-section-title">
+              <span>MENU PRINCIPAL</span>
+            </div>
+            
+            <NavLink to="/" className="nav-item" title="Dashboard">
+              <i className="bi bi-house-door"></i>
+              <span>Dashboard</span>
+            </NavLink>
+
+            <NavLink to="/kanbans" className="nav-item" title="Pipelines">
+              <i className="bi bi-diagram-3"></i>
+              <span>Pipelines</span>
+            </NavLink>
+
+            <NavLink to="/atendimento" className="nav-item" title="Atendimento">
+              <i className="bi bi-headset"></i>
+              <span>Atendimento</span>
+            </NavLink>
+
+            <NavLink to="/contatos" className="nav-item" title="Contatos">
+              <i className="bi bi-people"></i>
+              <span>Contatos</span>
+            </NavLink>
+
+            <NavLink to="/dashboard-atendimento" className="nav-item" title="Dashboard Suporte">
+              <i className="bi bi-bar-chart-line"></i>
+              <span>Dashboard Suporte</span>
+            </NavLink>
+          </div>
+
+          {/* Configurações */}
+          <div className="nav-section">
+            <div className="nav-section-title">
+              <span>CONFIGURAÇÕES</span>
+            </div>
+
+            <NavLink to="/message-translator" className="nav-item" title="WhatsApp">
+              <i className="bi bi-whatsapp"></i>
+              <span>WhatsApp</span>
+            </NavLink>
+
+            <NavLink to="/tarefas" className="nav-item" title="Tarefas">
+              <i className="bi bi-clipboard-check"></i>
+              <span>Tarefas</span>
+            </NavLink>
+
+            <NavLink to="/gatilhos" className="nav-item" title="Gatilhos">
+              <i className="bi bi-lightning"></i>
+              <span>Gatilhos</span>
+            </NavLink>
+
+            <NavLink to="/presets" className="nav-item" title="Presets">
+              <i className="bi bi-bookmarks"></i>
+              <span>Presets</span>
+            </NavLink>
+          </div>
+        </nav>
+
+        {/* Botão de Sair (Footer) */}
+        <div className="sidebar-footer">
+          <button className="logout-btn" onClick={handleLogout} title="Sair">
+            <i className="bi bi-box-arrow-right"></i>
+            <span>Sair</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* 📄 ÁREA DE CONTEÚDO */}
+      <main className="main-content">
         <Suspense fallback={<div className="loading-screen">Carregando...</div>}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -94,9 +164,6 @@ const AppContent = () => {
             <Route path="/atendimento" element={<Atendimento />} />
             <Route path="/contatos" element={<Contatos />} />
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
-            <Route path="*" element={<NotFound />} />
-            <Route path="/configuracao" element={<ConfiguracaoSistema />} />
-            <Route path="/teste" element={<TestePage />} />
             <Route path="/criar_tarefas" element={<CriarTarefas />} />
             <Route path="/tarefas" element={<ListarTarefas />} />
             <Route path="/gatilhos"  element={<ListarGatilhos />} />
@@ -105,44 +172,11 @@ const AppContent = () => {
             <Route path="/criar_preset" element={<Presets />} />
             <Route path="/presets/:presetId/editar" element={<EditarPreset />} />
             <Route path="/message-translator" element={<MessageTranslator />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-      </div>
-
-      <Button onClick={handleShowNav} className={`fab ${isFabHidden ? 'fab-hidden' : ''}`}>
-        <MenuIcon />
-      </Button>
-
-      <Modal show={showNav} onHide={handleCloseNav} centered dialogClassName="nav-modal">
-        <Modal.Header closeButton className="nav-modal-header">
-          <Modal.Title>Loomie CRM</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Nav className="flex-column nav-modal-links">
-            <NavLink to="/" className="nav-link" onClick={handleCloseNav}>Dashboard</NavLink>
-            <NavLink to="/kanbans" className="nav-link" onClick={handleCloseNav}>Kanbans</NavLink>
-            <NavLink to="/atendimento" className="nav-link" onClick={handleCloseNav}>Atendimento</NavLink>
-            <NavLink to="/contatos" className="nav-link" onClick={handleCloseNav}>Contatos</NavLink>
-
-            <NavLink to="/configuracao" className="nav-link" onClick={handleCloseNav}>Configurações</NavLink>
-            <NavLink to="/teste" className="nav-link" onClick={handleCloseNav}>Teste Sistema</NavLink>
-            <NavLink to="/tarefas" className="nav-link" onClick={handleCloseNav}>Tarefas</NavLink>
-            <NavLink to="/gatilhos" className="nav-link" onClick={handleCloseNav}>Gatilhos</NavLink>
-            <NavLink to="/presets" className="nav-link" onClick={handleCloseNav}>Presets</NavLink>
-            <NavLink to="/message-translator" className="nav-link" onClick={handleCloseNav}>🔄 Message Translator</NavLink>
-            <hr />
-            <Button 
-              variant="outline-danger" 
-              size="sm" 
-              onClick={handleLogout}
-              className="mt-2"
-            >
-              🚪 Sair
-            </Button>
-          </Nav>
-        </Modal.Body>
-      </Modal>
-    </>
+      </main>
+    </div>
   );
 };
 

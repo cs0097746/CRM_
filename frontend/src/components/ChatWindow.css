@@ -1,0 +1,203 @@
+/* ========================================
+   💬 CHAT WINDOW - LOOMIE CRM
+   Componente de chat profissional
+   ======================================== */
+
+/* Container principal */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 🔥 CRÍTICO: Ocupa 100% da altura disponível */
+  background: #ffffff;
+  overflow: hidden; /* Previne scroll no container */
+}
+
+/* Área das mensagens - SCROLL AQUI */
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  background: #f0f2f5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.messages-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-area::-webkit-scrollbar-track {
+  background: #f0f2f5;
+}
+
+.messages-area::-webkit-scrollbar-thumb {
+  background: #bcc0c4;
+  border-radius: 4px;
+}
+
+.messages-area::-webkit-scrollbar-thumb:hover {
+  background: #a8acb0;
+}
+
+/* Estado vazio */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #65676b;
+  padding: 40px 20px;
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  background: #e4e6eb;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.empty-state-icon i {
+  font-size: 32px;
+  color: #65676b;
+}
+
+/* Área de composição - FIXO EMBAIXO */
+.compose-area {
+  background: white;
+  border-top: 1px solid #e4e6eb;
+  padding: 16px 20px;
+  flex-shrink: 0; /* 🔥 CRÍTICO: Não encolhe */
+}
+
+.compose-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.compose-status {
+  font-size: 12px;
+  color: #65676b;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #1877f2;
+  gap: 6px;
+}
+
+.compose-container {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.compose-input {
+  flex: 1;
+  border: 1px solid #ccd0d5;
+  border-radius: 20px;
+  padding: 12px 48px 12px 16px; /* Espaço para botão send */
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.compose-input:focus {
+  border-color: #316dbd;
+  box-shadow: 0 0 0 2px rgba(49, 109, 189, 0.1);
+}
+
+.compose-input:disabled {
+  background: #f0f2f5;
+  color: #8a8d91;
+  cursor: not-allowed;
+}
+
+.compose-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.compose-hint {
+  font-size: 11px;
+  color: #8a8d91;
+}
+
+.char-count {
+  font-size: 11px;
+  color: #8a8d91;
+}
+
+.char-count.warning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Botão de enviar - posicionado DENTRO do textarea */
+.send-button-inline {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: #316dbd;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(49, 109, 189, 0.2);
+}
+
+.send-button-inline:hover:not(:disabled) {
+  background: #2557a0;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(49, 109, 189, 0.3);
+}
+
+.send-button-inline:disabled {
+  background: #e4e6eb;
+  color: #bcc0c4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.send-button-inline i {
+  font-size: 14px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .messages-area {
+    padding: 16px;
+  }
+
+  .compose-area {
+    padding: 12px 16px;
+  }
+
+  .compose-input {
+    font-size: 16px; /* Previne zoom no iOS */
+  }
+}

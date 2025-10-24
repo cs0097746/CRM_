@@ -7,6 +7,7 @@ import ContatoInfo from '../components/ContatoInfo';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
 import { getToken } from "../function/validateToken.tsx";
+import './Atendimento.css';
 
 const api = axios.create({ 
   baseURL: backend_url
@@ -26,389 +27,6 @@ export default function Atendimento() {
   const [pegandoChamado, setPegandoChamado] = useState(false);
 
   const { playSound } = useNotificationSound();
-
-  // CSS profissional
-  const styles = `
-    .professional-layout {
-      height: 100vh;
-      overflow: hidden;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      flex-direction: column;
-    }
-
-    .top-bar {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      padding: 14px 24px;
-      flex-shrink: 0;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-    }
-
-    .main-content {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
-
-    .sidebar {
-      width: 350px;
-      background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(20px);
-      border-right: 1px solid rgba(0,0,0,0.08);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      box-shadow: 2px 0 20px rgba(0,0,0,0.05);
-    }
-
-    .sidebar-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    }
-
-    .conversation-list {
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    .conversation-list::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .conversation-list::-webkit-scrollbar-track {
-      background: #f1f3f4;
-    }
-
-    .conversation-list::-webkit-scrollbar-thumb {
-      background: #c1c8cd;
-      border-radius: 3px;
-    }
-
-    .conversation-item {
-      border: none !important;
-      border-bottom: 1px solid rgba(0,0,0,0.04) !important;
-      padding: 18px 24px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      background: rgba(255, 255, 255, 0.8);
-      margin: 2px 8px;
-      border-radius: 12px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .conversation-item::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .conversation-item:hover::before {
-      opacity: 1;
-    }
-
-    .conversation-item:hover {
-      background: rgba(255, 255, 255, 0.95);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    }
-
-    .conversation-item.active {
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
-      border-left: 4px solid #667eea !important;
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
-    }
-
-    .conversation-item.urgent {
-      border-left: 3px solid #fa7970 !important;
-      background: #fff5f5;
-    }
-
-    .conversation-item.urgent:hover {
-      background: #ffebeb;
-    }
-
-    .chat-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      border-radius: 20px 0 0 0;
-      box-shadow: -2px 0 20px rgba(0,0,0,0.08);
-    }
-
-    .chat-header-bar {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 249, 250, 0.98) 100%);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      padding: 20px 24px;
-      flex-shrink: 0;
-      border-radius: 20px 0 0 0;
-    }
-
-    .empty-chat {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #ffffff;
-      text-align: center;
-      color: #65676b;
-    }
-
-    .search-input {
-      border: 1px solid rgba(0,0,0,0.08);
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-size: 14px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      font-family: inherit;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-    }
-
-    /* 🎨 Toggle Switch Moderno - Atendimento Humano */
-    .toggle-container {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 8px 16px;
-      border-radius: 50px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      transition: all 0.3s ease;
-    }
-
-    .toggle-container:hover {
-      box-shadow: 0 4px 15px rgba(0,0,0,0.12);
-      transform: translateY(-1px);
-    }
-
-    .toggle-label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #495057;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: color 0.3s ease;
-    }
-
-    .toggle-label.active {
-      color: #667eea;
-    }
-
-    .toggle-switch {
-      position: relative;
-      width: 52px;
-      height: 28px;
-      background: #d1d5db;
-      border-radius: 50px;
-      cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .toggle-switch.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
-    }
-
-    .toggle-slider {
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 22px;
-      height: 22px;
-      background: white;
-      border-radius: 50%;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .toggle-switch.active .toggle-slider {
-      transform: translateX(24px);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-
-    .toggle-icon {
-      font-size: 11px;
-      transition: all 0.3s ease;
-    }
-
-    .toggle-switch:not(.active) .toggle-icon {
-      color: #9ca3af;
-    }
-
-    .toggle-switch.active .toggle-icon {
-      color: #667eea;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      background: rgba(255, 255, 255, 1);
-      transform: translateY(-1px);
-    }
-
-    .filter-tabs {
-      display: flex;
-      gap: 4px;
-      margin-top: 12px;
-    }
-
-    .filter-tab {
-      padding: 10px 16px;
-      border: 1px solid rgba(0,0,0,0.08);
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .filter-tab.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-color: transparent;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-      transform: translateY(-1px);
-    }
-
-    .filter-tab:hover:not(.active) {
-      background: rgba(102, 126, 234, 0.08);
-      border-color: rgba(102, 126, 234, 0.2);
-      transform: translateY(-1px);
-    }
-
-    .notification-badge {
-      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-      color: white;
-      border-radius: 12px;
-      padding: 4px 8px;
-      font-size: 10px;
-      font-weight: 700;
-      min-width: 20px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3); }
-      50% { box-shadow: 0 4px 15px rgba(255, 107, 107, 0.5); }
-      100% { box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3); }
-    }
-
-    .status-badge {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-
-    .status-entrada {
-      background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(238, 90, 36, 0.15) 100%);
-      color: #c62828;
-      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
-    }
-
-    .status-atendimento {
-      background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.15) 100%);
-      color: #ef6c00;
-      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
-    }
-
-    .status-finalizada {
-      background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(56, 142, 60, 0.15) 100%);
-      color: #2e7d32;
-      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
-    }
-    
-    .status-pendente {
-      background: linear-gradient(135deg, rgba(156, 39, 176, 0.15) 0%, rgba(123, 31, 162, 0.15) 100%);
-      color: #6a1b9a;
-      box-shadow: 0 2px 8px rgba(156, 39, 176, 0.2);
-    }
-
-    .action-button {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border: none;
-      border-radius: 12px;
-      padding: 12px 20px;
-      color: white;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .action-button::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-      transition: left 0.5s;
-    }
-
-    .action-button:hover::before {
-      left: 100%;
-    }
-
-    .action-button:hover:not(:disabled) {
-      background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    }
-
-    .action-button:disabled {
-      background: #e4e6ea;
-      color: #8a8d91;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .action-button.secondary {
-      background: #f0f2f5;
-      color: #1d2129;
-    }
-
-    .action-button.secondary:hover:not(:disabled) {
-      background: #e4e6ea;
-    }
-  `;
 
   // Funções
   const showToastWithSound = (message: string, variant: 'success' | 'danger' | 'warning', soundType?: 'message' | 'alert' | 'success') => {
@@ -712,432 +330,278 @@ export default function Atendimento() {
   ).length;
 
   return (
-    <>
-      <style>{styles}</style>
-      
-      <div className="professional-layout">
-        {/* Barra superior */}
-        <div className="top-bar">
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center gap-3">
-              <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '12px',
-                padding: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
-              }}>
-                <img src="/Loomie.svg" alt="Logo" style={{ width: "24px", height: "24px", filter: 'brightness(0) invert(1)' }} />
-              </div>
-              <div>
-                <h5 className="mb-0" style={{
-                  fontWeight: 700,
-                  fontSize: '20px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  Loomie
-                </h5>
-                <small style={{
-                  color: '#6c757d',
-                  fontWeight: 500,
-                  fontSize: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  Central de Atendimento
-                </small>
-              </div>
+    <div className="atendimento-container">
+        {/* COLUNA 1: Lista de Conversas */}
+        <div className="conversas-sidebar">
+          <div className="conversas-header">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h5>Conversas</h5>
+              {chamadosAguardando > 0 && (
+                <span className="notification-badge">{chamadosAguardando}</span>
+              )}
             </div>
-            <div className="d-flex gap-3">
-              <Button
-                href="/"
-                size="sm"
-                style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  border: '1px solid rgba(102, 126, 234, 0.2)',
-                  color: '#667eea',
-                  borderRadius: '10px',
-                  padding: '8px 16px',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  transition: 'all 0.3s ease',
-                  backdropFilter: 'blur(10px)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
+
+            <button
+              className="btn-primary-custom w-100 mb-3"
+              onClick={pegarProximoChamado}
+              disabled={pegandoChamado || chamadosAguardando === 0}
+            >
+              {pegandoChamado ? (
+                <>
+                  <Spinner animation="border" size="sm" style={{ width: '14px', height: '14px', marginRight: '8px' }} />
+                  Assumindo...
+                </>
+              ) : (
+                <>Assumir Chamado {chamadosAguardando > 0 && `(${chamadosAguardando})`}</>
+              )}
+            </button>
+
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Buscar conversas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            <div className="filter-tabs">
+              <button
+                className={`filter-tab ${filtroStatus === 'todos' ? 'active' : ''}`}
+                onClick={() => setFiltroStatus('todos')}
               >
-                ← Início
-              </Button>
-              <Button
-                href="/dashboard-atendimento"
-                size="sm"
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none',
-                  color: 'white',
-                  borderRadius: '10px',
-                  padding: '8px 16px',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-                }}
+                Todos
+              </button>
+              <button
+                className={`filter-tab ${filtroStatus === 'entrada' ? 'active' : ''}`}
+                onClick={() => setFiltroStatus('entrada')}
               >
-                📊 Dashboard
-              </Button>
+                Aguardando
+              </button>
+              <button
+                className={`filter-tab ${filtroStatus === 'atendimento' ? 'active' : ''}`}
+                onClick={() => setFiltroStatus('atendimento')}
+              >
+                Atendimento
+              </button>
+              <button
+                className={`filter-tab ${filtroStatus === 'finalizada' ? 'active' : ''}`}
+                onClick={() => setFiltroStatus('finalizada')}
+              >
+                Finalizadas
+              </button>
             </div>
+
+            <div style={{ marginTop: '8px' }}>
+              <small style={{ color: '#8a8d91', fontSize: '11px' }}>
+                💡 Ctrl+R para assumir próximo
+              </small>
+            </div>
+          </div>
+
+          <div className="conversation-list">
+            {error && (
+              <Alert variant="danger" className="m-3">
+                {error}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => {
+                    setError(null);
+                    fetchConversas();
+                  }}
+                >
+                  Tentar novamente
+                </Button>
+              </Alert>
+            )}
+
+            {loadingList ? (
+              <div className="text-center p-4">
+                <Spinner animation="border" />
+                <div className="mt-2" style={{ fontSize: '14px', color: '#65676b' }}>
+                  Carregando...
+                </div>
+              </div>
+            ) : conversasFiltradas.length === 0 ? (
+              <div className="text-center p-4" style={{ color: '#8a8d91' }}>
+                <div style={{ fontSize: '14px' }}>Nenhuma conversa encontrada</div>
+              </div>
+            ) : (
+              conversasFiltradas.map((conversa) => (
+                <div
+                  key={conversa.id}
+                  className={`conversation-item ${
+                    conversaAtiva?.id === conversa.id ? 'active' : ''
+                  } ${
+                    conversa.status === 'entrada' && !conversa.operador ? 'urgent' : ''
+                  }`}
+                  onClick={() => handleConversaSelect(conversa)}
+                >
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="flex-grow-1">
+                      <div className="d-flex align-items-center mb-1">
+                        <strong style={{ fontSize: '14px', fontWeight: 600 }}>
+                          {conversa.contato?.nome || conversa.contato_nome || 'Sem nome'}
+                        </strong>
+                        {conversa.status === 'entrada' && !conversa.operador && (
+                          <span className="urgent-dot" />
+                        )}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#8a8d91', marginBottom: '4px' }}>
+                        {conversa.contato.telefone}
+                      </div>
+                      {conversa.ultima_mensagem && (
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#65676b',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {conversa.ultima_mensagem.mensagem}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-end">
+                      <span className={`status-badge status-${conversa.status}`}>
+                        {getStatusText(conversa.status)}
+                      </span>
+                      <div style={{ fontSize: '11px', color: '#8a8d91', marginTop: '4px' }}>
+                        {conversa.atualizado_em
+                          ? new Date(conversa.atualizado_em).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : '-'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Conteúdo principal */}
-        <div className="main-content">
-          {/* Sidebar */}
-          <div className="sidebar">
-            <div className="sidebar-header">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h6 className="mb-0" style={{ fontWeight: 600, fontSize: '16px' }}>
-                  Conversas
-                </h6>
-                <div className="d-flex gap-2">
-                  {chamadosAguardando > 0 && (
-                    <span className="notification-badge">{chamadosAguardando}</span>
-                  )}
-                  <button
-                    className="action-button"
-                    onClick={pegarProximoChamado}
-                    disabled={pegandoChamado || chamadosAguardando === 0}
-                  >
-                    {pegandoChamado ? (
-                      <Spinner animation="border" size="sm" style={{ width: '14px', height: '14px' }} />
-                    ) : (
-                      'Assumir'
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <input
-                type="text"
-                className="search-input w-100"
-                placeholder="Buscar conversas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-
-              <div className="filter-tabs">
-                <button
-                  className={`filter-tab ${filtroStatus === 'todos' ? 'active' : ''}`}
-                  onClick={() => setFiltroStatus('todos')}
-                >
-                  Todos
-                </button>
-                <button
-                  className={`filter-tab ${filtroStatus === 'entrada' ? 'active' : ''}`}
-                  onClick={() => setFiltroStatus('entrada')}
-                >
-                  Aguardando
-                  {chamadosAguardando > 0 && <span style={{ marginLeft: '4px' }}>({chamadosAguardando})</span>}
-                </button>
-                <button
-                  className={`filter-tab ${filtroStatus === 'atendimento' ? 'active' : ''}`}
-                  onClick={() => setFiltroStatus('atendimento')}
-                >
-                  Atendimento
-                </button>
-                <button
-                  className={`filter-tab ${filtroStatus === 'finalizada' ? 'active' : ''}`}
-                  onClick={() => setFiltroStatus('finalizada')}
-                >
-                  Finalizadas
-                </button>
-              </div>
-
-              <div style={{ marginTop: '8px' }}>
-                <small style={{ color: '#8a8d91', fontSize: '11px' }}>
-                  Ctrl+R para assumir próximo chamado
-                </small>
+        {/* COLUNA 2: Chat */}
+        <div className="chat-area">
+          {loadingChat ? (
+            <div className="empty-chat">
+              <div>
+                <Spinner animation="border" />
+                <div className="mt-2">Carregando conversa...</div>
               </div>
             </div>
-
-            <div className="conversation-list">
-              {error && (
-                <Alert variant="danger" className="m-3">
-                  {error}
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() => {
-                      setError(null);
-                      fetchConversas();
-                    }}
-                  >
-                    Tentar novamente
-                  </Button>
-                </Alert>
-              )}
-
-              {loadingList ? (
-                <div className="text-center p-4">
-                  <Spinner animation="border" />
-                  <div className="mt-2" style={{ fontSize: '14px', color: '#65676b' }}>
-                    Carregando conversas...
+          ) : conversaAtiva ? (
+            <>
+              <div className="chat-header">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 className="mb-1" style={{ fontWeight: 600, fontSize: '16px' }}>
+                      {conversaAtiva.contato.nome}
+                    </h6>
+                    <small style={{ color: '#65676b' }}>
+                      {conversaAtiva.contato.telefone}
+                    </small>
                   </div>
-                </div>
-              ) : (
-                <>
-                  {conversasFiltradas.length === 0 ? (
-                    <div className="text-center p-4" style={{ color: '#8a8d91' }}>
-                      <div style={{ fontSize: '14px' }}>Nenhuma conversa encontrada</div>
-                      <small style={{ fontSize: '12px' }}>
-                        {searchTerm || filtroStatus !== 'todos'
-                          ? 'Ajuste os filtros para ver mais resultados'
-                          : 'As conversas aparecerão aqui quando chegarem'
-                        }
-                      </small>
-                    </div>
-                  ) : (
-                    conversasFiltradas.map((conversa) => (
-                      <div
-                        key={conversa.id}
-                        className={`conversation-item ${conversaAtiva?.id === conversa.id ? 'active' : ''
-                          } ${conversa.status === 'entrada' && !conversa.operador ? 'urgent' : ''
-                          }`}
-                        onClick={() => handleConversaSelect(conversa)}
+                  <div className="d-flex align-items-center gap-2">
+                    <ButtonGroup size="sm">
+                      <Button
+                        variant={conversaAtiva.status === 'entrada' ? 'danger' : 'outline-danger'}
+                        onClick={() => handleStatusChange('entrada')}
+                        style={{ fontSize: '12px' }}
                       >
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div className="flex-grow-1 me-3">
-                            <div className="d-flex align-items-center mb-2">
-                              <strong style={{ fontSize: '14px', fontWeight: 600 }}>
-                                {conversa.contato?.nome || conversa.contato_nome || 'Nome não informado'}
-                              </strong>
-                              {conversa.status === 'entrada' && !conversa.operador && (
-                                <span style={{
-                                  marginLeft: '8px',
-                                  width: '6px',
-                                  height: '6px',
-                                  background: '#fa7970',
-                                  borderRadius: '50%',
-                                  display: 'inline-block'
-                                }} />
-                              )}
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#8a8d91', marginBottom: '4px' }}>
-                              {conversa.contato.telefone}
-                            </div>
-                            {conversa.ultima_mensagem && (
-                              <div style={{
-                                fontSize: '13px',
-                                color: '#65676b',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: '200px'
-                              }}>
-                                {conversa.ultima_mensagem.mensagem}
-                              </div>
-                            )}
-                            {conversa.operador && (
-                              <div style={{
-                                fontSize: '11px',
-                                color: '#1877f2',
-                                marginTop: '4px',
-                                fontWeight: 500
-                              }}>
-                                {conversa.operador.user?.username || 'Operador'}
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-end">
-                            <span className={`status-badge status-${conversa.status}`}>
-                              {getStatusText(conversa.status)}
-                            </span>
-                            <div style={{
-                              fontSize: '11px',
-                              color: '#8a8d91',
-                              marginTop: '4px'
-                            }}>
-                              {conversa.atualizado_em
-                                ? new Date(conversa.atualizado_em).toLocaleTimeString('pt-BR', {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })
-                                : '-'}
-                            </div>
-                          </div>
-                        </div>
+                        Aguardando
+                      </Button>
+                      <Button
+                        variant={conversaAtiva.status === 'atendimento' ? 'warning' : 'outline-warning'}
+                        onClick={() => handleStatusChange('atendimento')}
+                        style={{ fontSize: '12px' }}
+                      >
+                        Atendimento
+                      </Button>
+                      <Button
+                        variant={conversaAtiva.status === 'finalizada' ? 'success' : 'outline-success'}
+                        onClick={() => handleStatusChange('finalizada')}
+                        style={{ fontSize: '12px' }}
+                      >
+                        Finalizada
+                      </Button>
+                    </ButtonGroup>
+                    
+                    {/* Toggle Atendimento Humano */}
+                    <div className="toggle-container">
+                      <div className={`toggle-label ${conversaAtiva.atendimento_humano ? 'active' : ''}`}>
+                        {conversaAtiva.atendimento_humano ? (
+                          <>
+                            <i className="bi bi-person-fill"></i>
+                            <span>Humano</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-robot"></i>
+                            <span>Bot</span>
+                          </>
+                        )}
                       </div>
-                    ))
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Área do chat */}
-          <div className="chat-area">
-            {loadingChat ? (
-              <div className="empty-chat">
-                <div>
-                  <Spinner animation="border" />
-                  <div className="mt-2" style={{ fontSize: '14px' }}>
-                    Carregando conversa...
-                  </div>
-                </div>
-              </div>
-            ) : conversaAtiva ? (
-              <>
-                <div className="chat-header-bar">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h6 className="mb-1" style={{ fontWeight: 600, fontSize: '16px' }}>
-                        {conversaAtiva.contato.nome}
-                      </h6>
-                      <small style={{ color: '#65676b' }}>
-                        {conversaAtiva.contato.telefone}
-                      </small>
-                    </div>
-                    <div>
-                      <ButtonGroup size="sm">
-                        <Button
-                          variant={conversaAtiva.status === 'entrada' ? 'danger' : 'outline-danger'}
-                          onClick={() => handleStatusChange('entrada')}
-                          style={{ fontSize: '12px' }}
-                        >
-                          Aguardando
-                        </Button>
-                        <Button
-                          variant={conversaAtiva.status === 'atendimento' ? 'warning' : 'outline-warning'}
-                          onClick={() => handleStatusChange('atendimento')}
-                          style={{ fontSize: '12px' }}
-                        >
-                          Atendimento
-                        </Button>
-                        <Button
-                          variant={conversaAtiva.status === 'finalizada' ? 'success' : 'outline-success'}
-                          onClick={() => handleStatusChange('finalizada')}
-                          style={{ fontSize: '12px' }}
-                        >
-                          Finalizada
-                        </Button>
-                      </ButtonGroup>
                       
-                      {/* 🎨 Toggle Switch Moderno - Atendimento Humano */}
-                      <div className="toggle-container ms-3">
-                        <div className={`toggle-label ${conversaAtiva.atendimento_humano ? 'active' : ''}`}>
-                          {conversaAtiva.atendimento_humano ? (
-                            <>
-                              <i className="bi bi-person-fill"></i>
-                              <span>Humano</span>
-                            </>
-                          ) : (
-                            <>
-                              <i className="bi bi-robot"></i>
-                              <span>Bot</span>
-                            </>
-                          )}
-                        </div>
-                        
-                        <div 
-                          className={`toggle-switch ${conversaAtiva.atendimento_humano ? 'active' : ''}`}
-                          onClick={toggleAtendimentoHumano}
-                          title={conversaAtiva.atendimento_humano 
-                            ? 'Atendimento humano ATIVO (15 min) - Clique para reativar bot'
-                            : 'Bot ATIVO - Clique para pausar por 15 minutos'
-                          }
-                        >
-                          <div className="toggle-slider">
-                            <i className={`toggle-icon bi ${conversaAtiva.atendimento_humano ? 'bi-person-fill' : 'bi-robot'}`}></i>
-                          </div>
-                        </div>
+                      <div 
+                        className={`toggle-switch ${conversaAtiva.atendimento_humano ? 'active' : ''}`}
+                        onClick={toggleAtendimentoHumano}
+                        title={conversaAtiva.atendimento_humano 
+                          ? 'Atendimento humano ATIVO (15 min)'
+                          : 'Bot ATIVO - Clique para pausar'
+                        }
+                      >
+                        <div className="toggle-slider"></div>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <ChatWindow
-                    conversa={conversaAtiva}
-                    mensagens={conversaAtiva.interacoes}
-                    onNewMessageSent={handleNewMessageSent}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="empty-chat">
-                <div>
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    background: '#f0f2f5',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 20px'
-                  }}>
-                    <i className="bi bi-chat-dots" style={{ fontSize: '32px', color: '#8a8d91' }}></i>
-                  </div>
-                  <h5 style={{ fontWeight: 600, marginBottom: '8px' }}>
-                    Selecione uma conversa
-                  </h5>
-                  <p style={{ margin: '0 0 20px', fontSize: '14px' }}>
-                    Escolha uma conversa da lista para iniciar o atendimento
-                  </p>
-                  {chamadosAguardando > 0 && (
-                    <button
-                      className="action-button"
-                      onClick={pegarProximoChamado}
-                      disabled={pegandoChamado}
-                      style={{ fontSize: '14px', padding: '12px 24px' }}
-                    >
-                      {pegandoChamado ? (
-                        <>
-                          <Spinner animation="border" size="sm" className="me-2" />
-                          Assumindo...
-                        </>
-                      ) : (
-                        `Assumir Próximo Chamado (${chamadosAguardando})`
-                      )}
-                    </button>
-                  )}
-                </div>
               </div>
-            )}
-          </div>
 
-          {/* Painel Direito - Informações do Contato */}
-          {conversaAtiva && (
-            <ContatoInfo
-              conversa={conversaAtiva}
-              onTagsChange={handleTagsChange}
-            />
+              <div style={{ flex: 1, overflow: 'hidden' }}>
+                <ChatWindow
+                  conversa={conversaAtiva}
+                  mensagens={conversaAtiva.interacoes}
+                  onNewMessageSent={handleNewMessageSent}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="empty-chat">
+              <div>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  background: '#e4e6eb',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 20px'
+                }}>
+                  <i className="bi bi-chat-dots" style={{ fontSize: '32px', color: '#65676b' }}></i>
+                </div>
+                <h5 style={{ fontWeight: 600, marginBottom: '8px', color: '#050505' }}>
+                  Selecione uma conversa
+                </h5>
+                <p style={{ margin: 0, fontSize: '14px', color: '#65676b' }}>
+                  Escolha uma conversa da lista ou assuma um chamado
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Toast */}
+        {/* COLUNA 3: Info do Contato */}
+        {conversaAtiva && (
+          <ContatoInfo
+            conversa={conversaAtiva}
+            onTagsChange={handleTagsChange}
+          />
+        )}
+
+        {/* Toast de Notificações */}
         <ToastContainer position="top-end" className="p-3">
           <Toast
             show={showToast}
@@ -1152,6 +616,5 @@ export default function Atendimento() {
           </Toast>
         </ToastContainer>
       </div>
-    </>
   );
-}
+};
