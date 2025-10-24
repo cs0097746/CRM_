@@ -52,7 +52,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://crm.loomiecrm.com",
     "http://crm.localhost",
     "http://backend.localhost",
-    "https://6bba07ecc6b4.ngrok-free.app"
+    "https://873f9d9d29ef.ngrok-free.app"
 
     # 🔧 NGROK: URLs dinâmicas (atualize com sua URL real)
     # "https://abc123def456.ngrok-free.app",  # Descomente e cole sua URL ngrok aqui

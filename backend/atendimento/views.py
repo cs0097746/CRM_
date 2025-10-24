@@ -1119,102 +1119,159 @@ def enviar_mensagem_view(request):
     """API para enviar mensagem via WhatsApp"""
     try:
         logger.info(f"📤 Recebendo requisição para enviar mensagem")
-        logger.info(f"📋 Headers: {dict(request.headers)}")
-        logger.info(f"📋 Method: {request.method}")
-        logger.info(f"📋 Content-Type: {request.content_type}")
-        logger.info(f"📋 Raw body: {request.body}")
-        logger.info(f"📋 Request.data: {request.data}")
-        logger.info(f"📋 Request.POST: {request.POST}")
         
-        # Tentar diferentes formas de acessar os dados
-        data_sources = {
-            'request.data': request.data,
-            'request.POST': request.POST,
-            'json.loads(request.body)': None
-        }
-        
-        try:
-            import json
-            data_sources['json.loads(request.body)'] = json.loads(request.body.decode('utf-8'))
-        except:
-            pass
-            
-        logger.info(f"📋 Fontes de dados disponíveis: {data_sources}")
-        
-        # Usar request.data como padrão, mas com fallback
+        # Extrair dados
         data = request.data or {}
         if not data and request.body:
             try:
+                import json
                 data = json.loads(request.body.decode('utf-8'))
-                logger.info(f"📋 Usando dados do body JSON: {data}")
             except:
                 pass
         
-        numero = data.get('numero')
-        mensagem = data.get('mensagem')
+        numero = data.get('numero', '').strip()
+        mensagem = data.get('mensagem', '').strip()
         conversa_id = data.get('conversa_id')
         
-        logger.info(f"🔍 Campos extraídos - numero: '{numero}', mensagem: '{mensagem[:50] if mensagem else None}...', conversa_id: {conversa_id}")
+        logger.info(f"� Campos - numero: '{numero}', mensagem: '{mensagem[:50] if mensagem else None}...', conversa_id: {conversa_id}")
 
         if not numero or not mensagem:
-            logger.error(f"❌ Campos obrigatórios faltando - numero: {bool(numero)} ('{numero}'), mensagem: {bool(mensagem)} ('{mensagem[:50] if mensagem else None}...')")
+            logger.error(f"❌ Campos obrigatórios faltando")
             return Response({
                 'success': False,
-                'error': 'Campos obrigatórios: numero, mensagem',
-                'debug': {
-                    'received_data': data,
-                    'numero_present': bool(numero),
-                    'mensagem_present': bool(mensagem)
-                }
+                'error': 'Campos obrigatórios: numero, mensagem'
             }, status=400)
 
-        # ✅ Enviar para WhatsApp
-        resultado = enviar_mensagem_whatsapp(numero, mensagem)
-
-        if resultado['success']:
-            # ✅ Salvar no CRM se conversa_id fornecido
-            atendimento_humano_ativo = False  # 🤖 Estado do bot para o n8n
-            atendimento_humano_ate = None
+        # ✅ ENVIAR VIA MESSAGE TRANSLATOR
+        try:
+            from message_translator.schemas import LoomieMessage
+            from message_translator.router import enviar_mensagem_saida
+            from message_translator.models import CanalConfig
+            from message_translator.translators import get_translator
             
-            if conversa_id:
-                try:
-                    conversa = Conversa.objects.get(id=conversa_id)
-                    operador = get_user_operador(request.user)
+            # Buscar operador
+            operador = get_user_operador(request.user)
+            
+            # Criar LoomieMessage com metadata do operador
+            loomie_message = LoomieMessage(
+                sender=f"system:crm:user_{request.user.id}",
+                recipient=f"whatsapp:{numero}",
+                channel_type='whatsapp',
+                content_type='text',
+                text=mensagem,
+                metadata={
+                    'operador_id': operador.id if operador else None,
+                    'user_id': request.user.id,
+                    'conversa_id': conversa_id
+                }
+            )
+            
+            # Buscar canal configurado
+            canal = CanalConfig.objects.filter(
+                tipo__in=['whatsapp', 'evo'],
+                ativo=True,
+                envia_saida=True
+            ).first()
+            
+            if not canal:
+                logger.error("❌ Nenhum canal WhatsApp configurado")
+                return Response({
+                    'success': False,
+                    'error': 'Nenhum canal WhatsApp configurado para envio'
+                }, status=404)
+            
+            # Traduzir para formato do canal
+            translator = get_translator(canal.tipo)
+            payload_canal = translator.from_loomie(loomie_message)
+            
+            # ✅ ENVIAR (isso já vai criar a Interação automaticamente)
+            resultado = enviar_mensagem_saida(loomie_message, canal, payload_canal)
+            
+            if resultado['success']:
+                # 🤖 Pegar estado do atendimento humano
+                atendimento_humano_ativo = False
+                atendimento_humano_ate = None
+                
+                if conversa_id:
+                    try:
+                        conversa = Conversa.objects.get(id=conversa_id)
+                        atendimento_humano_ativo = conversa.atendimento_humano
+                        atendimento_humano_ate = conversa.atendimento_humano_ate.isoformat() if conversa.atendimento_humano_ate else None
+                    except Conversa.DoesNotExist:
+                        pass
+                
+                logger.info(f"✅ Mensagem enviada com sucesso via Message Translator")
+                
+                return Response({
+                    'success': True,
+                    'message': 'Mensagem enviada com sucesso',
+                    'whatsapp_id': resultado.get('external_id'),
+                    'interacao_id': resultado.get('interacao_id'),  # ✅ NOVO
+                    'atendimento_humano': atendimento_humano_ativo,
+                    'atendimento_humano_ate': atendimento_humano_ate
+                })
+            else:
+                logger.error(f"❌ Erro ao enviar via Message Translator: {resultado.get('error')}")
+                return Response({
+                    'success': False,
+                    'error': resultado.get('error', 'Erro ao enviar mensagem')
+                }, status=400)
+        
+        except Exception as translator_error:
+            logger.error(f"❌ Erro no Message Translator: {translator_error}", exc_info=True)
+            
+            # FALLBACK: Tentar método antigo
+            logger.warning("⚠️ Usando método de envio legado como fallback")
+            resultado = enviar_mensagem_whatsapp(numero, mensagem)
 
-                    Interacao.objects.create(
-                        conversa=conversa,
-                        mensagem=mensagem,
-                        remetente='operador',
-                        tipo='texto',
-                        operador=operador
-                    )
-                    
-                    # ✅ ATUALIZAR timestamp da conversa para ordenação correta
-                    conversa.atualizado_em = timezone.now()
-                    conversa.save()
-                    
-                    # 🤖 PEGAR estado do atendimento humano para enviar ao n8n
-                    atendimento_humano_ativo = conversa.atendimento_humano
-                    atendimento_humano_ate = conversa.atendimento_humano_ate.isoformat() if conversa.atendimento_humano_ate else None
-                    
-                    logger.info("💾 Interação salva no CRM e conversa atualizada")
-                except Exception as e:
-                    logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
+            if resultado['success']:
+                atendimento_humano_ativo = False
+                atendimento_humano_ate = None
+                
+                if conversa_id:
+                    try:
+                        conversa = Conversa.objects.get(id=conversa_id)
+                        operador = get_user_operador(request.user)
 
-            return Response({
-                'success': True,
-                'message': 'Mensagem enviada com sucesso',
-                'data': resultado['data'],
-                'whatsapp_id': resultado.get('whatsapp_id'),
-                'status': resultado.get('status', 'pending'),
-                'atendimento_humano': atendimento_humano_ativo,  # 🤖 Para o n8n saber se bot está pausado
-                'atendimento_humano_ate': atendimento_humano_ate  # 🤖 Quando o bot volta
-            })
-        else:
-            return Response({
-                'success': False,
-                'error': resultado['error']
-            }, status=400)
+                        Interacao.objects.create(
+                            conversa=conversa,
+                            mensagem=mensagem,
+                            remetente='operador',
+                            tipo='texto',
+                            operador=operador
+                        )
+                        
+                        conversa.atualizado_em = timezone.now()
+                        conversa.save()
+                        
+                        atendimento_humano_ativo = conversa.atendimento_humano
+                        atendimento_humano_ate = conversa.atendimento_humano_ate.isoformat() if conversa.atendimento_humano_ate else None
+                        
+                        logger.info("💾 Interação salva no CRM (método legado)")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
+
+                return Response({
+                    'success': True,
+                    'message': 'Mensagem enviada com sucesso',
+                    'data': resultado['data'],
+                    'whatsapp_id': resultado.get('whatsapp_id'),
+                    'status': resultado.get('status', 'pending'),
+                    'atendimento_humano': atendimento_humano_ativo,
+                    'atendimento_humano_ate': atendimento_humano_ate
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': resultado['error']
+                }, status=400)
+
+    except Exception as e:
+        logger.error(f"Erro em enviar_mensagem_view: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': f'Erro interno: {str(e)}'
+        }, status=500)
 
     except Exception as e:
         logger.error(f"Erro em enviar_mensagem_view: {str(e)}")
@@ -1328,68 +1385,26 @@ def processar_mensagem_media(message_data):
     except Exception as e:
         logger.error(f"💥 Erro ao processar mensagem: {str(e)}", exc_info=True)
         return ("[Erro ao processar mensagem]", 'erro', None, None, None, None, None, None)
-    
 
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def evolution_webhook(request):
-    """
-    ⚠️ WEBHOOK DESATIVADO - Agora usando Message Translator
-    
-    Este webhook foi substituído por:
-    /translator/evolution-webhook/
-    
-    Todas as mensagens agora são processadas pelo Message Translator que:
-    1. Traduz de Evolution → Loomie
-    2. Processa mídias com descriptografia
-    3. Envia para o CRM automaticamente
-    
-    Mantido aqui apenas para compatibilidade com código legado.
-    """
-    logger.info("⚠️ [ATENDIMENTO] Webhook DESATIVADO - usar /translator/evolution-webhook/")
-    
-    return Response({
-        "success": False,
-        "message": "Este webhook foi desativado. Use /translator/evolution-webhook/",
-        "redirect": "/translator/evolution-webhook/"
-    }, status=status.HTTP_410_GONE)
 
-    
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def debug_webhook(request):
-    """Debug completo do webhook - VER DADOS RAW"""
-    try:
-        logger.info("🐛 DEBUG WEBHOOK - DADOS COMPLETOS:")
-        logger.info(f"📦 Request data: {request.data}")
-        
-        event_type = request.data.get('event')
-        event_data = request.data.get('data', {})
-        
-        if event_type == 'messages.upsert':
-            message_data = event_data.get('message', {})
-            
-            logger.info(f"🔍 Message data completo: {json.dumps(message_data, indent=2)}")
-            
-            # Verificar especificamente mídias
-            if message_data.get('imageMessage'):
-                logger.info(f"📷 IMAGEM DETECTADA: {json.dumps(message_data.get('imageMessage'), indent=2)}")
-            
-            if message_data.get('audioMessage'):
-                logger.info(f"🎵 ÁUDIO DETECTADO: {json.dumps(message_data.get('audioMessage'), indent=2)}")
-        
-        return Response({
-            'status': 'debug_processed',
-            'received_data': request.data,
-            'message': 'Debug completo nos logs'
-        })
-        
-    except Exception as e:
-        logger.error(f"💥 Erro no debug: {str(e)}")
-        return Response({
-            'status': 'debug_error',
-            'error': str(e)
-        })
+# ============================================================================
+# WEBHOOKS REMOVIDOS - Agora usando Message Translator
+# ============================================================================
+# 
+# Os webhooks evolution_webhook() e debug_webhook() foram removidos.
+# Todas as mensagens agora são processadas pelo Message Translator:
+# 
+# Endpoint atual: /translator/evolution-webhook/
+# Código: backend/message_translator/views.py
+# 
+# Vantagens:
+# - Suporte multi-canal (WhatsApp, Instagram, Telegram, etc)
+# - Código reutilizável e modular
+# - Processamento de mídias unificado
+# - Fácil adicionar novos canais
+# 
+# ============================================================================
+
 
 @api_view(['GET'])
 def atendimento_stats(request):

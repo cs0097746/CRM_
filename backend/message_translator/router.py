@@ -238,6 +238,7 @@ def enviar_para_canal(canal_nome: str, loomie_message: LoomieMessage) -> bool:
 def enviar_mensagem_saida(loomie_message: LoomieMessage, canal: CanalConfig, payload: Dict) -> Dict:
     """
     Envia mensagem de saída para o canal externo (WhatsApp, Telegram, etc)
+    E cria Interação no CRM com remetente='operador'
     
     Args:
         loomie_message: Mensagem no formato Loomie
@@ -245,26 +246,120 @@ def enviar_mensagem_saida(loomie_message: LoomieMessage, canal: CanalConfig, pay
         payload: Payload já traduzido para o formato do canal
     
     Returns:
-        Dict com success, external_id, error
+        Dict com success, external_id, error, interacao_id
     """
     try:
+        # 1️⃣ ENVIAR PARA O CANAL EXTERNO
         if canal.tipo == 'whatsapp' or canal.tipo == 'evo':
-            return enviar_whatsapp_evo(canal, payload)
+            resultado = enviar_whatsapp_evo(canal, payload)
         
         elif canal.tipo == 'telegram':
-            return enviar_telegram(canal, payload)
+            resultado = enviar_telegram(canal, payload)
         
         elif canal.tipo == 'n8n':
-            return enviar_n8n_direto(canal, payload)
+            resultado = enviar_n8n_direto(canal, payload)
         
         else:
             return {
                 'success': False,
                 'error': f'Tipo de canal {canal.tipo} não suportado para envio'
             }
+        
+        # 2️⃣ SE ENVIOU COM SUCESSO, CRIAR INTERAÇÃO NO CRM
+        if resultado.get('success'):
+            try:
+                from contato.models import Contato, Operador
+                from atendimento.models import Conversa, Interacao
+                from django.utils import timezone
+                
+                logger.info(f"📤 [CRM SAÍDA] Criando Interação para mensagem enviada")
+                
+                # Extrair número do destinatário
+                recipient = loomie_message.recipient.replace('whatsapp:', '').replace('evo:', '').replace('telegram:', '').replace('instagram:', '')
+                
+                # Buscar contato e conversa
+                contato = Contato.objects.filter(telefone=recipient).first()
+                
+                if contato:
+                    conversa = Conversa.objects.filter(contato=contato).first()
+                    
+                    if conversa:
+                        # Determinar tipo de mensagem
+                        if loomie_message.content_type == 'text':
+                            tipo_mensagem = 'texto'
+                            texto_mensagem = loomie_message.text or ''
+                        elif loomie_message.content_type == 'media' and loomie_message.media:
+                            media = loomie_message.media[0]
+                            tipo_map = {
+                                'image': 'imagem',
+                                'video': 'video',
+                                'audio': 'audio',
+                                'document': 'documento',
+                                'sticker': 'sticker'
+                            }
+                            tipo_mensagem = tipo_map.get(media.tipo, 'outros')
+                            texto_mensagem = media.legenda or loomie_message.text or f"[{tipo_mensagem.capitalize()}]"
+                        else:
+                            tipo_mensagem = 'outros'
+                            texto_mensagem = loomie_message.text or '[Mensagem não suportada]'
+                        
+                        # Buscar operador do metadata
+                        operador = None
+                        if loomie_message.metadata and 'operador_id' in loomie_message.metadata:
+                            try:
+                                operador = Operador.objects.get(id=loomie_message.metadata['operador_id'])
+                                logger.info(f"👤 [CRM SAÍDA] Operador encontrado: {operador.user.username}")
+                            except Operador.DoesNotExist:
+                                logger.warning(f"⚠️ [CRM SAÍDA] Operador não encontrado: {loomie_message.metadata['operador_id']}")
+                        
+                        # Extrair dados de mídia
+                        media_url = None
+                        media_filename = None
+                        media_size = None
+                        media_duration = None
+                        
+                        if loomie_message.media:
+                            media = loomie_message.media[0]
+                            media_url = media.url
+                            media_filename = media.filename
+                            media_size = media.tamanho
+                            media_duration = media.duracao
+                        
+                        # ✅ CRIAR INTERAÇÃO DE SAÍDA
+                        interacao = Interacao.objects.create(
+                            conversa=conversa,
+                            mensagem=texto_mensagem,
+                            remetente='operador',  # ⭐ Mensagem enviada pelo operador
+                            tipo=tipo_mensagem,
+                            whatsapp_id=resultado.get('external_id'),
+                            media_url=media_url,
+                            media_filename=media_filename,
+                            media_size=media_size,
+                            media_duration=media_duration,
+                            operador=operador
+                        )
+                        
+                        # Atualizar timestamp da conversa
+                        conversa.atualizado_em = timezone.now()
+                        conversa.save()
+                        
+                        logger.info(f"✅ [CRM SAÍDA] Interação criada: ID {interacao.id}, Tipo: {tipo_mensagem}, Operador: {operador.user.username if operador else 'N/A'}")
+                        
+                        # Adicionar ID da interação ao resultado
+                        resultado['interacao_id'] = interacao.id
+                    else:
+                        logger.warning(f"⚠️ [CRM SAÍDA] Conversa não encontrada para contato {recipient}")
+                else:
+                    logger.warning(f"⚠️ [CRM SAÍDA] Contato não encontrado: {recipient}")
+            
+            except Exception as e:
+                logger.error(f"❌ [CRM SAÍDA] Erro ao criar interação: {e}", exc_info=True)
+                # Não falhar o envio por causa disso - mensagem já foi enviada
+        
+        return resultado
     
     except Exception as e:
-        logger.error(f"Erro ao enviar mensagem: {e}")
+        logger.error(f"❌ Erro ao enviar mensagem: {e}", exc_info=True)
         return {
             'success': False,
             'error': str(e)
