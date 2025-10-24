@@ -292,6 +292,18 @@ def webhook_saida(request):
         # Enviar
         resultado = enviar_mensagem_saida(loomie_message, canal, payload_canal)
         
+        # ✨ PROCESSAR WEBHOOKS CUSTOMIZADOS DE SAÍDA
+        if resultado.get('success'):
+            try:
+                from .router import processar_webhooks_customizados
+                webhooks_enviados = processar_webhooks_customizados(loomie_message, direcao='saida')
+                if webhooks_enviados:
+                    logger.info(f"📤 [SAÍDA] {len(webhooks_enviados)} webhook(s) customizado(s) disparado(s): {webhooks_enviados}")
+                    resultado['webhooks_customizados'] = webhooks_enviados
+            except Exception as e:
+                logger.error(f"❌ Erro ao processar webhooks customizados de saída: {e}")
+                # Não falhar o envio por causa disso
+        
         # Atualizar log
         tempo_total = time.time() - inicio
         log.status = 'enviada' if resultado.get('success') else 'erro'

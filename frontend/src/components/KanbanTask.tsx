@@ -354,6 +354,8 @@ export default function KanbanTask({ negocio, index, onNegocioUpdate, onNegocioD
     }
   };
 
+  console.log("Negocio,", negocio);
+
   return (
     <>
       <Draggable draggableId={String(negocio.id)} index={index}>
