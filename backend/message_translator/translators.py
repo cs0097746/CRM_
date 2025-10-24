@@ -213,6 +213,7 @@ class WhatsAppTranslator(BaseTranslator):
             # Metadados
             loomie_msg.set_metadata('whatsapp_raw', payload)
             loomie_msg.set_metadata('is_group', '@g.us' in remote_jid)
+            loomie_msg.set_metadata('from_me', from_me)  # ⭐ CRUCIAL: Indica se foi enviado por mim (operador)
             
             return loomie_msg
         

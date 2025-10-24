@@ -141,11 +141,23 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
             
             logger.info(f"📦 [CRM] Dados da mídia: URL={media_url}, Nome={media_filename}, Tamanho={media_size}")
         
+        # ⭐ DETERMINAR REMETENTE: cliente ou operador?
+        # Se from_me=True, foi enviado pelo operador (você no celular)
+        # Se from_me=False, foi recebido do cliente
+        from_me = loomie_message.metadata.get('from_me', False) if loomie_message.metadata else False
+        
+        if from_me:
+            remetente = 'operador'
+            logger.info(f"👤 [CRM] Mensagem enviada pelo OPERADOR (from_me=True)")
+        else:
+            remetente = 'cliente'
+            logger.info(f"👤 [CRM] Mensagem recebida do CLIENTE (from_me=False)")
+        
         # Criar interação
         interacao = Interacao.objects.create(
             conversa=conversa,
             mensagem=texto_mensagem,
-            remetente='cliente',
+            remetente=remetente,  # ⭐ Agora usa detecção automática
             tipo=tipo_mensagem,
             whatsapp_id=loomie_message.external_id,
             media_url=media_url,
@@ -154,7 +166,7 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
             media_duration=media_duration
         )
         
-        logger.info(f"✅ [CRM] Interação criada: ID {interacao.id}, Tipo: {tipo_mensagem}")
+        logger.info(f"✅ [CRM] Interação criada: ID {interacao.id}, Tipo: {tipo_mensagem}, Remetente: {remetente}")
         
         # Atualizar timestamp da conversa
         conversa.atualizado_em = timezone.now()
