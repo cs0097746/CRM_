@@ -310,6 +310,8 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     }
   };
 
+  console.log("Negocio,", negocio);
+
   return (
     <>
       <Draggable draggableId={String(negocio.id)} index={index}>

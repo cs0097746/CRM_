@@ -50,3 +50,19 @@ class NegocioSerializer(serializers.ModelSerializer):
             'data_prevista', 'criado_em', 'atualizado_em',
             'atributos_personalizados', 'comentarios',
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        preset = getattr(instance, "preset_atributos", None)
+
+        if preset:
+            preset_attrs = list(preset.atributos.all().order_by("id").values_list("id", flat=True))
+
+            data["atributos_personalizados"].sort(
+                key=lambda x: preset_attrs.index(x["id"]) if x["id"] in preset_attrs else 9999
+            )
+        else:
+            data["atributos_personalizados"].sort(key=lambda x: x["id"])
+
+        return data

@@ -35,11 +35,14 @@ class PresetAtributosSerializer(serializers.ModelSerializer):
         model = PresetAtributos
         fields = ['id', 'nome', 'descricao', 'atributos']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['atributos'] = sorted(data['atributos'], key=lambda x: x.get('id', ''))
+        return data
+
     def create(self, validated_data):
         atributos_data = validated_data.pop('atributos', [])
         preset = PresetAtributos.objects.create(**validated_data)
-
-        print("Atributos data", atributos_data)
 
         for attr_data in atributos_data:
             atributo = AtributoPersonalizavel.objects.create(**attr_data)
