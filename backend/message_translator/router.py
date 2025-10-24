@@ -162,7 +162,17 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
             conversa.status = 'entrada'
         conversa.save()
         
-        logger.info(f"✅ [CRM] Conversa atualizada: ID {conversa.id}")
+        # ⭐ ADICIONAR INFORMAÇÃO DE ATENDIMENTO HUMANO AO METADATA
+        if not loomie_message.metadata:
+            loomie_message.metadata = {}
+        
+        loomie_message.metadata['atendimento_humano_ativo'] = conversa.atendimento_humano
+        if conversa.atendimento_humano_ate:
+            loomie_message.metadata['atendimento_humano_ate'] = conversa.atendimento_humano_ate.isoformat()
+        else:
+            loomie_message.metadata['atendimento_humano_ate'] = None
+        
+        logger.info(f"✅ [CRM] Conversa atualizada: ID {conversa.id}, Atend. Humano: {conversa.atendimento_humano}")
         
         return True
     
