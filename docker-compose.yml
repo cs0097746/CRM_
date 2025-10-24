@@ -31,9 +31,6 @@ services:
       dockerfile: Dockerfile
     image: crm_backend:latest
     container_name: crm_backend
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
     environment:
       POSTGRES_DB: crmdb
       POSTGRES_USER: crmuser
