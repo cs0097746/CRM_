@@ -21,5 +21,7 @@ class Tarefa(models.Model):
     precisar_enviar = models.BooleanField(default=True)
     codigo = models.CharField(max_length=10, blank=True, null=True)
 
+    criado_por = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
+
     def __str__(self):
         return f"{self.tipo} para {self.destinatario}"

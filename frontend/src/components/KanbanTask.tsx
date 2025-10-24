@@ -12,9 +12,12 @@ import {renderCustomAttributeValue, renderValueInput } from "./utils/customField
 interface KanbanCardProps {
   negocio: Negocio;
   index: number;
+  onNegocioUpdate: (updatedNegocio: Negocio) => void;
+  onNegocioDelete: (negocioId: number) => void;
+  onCustomAttributeChange: (negocioId: number, attribute: string, value: any) => void;
 };
 
-export default function KanbanTask({ negocio, index }: KanbanCardProps) {
+export default function KanbanTask({ negocio, index, onNegocioUpdate, onNegocioDelete }: KanbanCardProps) {
   const [show, setShow] = useState(false);
   const [titulo, setTitulo] = useState(negocio.titulo);
   const [valor, setValor] = useState(negocio.valor ?? 0);
@@ -23,6 +26,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [comentarios, setComentarios] = useState<Comentario[]>(negocio.comentarios ?? []);
   const [novoComentario, setNovoComentario] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAttributeDeleteConfirm, setShowAttributeDeleteConfirm] = useState(false);
+  const [attributeToDeleteId, setAttributeToDeleteId] = useState<number | null>(null);
+
   const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState("");
   const [newFieldValue, setNewFieldValue] = useState<string | File>("");
@@ -37,9 +47,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const [activeTab, setActiveTab] = useState("negocio");
 
   const handleSave = async () => {
-    const payload = { titulo, valor, contato, estagio };
+    setSaveError(null);
+    const payload = { titulo, valor, contato };
     const token = await getToken();
-    if (!token) throw new Error("Autenticação falhou.");
+    if (!token) {
+      setSaveError("Autenticação falhou. Não foi possível salvar.");
+      return;
+    }
 
     try {
       const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
@@ -51,26 +65,34 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error("Erro ao atualizar negócio");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Erro desconhecido ao atualizar negócio");
+      }
 
-      const data = await response.json();
+      const data: Negocio = await response.json();
       console.log("Atualizado com sucesso:", data);
+
+      onNegocioUpdate(data);
+
       setShow(false);
     } catch (error) {
       console.error("Erro ao salvar:", error);
-      alert("Falha ao salvar os dados.");
+      setSaveError(`Falha ao salvar os dados: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Tem certeza que deseja excluir o negócio "${negocio.titulo}"? Esta ação é irreversível.`)) {
-      return;
-    }
-
+  const executeDelete = async () => {
+    setShowDeleteConfirm(false);
     setIsDeleting(true);
+    setSaveError(null);
 
     const token = await getToken();
-    if (!token) throw new Error("Autenticação falhou.");
+    if (!token) {
+      setSaveError("Autenticação falhou. Não foi possível excluir.");
+      setIsDeleting(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${backend_url}negocios/${negocio.id}/`, {
@@ -82,7 +104,9 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
 
       if (response.status === 204) {
         console.log("Negócio excluído com sucesso:", negocio.id);
-        alert("Negócio excluído com sucesso! Pode ser necessário recarregar a página.");
+
+        onNegocioDelete(negocio.id);
+
         setShow(false);
       } else {
         const errorText = await response.text();
@@ -90,19 +114,19 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       }
     } catch (error) {
       console.error("Erro ao excluir:", error);
-      alert(`Falha ao excluir o negócio: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      setSaveError(`Falha ao excluir o negócio: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleDeleteAttribute = async (attributeId: number) => {
-    if (!window.confirm("Tem certeza que deseja excluir este campo personalizável? Esta ação é irreversível.")) {
+  const executeDeleteAttribute = async (attributeId: number) => {
+    setShowAttributeDeleteConfirm(false);
+    const token = await getToken();
+    if (!token) {
+      setFieldUpdateError("Autenticação falhou. Não foi possível excluir o campo.");
       return;
     }
-
-    const token = await getToken();
-    if (!token) throw new Error("Autenticação falhou.");
 
     try {
       const response = await fetch(`${backend_url}atributos-personalizaveis/${attributeId}/delete/`, {
@@ -115,13 +139,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       if (response.status === 204) {
         console.log("Atributo excluído com sucesso:", attributeId);
 
-        if (negocio.atributos_personalizados) {
-          negocio.atributos_personalizados = negocio.atributos_personalizados.filter(
-            (attr) => attr.id !== attributeId
-          );
-        }
+        const updatedAttributes = (negocio.atributos_personalizados || []).filter(
+          (attr) => attr.id !== attributeId
+        );
 
-        alert("Campo personalizável excluído com sucesso!");
+        negocio.atributos_personalizados = updatedAttributes;
+        onNegocioUpdate({ ...negocio, atributos_personalizados: updatedAttributes });
+
         setShowEditAttributeModal(false);
         setEditingAttribute(null);
       } else {
@@ -130,7 +154,9 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       }
     } catch (error) {
       console.error("Erro ao excluir atributo:", error);
-      alert(`Falha ao excluir o campo personalizável: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      setFieldUpdateError(`Falha ao excluir o campo personalizável: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    } finally {
+      setAttributeToDeleteId(null);
     }
   };
 
@@ -149,7 +175,11 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     setIsSavingField(true);
     setFieldCreationError(null);
     const token = await getToken();
-    if (!token) throw new Error("Autenticação falhou.");
+    if (!token) {
+      setFieldCreationError("Autenticação falhou. Não foi possível criar o campo.");
+      setIsSavingField(false);
+      return;
+    }
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
@@ -188,8 +218,13 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
         throw new Error(`Erro ao criar campo: ${errorMessage}`);
       }
 
-      const data = await response.json();
-      console.log("Campo personalizável criado com sucesso:", data);
+      const newAttribute = await response.json();
+      console.log("Campo personalizável criado com sucesso:", newAttribute);
+
+      const updatedAttributes = [...(negocio.atributos_personalizados || []), newAttribute];
+
+      negocio.atributos_personalizados = updatedAttributes;
+      onNegocioUpdate({ ...negocio, atributos_personalizados: updatedAttributes });
 
       setNewFieldLabel("");
       setNewFieldValue("");
@@ -215,7 +250,11 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     setIsUpdatingField(true);
     setFieldUpdateError(null);
     const token = await getToken();
-    if (!token) throw new Error("Autenticação falhou.");
+    if (!token) {
+      setFieldUpdateError("Autenticação falhou. Não foi possível atualizar o campo.");
+      setIsUpdatingField(false);
+      return;
+    }
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
@@ -264,6 +303,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
     );
 
     negocio.atributos_personalizados = updatedAttributes;
+    onNegocioUpdate({ ...negocio, atributos_personalizados: updatedAttributes });
 
       setShowEditAttributeModal(false);
       setEditingAttribute(null);
@@ -279,8 +319,12 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
   const handleAddComentario = async () => {
     if (!novoComentario.trim()) return;
 
+    setCommentError(null);
     const token = await getToken();
-    if (!token) throw new Error("Autenticação falhou.");
+    if (!token) {
+      setCommentError("Autenticação falhou. Não foi possível adicionar o comentário.");
+      return;
+    }
 
     const payload = {
       mensagem: novoComentario.trim(),
@@ -306,7 +350,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
       setNovoComentario("");
     } catch (error) {
       console.error("Erro na criação do comentário:", error);
-      alert(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+      setCommentError(`Falha ao adicionar o comentário: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
     }
   };
 
@@ -331,7 +375,11 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                 : "0 6px 18px rgba(0,0,0,0.08)",
               transition: "transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease",
             }}
-            onClick={() => setShow(true)}
+            onClick={() => {
+              setShow(true);
+              setSaveError(null);
+              setCommentError(null);
+            }}
           >
             <div className="card-body p-3">
               <div className="d-flex justify-content-between align-items-start mb-2">
@@ -414,6 +462,11 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             <Tab eventKey="negocio" title="Negócio & Comentários" tabClassName="text-primary fw-bold">
               <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}>
                 <div style={{ flex: 2 }}>
+                  {saveError && (
+                    <Alert variant="danger" onClose={() => setSaveError(null)} dismissible className="mb-3">
+                      {saveError}
+                    </Alert>
+                  )}
                   <Form>
                     <Form.Group className="mb-3">
                       <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Título</Form.Label>
@@ -454,7 +507,8 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                         type="text"
                         value={estagio}
                         onChange={(e) => setEstagio(e.target.value)}
-                        style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem" }}
+                        disabled
+                        style={{ borderRadius: "0.6rem", borderColor: "#d0d0d0", padding: "0.5rem", backgroundColor: "#e9ecef" }}
                       />
                     </Form.Group>
 
@@ -475,32 +529,35 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                     <Form.Group className="mb-3">
                       <Form.Label style={{ fontWeight: 600, color: "#316dbd" }}>Atributos Personalizados</Form.Label>
                       <div style={{ maxHeight: "250px", overflowY: "auto", paddingRight: "0.5rem" }}>
-                        {negocio.atributos_personalizados?.map((atributo, idx) => (
-                          <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
-                            <div className="d-flex justify-content-between align-items-center">
-                              <strong>{atributo.label}</strong>
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingAttribute(atributo);
-                                    setEditFieldValue(
-                                      atributo.valor
-                                        ? atributo.valor
-                                        : typeof atributo.valor_formatado === "string"
-                                        ? atributo.valor_formatado
-                                        : ""
-                                    );
-                                  setShowEditAttributeModal(true);
-                                }}
-                                style={{ padding: "0.2rem 0.5rem" }}
-                              >
-                                Editar
-                              </Button>
-                            </div>
-                            {renderCustomAttributeValue(atributo)}
-                          </div>
-                        ))}
+                        {(negocio.atributos_personalizados && negocio.atributos_personalizados.length > 0) ? (
+                            negocio.atributos_personalizados.map((atributo, idx) => (
+                                <div key={atributo.id || idx} style={{ marginBottom: "0.5rem" }}>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <strong>{atributo.label}</strong>
+                                        <Button
+                                            variant="outline-primary"
+                                            size="sm"
+                                            onClick={() => {
+                                                setEditingAttribute(atributo);
+                                                const initialValue = atributo.valor
+                                                    ? atributo.valor
+                                                    : typeof atributo.valor_formatado === "string"
+                                                        ? atributo.valor_formatado
+                                                        : "";
+                                                setEditFieldValue(initialValue);
+                                                setShowEditAttributeModal(true);
+                                            }}
+                                            style={{ padding: "0.2rem 0.5rem" }}
+                                        >
+                                            Editar
+                                        </Button>
+                                    </div>
+                                    {renderCustomAttributeValue(atributo)}
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-muted">Nenhum campo personalizado adicionado.</p>
+                        )}
                       </div>
                     </Form.Group>
                   </Form>
@@ -519,6 +576,11 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
                   }}
                 >
                   <h6 style={{ color: "#316dbd", fontWeight: 700 }}>Comentários</h6>
+                  {commentError && (
+                    <Alert variant="danger" onClose={() => setCommentError(null)} dismissible className="my-2">
+                      {commentError}
+                    </Alert>
+                  )}
                   <div style={{ flex: 1, overflowY: "auto", marginTop: "1rem" }}>
                     {comentarios.map((c) => (
                       <div
@@ -569,7 +631,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
             style={{
               borderRadius: "0.5rem",
               fontWeight: 500,
-              backgroundColor: "#29fc00",
+              backgroundColor: "#7ed957",
               border: "none",
               color: "#fff",
             }}
@@ -581,7 +643,7 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           <div>
             <Button
               variant="danger"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
               style={{
                 borderRadius: "0.5rem",
@@ -621,6 +683,24 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
               Salvar
             </Button>
           </div>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showDeleteConfirm} onHide={() => setShowDeleteConfirm(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="text-danger">Confirmação de Exclusão</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Você tem certeza que deseja excluir o negócio <strong>"{negocio.titulo}"</strong>?</p>
+          <p className="text-danger fw-bold">Esta ação é irreversível.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={executeDelete} disabled={isDeleting}>
+            {isDeleting ? 'Excluindo...' : 'Excluir Definitivamente'}
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -730,93 +810,78 @@ export default function KanbanTask({ negocio, index }: KanbanCardProps) {
           setEditingAttribute(null);
           setEditFieldValue("");
           setFieldUpdateError(null);
-        }}
-        centered
+       }}
       >
-        <Modal.Header closeButton style={{ backgroundColor: "#8c52ff", color: "#fff", borderTopLeftRadius: "0.5rem", borderTopRightRadius: "0.5rem" }}>
-          <Modal.Title>Editar Campo Personalizável</Modal.Title>
+        <Modal.Header closeButton style={{ backgroundColor: "#316dbd", color: "#fff", borderTopLeftRadius: "0.5rem", borderTopRightRadius: "0.5rem" }}>
+          <Modal.Title>Editar Atributo: {editingAttribute?.label}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600 }}>Etiqueta (Label)</Form.Label>
-              <Form.Control
-                type="text"
-                value={editingAttribute?.label || ""}
-                readOnly
-                style={{ borderRadius: "0.5rem", borderColor: "#ccc", backgroundColor: "#e9ecef" }}
-              />
-            </Form.Group>
+          {editingAttribute && (
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label style={{ fontWeight: 600 }}>Valor Atual</Form.Label>
+                {renderValueInput(editingAttribute.type, editFieldValue, setEditFieldValue)}
+                <Form.Text className="text-muted">
+                    Tipo: {editingAttribute.type}. {editingAttribute.type === 'file' && 'Selecione um novo arquivo para substituir o existente.'}
+                </Form.Text>
+              </Form.Group>
+            </Form>
+          )}
 
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: 600 }}>Tipo de Dado</Form.Label>
-              <Form.Control
-                type="text"
-                value={editingAttribute?.type || ""}
-                readOnly
-                style={{ borderRadius: "0.5rem", borderColor: "#ccc", backgroundColor: "#e9ecef" }}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-4">
-              <Form.Label style={{ fontWeight: 600 }}>
-                Valor {editingAttribute?.type === 'file' && '(Arquivo)'}
-              </Form.Label>
-              {editingAttribute && renderValueInput(editingAttribute.type, editFieldValue, setEditFieldValue)}
-              <Form.Text className="text-muted">
-                {editingAttribute?.type === 'file'
-                  ? 'Selecione um novo arquivo para substituir o atual, ou deixe em branco para manter.'
-                  : 'O valor será armazenado como texto no banco de dados.'
-                }
-              </Form.Text>
-            </Form.Group>
-
-            {fieldUpdateError && (
+          {fieldUpdateError && (
               <Alert variant="danger" onClose={() => setFieldUpdateError(null)} dismissible>
-                {fieldUpdateError}
+                  {fieldUpdateError}
               </Alert>
-            )}
-          </Form>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ justifyContent: "space-between" }}>
+            <Button
+                variant="danger"
+                onClick={() => {
+                    if (editingAttribute?.id) {
+                        setAttributeToDeleteId(editingAttribute.id);
+                        setShowAttributeDeleteConfirm(true);
+                    }
+                }}
+            >
+                Excluir Campo
+            </Button>
+            <div>
+                <Button variant="secondary" onClick={() => setShowEditAttributeModal(false)} className="me-2">
+                    Cancelar
+                </Button>
+                <Button
+                    style={{ backgroundColor: "#316dbd", borderColor: "#316dbd" }}
+                    onClick={handleUpdateAttribute}
+                    disabled={isUpdatingField}
+                >
+                    {isUpdatingField ? (
+                        <>
+                            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                            Atualizando...
+                        </>
+                    ) : (
+                        "Salvar Alterações"
+                    )}
+                </Button>
+            </div>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={showAttributeDeleteConfirm} onHide={() => setShowAttributeDeleteConfirm(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="text-danger">Confirmação de Exclusão de Atributo</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Você tem certeza que deseja excluir este campo personalizável?</p>
+          <p className="text-danger fw-bold">Esta ação é irreversível.</p>
         </Modal.Body>
         <Modal.Footer>
-          <Button
-              variant="outline-danger"
-              onClick={() => editingAttribute?.id && handleDeleteAttribute(editingAttribute.id)}
-              style={{ borderRadius: "0.5rem", fontWeight: 500 }}
-              disabled={isUpdatingField}
-            >
-              Excluir Atributo
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowEditAttributeModal(false);
-              setEditingAttribute(null);
-              setEditFieldValue("");
-            }}
-          >
+          <Button variant="secondary" onClick={() => setShowAttributeDeleteConfirm(false)}>
             Cancelar
           </Button>
-          <Button
-            style={{ backgroundColor: "#8c52ff", borderColor: "#8c52ff" }}
-            onClick={handleUpdateAttribute}
-            disabled={isUpdatingField}
-          >
-            {isUpdatingField ? (
-              <>
-                <Spinner
-                  as="span"
-                  animation="border"
-                  size="sm"
-                  role="status"
-                  aria-hidden="true"
-                  className="me-2"
-                />
-                Atualizando...
-              </>
-            ) : (
-              "Atualizar Campo"
-            )}
+          <Button variant="danger" onClick={() => attributeToDeleteId && executeDeleteAttribute(attributeToDeleteId)}>
+            Excluir Definitivamente
           </Button>
         </Modal.Footer>
       </Modal>

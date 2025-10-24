@@ -96,7 +96,7 @@ const CriarPreset = () => {
       atributos: atributos.map(attr => ({
         label: attr.label.trim(),
         type: attr.type,
-        valor: null,
+        valor: "",
         arquivo: null
       })),
     };

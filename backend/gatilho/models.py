@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 from negocio.models import Negocio
 from kanban.models import Estagio
@@ -52,6 +53,8 @@ class Gatilho(models.Model):
         blank=True,
         null=True,
     )
+    criado_por = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE)
+
     def __str__(self):
         return f"{self.nome} ({self.evento})"
 

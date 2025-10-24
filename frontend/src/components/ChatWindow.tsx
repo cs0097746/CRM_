@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Spinner } from 'react-bootstrap';
 import ChatMessage from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
-import type { Conversa, Interacao } from '../types/Conversa'; // ✅ IMPORT CORRETO
+import type { Conversa, Interacao } from '../types/Conversa';
 import type { ChatMensagem } from '../types/Chat';
 import { useNotificationSound } from '../hooks/useNotificationSound';
 import backend_url from "../config/env.ts";
@@ -36,6 +36,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   // ✅ FUNÇÃO PARA ADAPTAR MENSAGEM (CORRIGIDA):
   const adaptarMensagem = (interacao: Interacao): ChatMensagem => {
+    console.log("🚀 ~ adaptarMensagem ~ interacao:", interacao)
     const remetente = interacao.remetente || interacao.autor || 'cliente';
     
     return {
@@ -68,17 +69,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     try {
       const token = localStorage.getItem('token');
       
+      // Debug: verificar dados antes do envio
+      console.log('🔍 Debug envio mensagem:');
+      console.log('  - Conversa:', conversa);
+      console.log('  - Contato:', conversa.contato);
+      console.log('  - Telefone:', conversa.contato?.telefone);
+      console.log('  - Mensagem:', novaMensagem);
+      console.log('  - ID Conversa:', conversa.id);
+      
+      const payload = {
+        numero: conversa.contato?.telefone || conversa.contato_telefone,
+        mensagem: novaMensagem,
+        conversa_id: conversa.id
+      };
+      
+      console.log('📦 Payload final:', payload);
+      
       const response = await fetch(`${backend_url}whatsapp/enviar/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          numero: conversa.contato.telefone,
-          mensagem: novaMensagem,
-          conversa_id: conversa.id
-        })
+        body: JSON.stringify(payload)
       });
   
       const result = await response.json();
@@ -344,7 +357,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               <span className={`chat-status status-${conversa.status}`}>
                 {conversa.status === 'entrada' && 'Aguardando'}
                 {conversa.status === 'atendimento' && 'Em Atendimento'}
-                {conversa.status === 'resolvida' && 'Resolvida'}
+                {conversa.status === 'finalizada' && 'Finalizada'}
               </span>
             </div>
           </div>
@@ -404,14 +417,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               value={novaMensagem}
               onChange={handleChange}
               onKeyPress={handleKeyPress}
-              disabled={enviando || conversa.status === 'resolvida'}
+              disabled={enviando || conversa.status === 'finalizada'}
               maxLength={1000}
             />
             
             <button
               className="send-button-inline"
               onClick={enviarMensagem}
-              disabled={!novaMensagem.trim() || enviando || conversa.status === 'resolvida'}
+              disabled={!novaMensagem.trim() || enviando || conversa.status === 'finalizada'}
             >
               {enviando ? (
                 <Spinner animation="border" size="sm" style={{ width: '14px', height: '14px' }} />

@@ -7,6 +7,7 @@ import json
 from .models import Tarefa
 from .serializers import TarefaSerializer
 import datetime
+from core.utils import get_ids_visiveis
 
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
@@ -24,6 +25,7 @@ def criar_tarefa(request):
         "valor2": data["config_recorrencia"].get("valor2"),
         "precisar_enviar": data.get("precisar_enviar"),
         "codigo": data.get("codigo") or None,
+        "criado_por": request.user.id,
     })
     serializer.is_valid(raise_exception=True)
     tarefa = serializer.save()
@@ -114,7 +116,8 @@ def criar_tarefa(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def listar_tarefas(request):
-    tarefas = Tarefa.objects.all()
+    ids_visiveis = get_ids_visiveis(request.user)
+    tarefas = Tarefa.objects.filter(criado_por__id__in=ids_visiveis)
     resultado = []
 
     for tarefa in tarefas:
@@ -148,7 +151,7 @@ def listar_tarefas(request):
 @permission_classes([permissions.IsAuthenticated])
 def excluir_tarefa(request, tarefa_id):
     try:
-        tarefa = Tarefa.objects.get(pk=tarefa_id)
+        tarefa = Tarefa.objects.get(pk=tarefa_id, criado_por=request.user)
     except Tarefa.DoesNotExist:
         return Response({"detail": "Tarefa não encontrada."}, status=status.HTTP_404_NOT_FOUND)
 

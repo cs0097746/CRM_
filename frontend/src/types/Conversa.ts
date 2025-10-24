@@ -1,15 +1,22 @@
 // frontend/src/types/Conversa.ts - CORRIGIR COMPLETAMENTE:
 
-export type StatusConversa = 'entrada' | 'atendimento' | 'resolvida';
+export type StatusConversa = 'entrada' | 'atendimento' | 'pendente' | 'finalizada' | 'perdida';
 
 // ✅ INTERFACE CONTATO
 export interface Contato {
   id: number;
   nome: string;
   telefone?: string | null;
-  email?: string;
+  email?: string | null;
+  whatsapp_id?: string | null;
   empresa?: string | null;
   cargo?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  data_nascimento?: string | null;
+  observacoes?: string | null;
   criado_em: string;
   atualizado_em: string;
 }
@@ -60,6 +67,7 @@ export interface Conversa {
   assunto: string;
   origem: string;
   prioridade: string;
+  tags?: string | null;
   criado_em: string;
   atualizado_em: string;
   finalizada_em?: string | null;
@@ -67,6 +75,11 @@ export interface Conversa {
   // Campos calculados:
   ultima_mensagem?: Mensagem | null;
   total_mensagens?: number;
+  
+  // Campos adicionais do serializer:
+  contato_nome?: string;
+  contato_telefone?: string;
+  operador_nome?: string;
   
   // Relacionamentos:
   interacoes?: Interacao[];

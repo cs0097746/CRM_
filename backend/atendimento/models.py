@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Conversa(models.Model):
@@ -32,6 +33,7 @@ class Conversa(models.Model):
     assunto = models.CharField(max_length=200, blank=True, null=True)
     origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default='whatsapp')
     prioridade = models.CharField(max_length=10, choices=PRIORIDADE_CHOICES, default='media')
+    tags = models.CharField(max_length=200, blank=True, null=True, help_text="Tags separadas por vírgula")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     finalizada_em = models.DateTimeField(null=True, blank=True)

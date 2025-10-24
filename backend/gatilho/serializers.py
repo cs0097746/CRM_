@@ -37,7 +37,8 @@ class GatilhoSerializer(serializers.ModelSerializer):
             'estagio_destino_id',
             'tarefa_relacionada',
             'dados_adicionais_tarefa',
-            'url_n8n'
+            'url_n8n',
+            'criado_por'
         ]
 
     def to_representation(self, instance):

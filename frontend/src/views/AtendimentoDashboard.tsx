@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Container, Row, Col, Button, ButtonGroup, Table, Badge, Alert, Card } from 'react-bootstrap';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import type { AtendimentoStats } from '../types/AtendimentoDashboard';
 import AtendimentoCard from '../components/AtendimentoCard';
+import backend_url from "../config/env.ts";
+import {getToken} from "../function/validateToken.tsx";
 
 const AtendimentoDashboard = () => {
   const [data, setData] = useState<AtendimentoStats | null>(null);
@@ -13,49 +16,20 @@ const AtendimentoDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      try {
-        // Simular dados até implementar endpoint
-        const mockData: AtendimentoStats = {
-          conversas_totais: 147,
-          conversas_aguardando: 8,
-          conversas_em_andamento: 12,
-          conversas_resolvidas_hoje: 23,
-          tempo_resposta_medio_min: 4.2,
-          tempo_espera_max_min: 18,
-          operadores_online: 5,
-          taxa_resolucao_percent: 89,
-          pico_horario: { hora: '14:00', conversas: 15 },
-          distribuicao_status: {
-            entrada: 8,
-            atendimento: 12,
-            resolvida: 127
-          },
-          operadores_performance: [
-            { id: 1, nome: 'Ana Silva', conversas_ativas: 3, conversas_resolvidas: 8, tempo_medio_min: 3.5, status: 'online' },
-            { id: 2, nome: 'João Santos', conversas_ativas: 2, conversas_resolvidas: 12, tempo_medio_min: 2.8, status: 'ocupado' },
-            { id: 3, nome: 'Maria Costa', conversas_ativas: 4, conversas_resolvidas: 6, tempo_medio_min: 5.1, status: 'online' },
-            { id: 4, nome: 'Pedro Lima', conversas_ativas: 1, conversas_resolvidas: 15, tempo_medio_min: 2.2, status: 'online' },
-            { id: 5, nome: 'Carla Rocha', conversas_ativas: 2, conversas_resolvidas: 9, tempo_medio_min: 4.8, status: 'online' }
-          ],
-          atividade_por_hora: [
-            { hora: '08:00', conversas: 5 },
-            { hora: '09:00', conversas: 8 },
-            { hora: '10:00', conversas: 12 },
-            { hora: '11:00', conversas: 10 },
-            { hora: '12:00', conversas: 6 },
-            { hora: '13:00', conversas: 4 },
-            { hora: '14:00', conversas: 15 },
-            { hora: '15:00', conversas: 13 },
-            { hora: '16:00', conversas: 11 },
-            { hora: '17:00', conversas: 8 },
-            { hora: '18:00', conversas: 3 }
-          ]
-        };
+      const token = await getToken();
+      if (!token) throw new Error("Autenticação falhou.");
 
-        // TODO: Implementar endpoint real
-        // const api = axios.create({ baseURL: "http://localhost:8000" });
-        // const response = await api.get<AtendimentoStats>('/api/atendimento-stats/');
-        setData(mockData);
+      try {
+        const api = axios.create({ baseURL: backend_url });
+        const response = await api.get<AtendimentoStats>(
+            'atendimento-stats/',
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+        setData(response.data);
       } catch (err) {
         setError('Falha ao carregar os dados do atendimento.');
         console.error(err);
@@ -65,8 +39,7 @@ const AtendimentoDashboard = () => {
     };
 
     fetchData();
-    
-    // Auto-refresh a cada 30 segundos
+
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [timeFilter]);
@@ -88,7 +61,6 @@ const AtendimentoDashboard = () => {
     }
   };
 
-  // Dados para gráfico de pizza
   const dadosPizza = data ? [
     { name: 'Aguardando', value: data.distribuicao_status.entrada, color: '#dc3545' },
     { name: 'Atendimento', value: data.distribuicao_status.atendimento, color: '#ffc107' },
@@ -142,41 +114,40 @@ const AtendimentoDashboard = () => {
 
       {loading && <p style={{ color: "#316dbd", fontSize: "1.2rem", textAlign: "center" }}>⏳ Carregando dados do atendimento...</p>}
       {error && <Alert variant="danger">{error}</Alert>}
-      
+
       {data && (
         <>
-          {/* KPIs Principais */}
           <Container fluid className="p-0 mb-4">
             <Row>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Conversas Aguardando" 
-                  value={data.conversas_aguardando} 
+                <AtendimentoCard
+                  title="Conversas Aguardando"
+                  value={data.conversas_aguardando}
                   icon="⏳"
                   variant="danger"
                   urgent={data.conversas_aguardando > 5}
                 />
               </Col>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Em Atendimento" 
-                  value={data.conversas_em_andamento} 
+                <AtendimentoCard
+                  title="Em Atendimento"
+                  value={data.conversas_em_andamento}
                   icon="💬"
                   variant="warning"
                 />
               </Col>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Resolvidas Hoje" 
-                  value={data.conversas_resolvidas_hoje} 
+                <AtendimentoCard
+                  title="Resolvidas Hoje"
+                  value={data.conversas_resolvidas_hoje}
                   icon="✅"
                   variant="success"
                 />
               </Col>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Operadores Online" 
-                  value={data.operadores_online} 
+                <AtendimentoCard
+                  title="Operadores Online"
+                  value={data.operadores_online}
                   subValue={`de ${data.operadores_performance.length} total`}
                   icon="👥"
                   variant="info"
@@ -185,38 +156,37 @@ const AtendimentoDashboard = () => {
             </Row>
           </Container>
 
-          {/* Métricas de Performance */}
           <Container fluid className="p-0 mb-4">
             <Row>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Tempo Médio Resposta" 
-                  value={formatTempo(data.tempo_resposta_medio_min)} 
+                <AtendimentoCard
+                  title="Tempo Médio Resposta"
+                  value={formatTempo(data.tempo_resposta_medio_min)}
                   icon="⚡"
                   variant="primary"
                 />
               </Col>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Maior Tempo Espera" 
-                  value={formatTempo(data.tempo_espera_max_min)} 
+                <AtendimentoCard
+                  title="Maior Tempo Espera"
+                  value={formatTempo(data.tempo_espera_max_min)}
                   icon="⏱️"
                   variant={data.tempo_espera_max_min > 15 ? "danger" : "warning"}
                   urgent={data.tempo_espera_max_min > 15}
                 />
               </Col>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Taxa de Resolução" 
-                  value={`${data.taxa_resolucao_percent}%`} 
+                <AtendimentoCard
+                  title="Taxa de Resolução"
+                  value={`${data.taxa_resolucao_percent}%`}
                   icon="🎯"
                   variant="success"
                 />
               </Col>
               <Col md={6} lg={3} className="mb-4">
-                <AtendimentoCard 
-                  title="Pico do Dia" 
-                  value={data.pico_horario.conversas} 
+                <AtendimentoCard
+                  title="Pico do Dia"
+                  value={data.pico_horario.conversas}
                   subValue={`às ${data.pico_horario.hora}`}
                   icon="📈"
                   variant="info"
@@ -225,7 +195,6 @@ const AtendimentoDashboard = () => {
             </Row>
           </Container>
 
-          {/* Gráficos */}
           <Container fluid className="p-0 mb-4">
             <Row>
               <Col lg={6} className="mb-4">
@@ -270,10 +239,10 @@ const AtendimentoDashboard = () => {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey="conversas" 
-                          stroke="#316dbd" 
+                        <Line
+                          type="monotone"
+                          dataKey="conversas"
+                          stroke="#316dbd"
                           strokeWidth={3}
                           name="Novas Conversas"
                         />
@@ -285,7 +254,6 @@ const AtendimentoDashboard = () => {
             </Row>
           </Container>
 
-          {/* Tabela de Operadores */}
           <Container fluid className="p-0">
             <Card style={{ borderRadius: '15px', border: '1px solid #8c52ff' }}>
               <Card.Header style={{ backgroundColor: '#8c52ff', color: 'white', borderRadius: '15px 15px 0 0' }}>
@@ -331,7 +299,7 @@ const AtendimentoDashboard = () => {
           </Container>
         </>
       )}
-      
+
       <footer
         style={{
           marginTop: "auto",

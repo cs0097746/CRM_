@@ -1,51 +1,148 @@
-# backend/atendimento/utils.py - CRIAR NOVO ARQUIVO:
+# em: atendimento/utils.py
 
-import os
 import requests
-import time
-from django.conf import settings
+import os
+import uuid
+import traceback
+from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
-def baixar_e_salvar_media(media_url, filename, tipo_media='arquivo'):
-    """
-    Baixa mídia do WhatsApp e salva localmente
-    Retorna: (arquivo_local_url, sucesso, erro)
-    """
+# ==============================================================================
+# VERSÃO DEFINITIVA DA FUNÇÃO - PARA SER USADA EM TODO O PROJETO
+# ==============================================================================
+def get_instance_config():
+    """Obtém configuração dinâmica do banco ou fallback para settings.py"""
     try:
-        if not media_url:
-            return None, False, "URL vazia"
-            
-        logger.info(f"📥 Baixando mídia: {filename}")
+        # Importa o model aqui dentro para evitar importações circulares
+        from core.models import ConfiguracaoSistema
+        config = ConfiguracaoSistema.objects.first()
         
-        # ✅ FAZER DOWNLOAD DA MÍDIA:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+        if config and config.evolution_api_key:
+            logger.info("✅ Usando configuração do WhatsApp do banco de dados.")
+            return {
+                'url': config.evolution_api_url,
+                'api_key': config.evolution_api_key,
+                'instance_name': config.whatsapp_instance_name
+            }
+    except Exception as e:
+        logger.warning(f"⚠️ Erro ao buscar config do banco: {e}. Usando fallback.")
+    
+    # Fallback para o arquivo settings.py se não encontrar no banco ou der erro
+    logger.info("ℹ️ Usando configuração do WhatsApp do arquivo settings.py (fallback).")
+    return {
+        'url': getattr(settings, 'EVOLUTION_API_URL', ''),
+        'api_key': getattr(settings, 'API_KEY', ''),
+        'instance_name': getattr(settings, 'INSTANCE_NAME', '')
+    }
+
+# ==============================================================================
+# FUNÇÃO DE DOWNLOAD QUE USA A CONFIGURAÇÃO ACIMA
+# ==============================================================================
+def baixar_e_salvar_media(media_url, tipo_mensagem, nome_original, media_key=None, file_enc_sha256=None):
+    """
+    Baixa a mídia da URL fornecida pela Evolution API e salva localmente.
+    Para arquivos WhatsApp criptografados (.enc), descriptografa automaticamente.
+    VERSÃO COM DESCRIPTOGRAFIA WHATSAPP.
+    """
+    print("\n--- INÍCIO DO DOWNLOAD DE MÍDIA ---")
+    try:
+        config = get_instance_config()
+        api_key = config.get('api_key')
         
-        response = requests.get(media_url, headers=headers, timeout=30)
+        if not api_key:
+            print("❌ ERRO: API Key da Evolution não foi encontrada.")
+            return {"success": False, "error": "API Key da Evolution não configurada."}
+
+        print(f"🔑 Usando API Key que termina em: ...{api_key[-4:]}")
+        print(f"🔗 Baixando da URL: {media_url}")
+
+        # A URL da API da Evolution pode ou não precisar da API Key no header.
+        # URLs do WhatsApp (`mmg.whatsapp.net`) não usam.
+        # Por segurança, vamos incluir de qualquer forma.
+        headers = {'apikey': api_key}
         
+        response = requests.get(media_url, headers=headers, stream=True, timeout=30)
+        
+        print(f"📊 Status da Resposta HTTP: {response.status_code}")
+
         if response.status_code == 200:
-            # ✅ CRIAR PASTA SE NÃO EXISTIR:
-            media_folder = f"whatsapp_media/{tipo_media}/{time.strftime('%Y/%m')}"
+            file_data = response.content
+            print(f"✅ Download bem-sucedido. Tamanho do arquivo: {len(file_data)} bytes.")
+
+            # Definir nome do arquivo inicial
+            subfolder = f"whatsapp_media/{tipo_mensagem}/{timezone.now().year}/{timezone.now().month:02d}"
+            filename = nome_original or f"{tipo_mensagem}_{uuid.uuid4().hex}"
             
-            # ✅ SALVAR ARQUIVO:
-            file_path = f"{media_folder}/{filename}"
-            saved_path = default_storage.save(file_path, ContentFile(response.content))
+            # Garantir que o arquivo tenha extensão adequada
+            if not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.mp3', '.ogg', '.mp4', '.pdf', '.doc', '.docx']):
+                if tipo_mensagem == 'imagem':
+                    filename += '.jpg'
+                elif tipo_mensagem == 'audio':
+                    filename += '.ogg'
+                elif tipo_mensagem == 'video':
+                    filename += '.mp4'
+                else:
+                    filename += '.bin'
             
-            # ✅ RETORNAR URL LOCAL:
-            arquivo_url = f"{settings.MEDIA_URL}{saved_path}"
+            # Detectar se é arquivo WhatsApp criptografado 
+            # URLs do mmg.whatsapp.net são sempre criptografadas, mesmo sem .enc
+            is_encrypted = ('mmg.whatsapp.net' in media_url or '.enc' in media_url) and media_key is not None
             
-            logger.info(f"✅ Mídia salva: {arquivo_url}")
-            return arquivo_url, True, None
+            if is_encrypted and tipo_mensagem in ['audio', 'imagem']:
+                print(f"🔐 Detectado arquivo WhatsApp criptografado - iniciando descriptografia...")
+                print(f"🔑 MediaKey disponível: {'SIM' if media_key else 'NÃO'}")
+                
+                try:
+                    from core.whatsapp_decrypt import WhatsAppDecryption
+                    # Usar o tipo correto para a descriptografia
+                    media_type = 'audio' if tipo_mensagem == 'audio' else 'image'
+                    decrypted_data = WhatsAppDecryption.decrypt_media(file_data, str(media_key), media_type)
+                    
+                    if decrypted_data:
+                        print(f"✅ Arquivo descriptografado com sucesso: {len(decrypted_data)} bytes")
+                        file_data = decrypted_data
+                        
+                        # Mudar extensão apropriada já que foi descriptografado
+                        if filename.endswith('.enc'):
+                            if tipo_mensagem == 'audio':
+                                filename = filename.replace('.enc', '.ogg')
+                            elif tipo_mensagem == 'imagem':
+                                filename = filename.replace('.enc', '.jpg')
+                        elif tipo_mensagem == 'audio' and '.ogg' not in filename:
+                            filename = filename + '.ogg'
+                        elif tipo_mensagem == 'imagem' and not any(ext in filename.lower() for ext in ['.jpg', '.jpeg', '.png']):
+                            filename = filename + '.jpg'
+                        
+                    else:
+                        print("❌ Descriptografia falhou - salvando arquivo original criptografado")
+                        
+                except Exception as e:
+                    print(f"❌ Erro na descriptografia: {e}")
+                    print("⚠️ Salvando arquivo original criptografado como fallback")
+            path = os.path.join(subfolder, filename)
             
+            print(f"💾 Salvando arquivo em: {path}")
+            saved_path = default_storage.save(path, ContentFile(file_data))
+            
+            print("--- FIM DO DOWNLOAD (SUCESSO) ---\n")
+            return {
+                "success": True,
+                "local_path": default_storage.url(saved_path),
+                "filename": os.path.basename(saved_path),
+                "size": default_storage.size(saved_path)
+            }
         else:
-            logger.error(f"❌ Erro HTTP {response.status_code}")
-            return None, False, f"HTTP {response.status_code}"
+            print(f"❌ ERRO HTTP {response.status_code}. Conteúdo da resposta: {response.text[:200]}")
+            print("--- FIM DO DOWNLOAD (ERRO HTTP) ---\n")
+            return {"success": False, "error": f"Erro HTTP {response.status_code}."}
             
     except Exception as e:
-        logger.error(f"💥 Erro ao baixar mídia: {str(e)}")
-        return None, False, str(e)
+        print(f"💥 EXCEÇÃO CRÍTICA no download: {str(e)}")
+        traceback.print_exc() # Imprime o traceback completo para vermos a linha do erro
+        print("--- FIM DO DOWNLOAD (EXCEÇÃO) ---\n")
+        return {"success": False, "error": f"Exceção ao baixar: {str(e)}"}

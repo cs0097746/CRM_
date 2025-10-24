@@ -14,5 +14,8 @@ python-decouple==3.8
 pillow
 celery
 redis
+ffmpeg-python
+cryptography>=3.4.8
 django-celery-beat
 django-celery-results
+django-filter

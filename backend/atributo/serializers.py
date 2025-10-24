@@ -3,11 +3,13 @@ from .models import AtributoPersonalizavel, TypeChoices, PresetAtributos
 
 class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
     arquivo = serializers.FileField(required=False, allow_null=True)
+    label = serializers.CharField(required=False, allow_blank=True)
+    valor = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = AtributoPersonalizavel
-        fields = ['id', 'label', 'valor', 'type', 'arquivo']
-        read_only_fields = ['id']
+        fields = ['id', 'label', 'valor', 'type', 'arquivo', 'criado_por']
+        read_only_fields = ['id', 'criado_por']
 
     def validate_type(self, value):
         valid_types = [choice[0] for choice in TypeChoices.choices]
@@ -18,8 +20,9 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        tipo = data.get('type')
-        arquivo = data.get('arquivo')
+        instance = getattr(self, 'instance', None)
+        tipo = data.get('type', getattr(instance, 'type', None))
+        arquivo = data.get('arquivo', getattr(instance, 'arquivo', None))
 
         if tipo == TypeChoices.FILE and not arquivo:
             raise serializers.ValidationError("O campo 'arquivo' é obrigatório quando type='file'.")
@@ -28,12 +31,26 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
 
         return data
 
+    def update(self, instance, validated_data):
+        new_label = validated_data.get('label', None)
+        if new_label is not None:
+            if not new_label or (isinstance(new_label, str) and new_label.strip() == "") or new_label == instance.label:
+                validated_data.pop('label', None)
+
+        new_valor = validated_data.get('valor', None)
+        if new_valor is not None:
+            if not new_valor or (isinstance(new_valor, str) and new_valor.strip() == "") or new_valor == instance.valor:
+                validated_data.pop('valor', None)
+
+        return super().update(instance, validated_data)
+
 class PresetAtributosSerializer(serializers.ModelSerializer):
     atributos = AtributoPersonalizavelSerializer(many=True)
 
     class Meta:
         model = PresetAtributos
-        fields = ['id', 'nome', 'descricao', 'atributos']
+        fields = ['id', 'nome', 'descricao', 'atributos', 'criado_por']
+        read_only_fields = ['id', 'criado_por']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

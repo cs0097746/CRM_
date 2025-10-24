@@ -4,70 +4,136 @@ from rest_framework import serializers
 from .models import Interacao, Conversa, RespostasRapidas, AnexoNota, NotaAtendimento, TarefaAtendimento
 from contato.serializers import OperadorSerializer, ContatoSerializer
 from contato.models import Contato, Operador
+from django.conf import settings
+from django.utils import timezone
 
 class InteracaoSerializer(serializers.ModelSerializer):
+    media_url_completa = serializers.SerializerMethodField()
+    operador_nome = serializers.SerializerMethodField()
+    
     class Meta:
         model = Interacao
         fields = [
-            'id', 'mensagem', 'remetente', 'tipo', 'criado_em', 
-            'timestamp', 'operador', 'whatsapp_id',
-            'media_url', 'media_filename', 'media_size', 
-            'media_mimetype', 'media_duration'
+            'id', 'mensagem', 'remetente', 'tipo', 'criado_em',
+            'whatsapp_id', 'media_url', 'media_url_completa',
+            'media_filename', 'media_size', 'media_duration', 'media_mimetype',
+            'operador', 'operador_nome'
         ]
-        
-class ConversaListSerializer(serializers.ModelSerializer):
-    contato = ContatoSerializer(read_only=True)
-    operador = OperadorSerializer(read_only=True)
-    ultima_mensagem = serializers.SerializerMethodField()
-    total_mensagens = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Conversa
-        fields = [
-            'id', 'contato', 'operador', 'status', 'assunto',
-            'origem', 'prioridade', 'ultima_mensagem', 'total_mensagens',
-            'criado_em', 'atualizado_em', 'finalizada_em'
-        ]
-
-    def get_ultima_mensagem(self, obj):
-        ultima = obj.interacoes.order_by('-criado_em').first()
-        if ultima:
-            return {
-                'mensagem': ultima.mensagem,
-                'remetente': ultima.remetente,
-                'criado_em': ultima.criado_em
-            }
+    
+    def get_media_url_completa(self, obj):
+        """
+        ✅ SEMPRE retorna URL LOCAL do arquivo salvo
+        """
+        if obj.media_url:
+            request = self.context.get('request')
+            if request:
+                # ✅ URL completa: http://localhost:8000/media/whatsapp_media/...
+                return request.build_absolute_uri(obj.media_url)
+            else:
+                # ✅ Fallback para URL completa
+                base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                return f"{base_url}{obj.media_url}"
+        return None
+    
+    def get_operador_nome(self, obj):
+        if obj.operador and obj.operador.user:
+            return obj.operador.user.get_full_name() or obj.operador.user.username
         return None
 
-class ConversaDetailSerializer(serializers.ModelSerializer):
-    contato = ContatoSerializer(read_only=True)
-    operador = OperadorSerializer(read_only=True)
-    interacoes = InteracaoSerializer(many=True, read_only=True)
-    operador_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    def to_representation(self, instance):
+        """
+        ✅ CUSTOMIZAR representação para garantir media_url local
+        """
+        data = super().to_representation(instance)
+        
+        # ✅ SEMPRE usar arquivo local se existir
+        if instance.media_url:
+            request = self.context.get('request')
+            if request:
+                data['media_url'] = request.build_absolute_uri(instance.media_url)
+            else:
+                base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                data['media_url'] = f"{base_url}{instance.media_url}"
+        
+        return data
 
+class ConversaDetailSerializer(serializers.ModelSerializer):
+    contato = ContatoSerializer(read_only=True)  # ✅ EXPANDIR dados completos do contato
+    operador = OperadorSerializer(read_only=True)  # ✅ EXPANDIR dados do operador
+    interacoes = serializers.SerializerMethodField()
+    contato_nome = serializers.CharField(source='contato.nome', read_only=True)
+    contato_telefone = serializers.CharField(source='contato.telefone', read_only=True)
+    operador_atual = serializers.SerializerMethodField()
+    
     class Meta:
         model = Conversa
         fields = [
-            'id', 'contato', 'operador', 'status', 'assunto',
-            'origem', 'prioridade', 'interacoes', 'operador_id',
-            'criado_em', 'atualizado_em', 'finalizada_em'
+            'id', 'contato', 'contato_nome', 'contato_telefone',
+            'status', 'criado_em', 'atualizado_em', 'operador', 'operador_atual',
+            'tags', 'assunto', 'origem', 'prioridade', 'finalizada_em',
+            'interacoes'
         ]
+    
+    def get_interacoes(self, obj):
+        """
+        ✅ GARANTIR que interações tenham URLs locais
+        """
+        interacoes = obj.interacoes.all().order_by('criado_em')
+        # ✅ PASSAR context para garantir URLs completas
+        return InteracaoSerializer(
+            interacoes, 
+            many=True, 
+            context=self.context  # ✅ IMPORTANTE: passar context!
+        ).data
+    
+    def get_operador_atual(self, obj):
+        if obj.operador and obj.operador.user:
+            return {
+                'id': obj.operador.id,
+                'nome': obj.operador.user.get_full_name() or obj.operador.user.username,
+                'username': obj.operador.user.username
+            }
+        return None
+       
+class ConversaListSerializer(serializers.ModelSerializer):
+    contato = serializers.SerializerMethodField()
+    contato_nome = serializers.CharField(source='contato.nome', read_only=True)
+    contato_telefone = serializers.CharField(source='contato.telefone', read_only=True)
+    ultima_mensagem = serializers.SerializerMethodField()
+    operador_nome = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Conversa
+        fields = [
+            'id', 'contato', 'contato_nome', 'contato_telefone',
+            'status', 'criado_em', 'atualizado_em',
+            'operador', 'operador_nome', 'ultima_mensagem',
+            'tags', 'assunto', 'origem', 'prioridade'
+        ]
+    
+    def get_contato(self, obj):
+        """Garante que os dados do contato sejam sempre incluídos"""
+        from contato.serializers import ContatoSerializer
+        return ContatoSerializer(obj.contato).data
+    
+    def get_ultima_mensagem(self, obj):
+        """
+        ✅ ÚLTIMA mensagem com URL local se for mídia
+        """
+        ultima = obj.interacoes.last()
+        if ultima:
+            # ✅ USAR serializer com context para URLs locais
+            return InteracaoSerializer(
+                ultima, 
+                context=self.context  # ✅ IMPORTANTE!
+            ).data
+        return None
+    
+    def get_operador_nome(self, obj):
+        if obj.operador and obj.operador.user:
+            return obj.operador.user.get_full_name() or obj.operador.user.username
+        return None
 
-    def update(self, instance, validated_data):
-        operador_id = validated_data.pop('operador_id', None)
-        
-        if operador_id is not None:
-            try:
-                operador = Operador.objects.get(pk=operador_id)
-                instance.operador = operador
-            except Operador.DoesNotExist:
-                instance.operador = None
-        
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-            
-        instance.save()
-        return instance
 
 # ===== RESTO DOS SERIALIZERS (já corretos) =====
 
@@ -187,3 +253,42 @@ class ConversaCreateSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("Contato é obrigatório")
         return value
+
+
+class ConversaUpdateSerializer(serializers.ModelSerializer):
+    """Serializer para atualizar conversas (PATCH/PUT)"""
+    
+    class Meta:
+        model = Conversa
+        fields = [
+            'status', 'operador', 'assunto', 'origem', 
+            'prioridade', 'tags', 'finalizada_em'
+        ]
+        extra_kwargs = {
+            'status': {'required': False},
+            'operador': {'required': False},
+            'assunto': {'required': False},
+            'origem': {'required': False},
+            'prioridade': {'required': False},
+            'tags': {'required': False},
+            'finalizada_em': {'required': False}
+        }
+    
+    def validate_status(self, value):
+        """Validar status"""
+        valid_statuses = ['entrada', 'atendimento', 'pendente', 'finalizada', 'perdida']
+        if value not in valid_statuses:
+            raise serializers.ValidationError(
+                f"Status inválido. Opções: {', '.join(valid_statuses)}"
+            )
+        return value
+    
+    def update(self, instance, validated_data):
+        """Atualizar conversa com lógica adicional"""
+        # Se status mudou para finalizada, registrar data
+        if validated_data.get('status') == 'finalizada' and instance.status != 'finalizada':
+            validated_data['finalizada_em'] = timezone.now()
+        elif validated_data.get('status') != 'finalizada':
+            validated_data['finalizada_em'] = None
+            
+        return super().update(instance, validated_data)

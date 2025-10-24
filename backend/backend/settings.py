@@ -33,7 +33,6 @@ ALLOWED_HOSTS = [
     "crm.loomiecrm.com",
     "localhost",
     "127.0.0.1",
-    "792d38fa1167.ngrok-free.app",
     "backend.localhost",
     "crm.localhost"
 ]
@@ -72,6 +71,7 @@ THIRD_PARTY_APPS = [
     'drf_spectacular',
     'django_celery_beat',
     'django_celery_results',
+    'django_filters',
 ]
 
 LOCAL_APPS = [
@@ -85,7 +85,9 @@ LOCAL_APPS = [
     'core',
     'notificacao',
     'tarefas',
-    'gatilho'
+    'gatilho',
+    'plano',
+    'usuario'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -384,6 +386,8 @@ else:
 # =========================
 # CONFIGURAÇÕES DE SEGURANÇA PARA PRODUÇÃO
 # =========================
+
+print("IS DEBUG: ", DEBUG)
 
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

@@ -55,10 +55,6 @@ export default function Kanban() {
     })();
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
     const onDragEnd = async (result: DropResult) => {
       const { destination, source, draggableId } = result;
       if (!destination) return;
@@ -71,17 +67,23 @@ export default function Kanban() {
 
       const negocioId = Number(draggableId);
       const novoEstagioId = Number(destination.droppableId);
+      const novoEstagio = estagios.find(e => e.id === novoEstagioId);
+      const originalNegocio = negocios.find(n => n.id === negocioId);
 
       setNegocios((prev) =>
         prev.map((n) =>
           n.id === negocioId
-            ? { ...n, estagio: { ...n.estagio, id: novoEstagioId } }
+            ? {
+                ...n,
+                estagio: {
+                    ...n.estagio,
+                    id: novoEstagioId,
+                    nome: novoEstagio ? novoEstagio.nome : n.estagio.nome
+                }
+              }
             : n
         )
       );
-
-      console.log("Negócio id", negocioId);
-        console.log("Estágio final ", novoEstagioId);
 
       try {
         await api.patch(`negocios/${negocioId}/`, {
@@ -95,18 +97,52 @@ export default function Kanban() {
       } catch (error) {
         console.error("Erro ao atualizar estágio no backend:", error);
 
-        setNegocios((prev) =>
-          prev.map((n) =>
-            n.id === negocioId
-              ? { ...n, estagio: { ...n.estagio, id: Number(source.droppableId) } }
-              : n
-          )
-        );
+        if(originalNegocio) {
+             setNegocios((prev) =>
+                prev.map((n) => (n.id === negocioId ? originalNegocio : n))
+            );
+        } else {
+            fetchData();
+        }
       }
     };
 
-    console.log("Estagios ", estagios);
-    console.log("ID DO KANBAN: ", id);
+    const handleNegocioUpdate = (updatedNegocio: Negocio) => {
+        setNegocios((prev) =>
+            prev.map((n) => (n.id === updatedNegocio.id ? updatedNegocio : n))
+        );
+    };
+
+    const handleNegocioDelete = (negocioId: number) => {
+        setNegocios((prev) => prev.filter((n) => n.id !== negocioId));
+
+        api.delete(`negocios/${negocioId}/`, {
+            headers: { Authorization: `Bearer ${token}` }
+        }).catch(error => {
+            console.error("Erro ao deletar negócio:", error);
+            fetchData();
+        });
+    };
+
+    const handleNativeAttributeChange = (negocioId: number, attribute: string, value: any) => {
+        setNegocios((prev) =>
+            prev.map((n) =>
+                n.id === negocioId
+                    ? { ...n, [attribute as keyof Negocio]: value }
+                    : n
+            )
+        );
+
+        api.patch(`negocios/${negocioId}/`, {
+            [attribute]: value,
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        }).catch(error => {
+            console.error(`Erro ao atualizar atributo ${attribute}:`, error);
+            fetchData();
+        });
+    };
+
 
   // @ts-ignore
     return (
@@ -185,6 +221,9 @@ export default function Kanban() {
                 token={token!}
                 negocios={negociosDoEstagio}
                 onNegocioCreated={fetchData}
+                onNegocioUpdate={handleNegocioUpdate}
+                onNegocioDelete={handleNegocioDelete}
+                onCustomAttributeChange={handleNativeAttributeChange}
               />
             );
           })}

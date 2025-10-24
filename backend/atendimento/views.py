@@ -1,67 +1,57 @@
-from django.shortcuts import render
-import traceback
+# Python Standard Library
+import base64
 import json
-import requests
-import time
 import logging
+import mimetypes
+import os
+import time
+import traceback
+import uuid
+
+# Third-Party Libraries (Django, DRF, Requests)
+import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.db.models import Q, F, Avg, Count, Min, Max
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, filters, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .utils import baixar_e_salvar_media
+from rest_framework.decorators import api_view
 
+# Imports de outros apps do seu projeto
 from core.models import ConfiguracaoSistema
+from core.utils import get_user_operador
+from core.ffmpeg_service import FFmpegService
 from contato.models import Contato, Operador
+
+from .utils import baixar_e_salvar_media, get_instance_config
+# Imports do app atual ('atendimento')
 from .models import (
     Conversa,
     Interacao,
-    RespostasRapidas,
     NotaAtendimento,
+    RespostasRapidas,
     TarefaAtendimento,
 )
-
 from .serializers import (
-    InteracaoSerializer,
-    ConversaListSerializer,
     ConversaDetailSerializer,
-    RespostasRapidasSerializer,
+    ConversaListSerializer,
+    InteracaoSerializer,
     NotaAtendimentoSerializer,
+    RespostasRapidasSerializer,
     TarefaAtendimentoSerializer,
     TarefaCreateSerializer,
 )
+from .utils import baixar_e_salvar_media
 
-from core.utils import get_user_operador
-
+# Configuração do Logger
 logger = logging.getLogger(__name__)
-
-
-# ===== INTEGRAÇÃO EVOLUTION API COMPLETA =====
-def get_instance_config():
-    """Obtém configuração dinâmica do banco ou fallback para settings"""
-    try:
-        from core.models import ConfiguracaoSistema
-        config = ConfiguracaoSistema.objects.first()
-        
-        if config and config.evolution_api_key:  # ✅ Só usa se tiver API key configurada
-            return {
-                'url': config.evolution_api_url,
-                'api_key': config.evolution_api_key,
-                'instance_name': config.whatsapp_instance_name
-            }
-    except Exception as e:
-        logger.warning(f"⚠️ Erro ao buscar config do banco: {e}")
-    
-    # ✅ Fallback para settings.py se não tiver config no banco
-    return {
-        'url': getattr(settings, 'EVOLUTION_API_URL', 'https://evolution-api.local'),
-        'api_key': getattr(settings, 'API_KEY', ''),
-        'instance_name': getattr(settings, 'INSTANCE_NAME', 'main')
-    }
 
 
 def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api_url=None, api_key=None):
@@ -85,7 +75,7 @@ def enviar_mensagem_whatsapp(numero, mensagem, instance_name=None, evolution_api
 
         if response.status_code in [200, 201]:
             response_data = response.json()
-            logger.info("✅ MENSAGEM ENVIADA COM SUCESSO!")
+            logger.info("MENSAGEM ENVIADA COM SUCESSO!")
             return {
                 "success": True,
                 "data": response_data,
@@ -139,10 +129,10 @@ def enviar_presenca_whatsapp(numero, presence="composing", instance_name=None, e
         response = requests.post(url, json=payload, headers=headers, timeout=5)
 
         if response.status_code in [200, 201]:
-            logger.info(f"✅ Presença '{presence}' enviada para {numero}")
+            logger.info(f"Presença '{presence}' enviada para {numero}")
             return {"success": True, "data": response.json()}
         else:
-            logger.warning(f"⚠️ Erro ao enviar presença: {response.status_code}")
+            logger.warning(f"Erro ao enviar presença: {response.status_code}")
             return {"success": False, "error": f"Status: {response.status_code}"}
 
     except Exception as e:
@@ -262,7 +252,7 @@ def reiniciar_instancia(instance_name=None, evolution_api_url=None, api_key=None
         logger.info(f"🔄 Tentando reiniciar: {url}")
         response = requests.put(url, headers=headers, timeout=30)
 
-        logger.info(f"📊 Status: {response.status_code}")
+        logger.info(f"Status: {response.status_code}")
         logger.info(f"📦 Content: {response.content}")
 
         # Verificar se resposta está vazia
@@ -354,22 +344,129 @@ class InteracaoCreateView(generics.CreateAPIView):
 # ===== CONVERSAS E INTERAÇÕES =====
 
 class ConversaListView(generics.ListAPIView):
-    """API: Lista conversas"""
-    queryset = Conversa.objects.all().select_related('contato', 'operador').prefetch_related('interacoes')
+    """
+    API: Lista conversas com URLs locais
+    """
     serializer_class = ConversaListSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['status', 'operador']
     search_fields = ['contato__nome', 'contato__telefone']
+    ordering_fields = ['criado_em', 'atualizado_em']
     ordering = ['-atualizado_em']
+    
+    def get_queryset(self):
+        return Conversa.objects.select_related('contato', 'operador__user').prefetch_related(
+            'interacoes'
+        )
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class ConversaDetailView(generics.RetrieveUpdateAPIView):
-    """API: Detalha e atualiza conversa"""
-    queryset = Conversa.objects.all()
-    serializer_class = ConversaDetailSerializer
+    """
+    ✅ API: Detalha conversa com URLs locais nas interações
+    """
+    queryset = Conversa.objects.all().prefetch_related(
+        'interacoes__operador__user'
+    ).select_related('contato', 'operador__user')  # ✅ Otimizar queries
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Usar serializer apropriado baseado no método HTTP"""
+        if self.request.method in ['PATCH', 'PUT']:
+            from .serializers import ConversaUpdateSerializer
+            return ConversaUpdateSerializer
+        return ConversaDetailSerializer
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+    def update(self, request, *args, **kwargs):
+        """
+        ✅ Sobrescrever update para retornar dados completos após PATCH/PUT
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Usar ConversaUpdateSerializer para validar e salvar
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        # ✅ RETORNAR dados completos usando ConversaDetailSerializer
+        detail_serializer = ConversaDetailSerializer(instance, context=self.get_serializer_context())
+        return Response(detail_serializer.data)
+    
 
-
+class InteracaoListView(generics.ListAPIView):
+    """
+    ✅ API: Lista interações com URLs locais
+    """
+    serializer_class = InteracaoSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['remetente', 'tipo', 'conversa']
+    search_fields = ['mensagem']
+    ordering_fields = ['criado_em']
+    ordering = ['-criado_em']
+    
+    def get_queryset(self):
+        return Interacao.objects.select_related(
+            'conversa__contato',
+            'operador__user'
+        )
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+class BuscarMensagensView(generics.ListAPIView):
+    """
+    ✅ API: Busca mensagens com URLs locais
+    """
+    serializer_class = InteracaoSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['mensagem', 'conversa__contato__nome', 'conversa__contato__telefone']
+    filterset_fields = ['tipo', 'remetente']
+    
+    def get_queryset(self):
+        queryset = Interacao.objects.select_related(
+            'conversa__contato',
+            'operador__user'
+        ).order_by('-criado_em')
+        
+        # ✅ FILTROS adicionais
+        conversa_id = self.request.query_params.get('conversa', None)
+        if conversa_id:
+            queryset = queryset.filter(conversa_id=conversa_id)
+            
+        data_inicio = self.request.query_params.get('data_inicio', None)
+        if data_inicio:
+            queryset = queryset.filter(criado_em__gte=data_inicio)
+            
+        data_fim = self.request.query_params.get('data_fim', None)
+        if data_fim:
+            queryset = queryset.filter(criado_em__lte=data_fim)
+        
+        return queryset
+    
+    def get_serializer_context(self):
+        """✅ GARANTIR request context para URLs completas"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
 # ===== RESPOSTAS RÁPIDAS =====
 
 class RespostasRapidasListView(generics.ListCreateAPIView):
@@ -952,14 +1049,54 @@ def whatsapp_status(request):
 def enviar_mensagem_view(request):
     """API para enviar mensagem via WhatsApp"""
     try:
-        numero = request.data.get('numero')
-        mensagem = request.data.get('mensagem')
-        conversa_id = request.data.get('conversa_id')
+        logger.info(f"📤 Recebendo requisição para enviar mensagem")
+        logger.info(f"📋 Headers: {dict(request.headers)}")
+        logger.info(f"📋 Method: {request.method}")
+        logger.info(f"📋 Content-Type: {request.content_type}")
+        logger.info(f"📋 Raw body: {request.body}")
+        logger.info(f"📋 Request.data: {request.data}")
+        logger.info(f"📋 Request.POST: {request.POST}")
+        
+        # Tentar diferentes formas de acessar os dados
+        data_sources = {
+            'request.data': request.data,
+            'request.POST': request.POST,
+            'json.loads(request.body)': None
+        }
+        
+        try:
+            import json
+            data_sources['json.loads(request.body)'] = json.loads(request.body.decode('utf-8'))
+        except:
+            pass
+            
+        logger.info(f"📋 Fontes de dados disponíveis: {data_sources}")
+        
+        # Usar request.data como padrão, mas com fallback
+        data = request.data or {}
+        if not data and request.body:
+            try:
+                data = json.loads(request.body.decode('utf-8'))
+                logger.info(f"📋 Usando dados do body JSON: {data}")
+            except:
+                pass
+        
+        numero = data.get('numero')
+        mensagem = data.get('mensagem')
+        conversa_id = data.get('conversa_id')
+        
+        logger.info(f"🔍 Campos extraídos - numero: '{numero}', mensagem: '{mensagem[:50] if mensagem else None}...', conversa_id: {conversa_id}")
 
         if not numero or not mensagem:
+            logger.error(f"❌ Campos obrigatórios faltando - numero: {bool(numero)} ('{numero}'), mensagem: {bool(mensagem)} ('{mensagem[:50] if mensagem else None}...')")
             return Response({
                 'success': False,
-                'error': 'Campos obrigatórios: numero, mensagem'
+                'error': 'Campos obrigatórios: numero, mensagem',
+                'debug': {
+                    'received_data': data,
+                    'numero_present': bool(numero),
+                    'mensagem_present': bool(mensagem)
+                }
             }, status=400)
 
         # ✅ Enviar para WhatsApp
@@ -979,7 +1116,12 @@ def enviar_mensagem_view(request):
                         tipo='texto',
                         operador=operador
                     )
-                    logger.info("💾 Interação salva no CRM")
+                    
+                    # ✅ ATUALIZAR timestamp da conversa para ordenação correta
+                    conversa.atualizado_em = timezone.now()
+                    conversa.save()
+                    
+                    logger.info("💾 Interação salva no CRM e conversa atualizada")
                 except Exception as e:
                     logger.warning(f"⚠️ Erro ao salvar no CRM: {e}")
 
@@ -1036,333 +1178,214 @@ def enviar_presenca_view(request):
             'error': f'Erro interno: {str(e)}'
         }, status=500)
 
+def processar_mensagem_media(message_data):
+    """
+    Processa mensagens e extrai informações para processamento unificado.
+    Retorna: (texto_msg, tipo_msg, message_info, nome_arquivo, tamanho, duracao, mimetype, base64)
+    """
+    try:
+        logger.info(f"🔍 Processando mensagem com chaves: {list(message_data.keys())}")
+        base64_data = message_data.get('base64', '')
+        
+        # --- IMAGEM ---
+        if msg := message_data.get('imageMessage'):
+            caption = msg.get('caption', '')
+            texto = f"Imagem enviada{': ' + caption if caption else ''}"
+            filename = f"imagem_{uuid.uuid4().hex}.jpg"
+            
+            logger.info(f"📸 Imagem detectada - MediaKey: {'SIM' if msg.get('mediaKey') else 'NÃO'}, "
+                       f"URL: {'SIM' if msg.get('url') else 'NÃO'}, Base64: {'SIM' if base64_data else 'NÃO'}")
+            
+            return (texto, 'imagem', msg, filename, msg.get('fileLength'), None, msg.get('mimetype'), base64_data)
+
+        # --- ÁUDIO ---
+        elif msg := message_data.get('audioMessage'):
+            duration = msg.get('seconds', 0)
+            texto = f"Áudio enviado ({duration}s)"
+            filename = f"audio_{uuid.uuid4().hex}.ogg"
+            
+            logger.info(f"🎵 Áudio detectado - MediaKey: {'SIM' if msg.get('mediaKey') else 'NÃO'}, "
+                       f"URL: {'SIM' if msg.get('url') else 'NÃO'}, Base64: {'SIM' if base64_data else 'NÃO'}")
+            
+            return (texto, 'audio', msg, filename, msg.get('fileLength'), duration, msg.get('mimetype'), base64_data)
+        
+        # --- VÍDEO ---
+        elif msg := message_data.get('videoMessage'):
+            caption = msg.get('caption', '')
+            texto = f"Vídeo enviado{': ' + caption if caption else ''}"
+            filename = f"video_{uuid.uuid4().hex}.mp4"
+            
+            logger.info(f"🎥 Vídeo detectado - MediaKey: {'SIM' if msg.get('mediaKey') else 'NÃO'}")
+            
+            return (texto, 'video', msg, filename, msg.get('fileLength'), None, msg.get('mimetype'), base64_data)
+        
+        # --- DOCUMENTO ---
+        elif msg := message_data.get('documentMessage'):
+            doc_name = msg.get('fileName', 'documento')
+            texto = f"Documento enviado: {doc_name}"
+            filename = f"doc_{uuid.uuid4().hex}_{doc_name}"
+            
+            logger.info(f"📄 Documento detectado: {doc_name}")
+            
+            return (texto, 'documento', msg, filename, msg.get('fileLength'), None, msg.get('mimetype'), base64_data)
+        
+        # --- STICKER ---
+        elif msg := message_data.get('stickerMessage'):
+            texto = "Sticker enviado"
+            filename = f"sticker_{uuid.uuid4().hex}.webp"
+            
+            logger.info(f"🎨 Sticker detectado")
+            
+            return (texto, 'sticker', msg, filename, msg.get('fileLength'), None, msg.get('mimetype'), base64_data)
+        
+        # --- TEXTO ---
+        elif text := message_data.get('conversation') or message_data.get('extendedTextMessage', {}).get('text'):
+            logger.info(f"💬 Texto detectado: {text[:50]}...")
+            return (text, 'texto', None, None, None, None, None, None)
+        
+        else:
+            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
+            return ("[Mensagem não suportada]", 'outros', None, None, None, None, None, None)
+
+    except Exception as e:
+        logger.error(f"💥 Erro ao processar mensagem: {str(e)}", exc_info=True)
+        return ("[Erro ao processar mensagem]", 'erro', None, None, None, None, None, None)
+    
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def evolution_webhook(request):
-    """Webhook Evolution API - VERSÃO CORRIGIDA"""
+    """Webhook Evolution API - SUPORTE COMPLETO BASE64 E URL"""
+    print("WEBHOOK EVOLUTION CHAMADO!")
+    logger.info("WEBHOOK EVOLUTION CHAMADO!")
+
     try:
-        event_type = request.data.get('event')
-        event_data = request.data.get('data', {})
-        
-        logger.info(f"📥 Webhook recebido: {event_type}")
-        
-        if event_type == 'messages.upsert':
-            key_data = event_data.get('key', {})
-            message_data = event_data.get('message', {})
-            
-            # Verificar se é mensagem recebida (não enviada por nós)
-            if not key_data.get('fromMe', True):
-                numero_remetente = key_data.get('remoteJid', '').replace('@s.whatsapp.net', '')
-                message_id = key_data.get('id')
-                push_name = event_data.get('pushName', f'Contato {numero_remetente}')
-                
-                logger.info(f"📱 Nova mensagem de: {numero_remetente}")
-                
-                # ✅ USAR FUNÇÃO EXISTENTE processar_mensagem_media:
-                texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration = processar_mensagem_media(message_data)
-                
-                logger.info(f"💬 Tipo: {tipo_mensagem} | Conteúdo: {texto_mensagem or '[Mídia sem texto]'}")
-                if media_url:
-                    logger.info(f"🔗 Media URL: {media_url}")
-                
-                # ✅ BUSCAR OU CRIAR CONTATO:
-                contato, created = Contato.objects.get_or_create(
-                    telefone=numero_remetente,
-                    defaults={
-                        'nome': push_name,
-                        'observacoes': 'Criado automaticamente via webhook'
-                    }
-                )
-                
-                if created:
-                    logger.info(f"👤 Novo contato criado: {contato.nome}")
-                
-                # ✅ BUSCAR OU CRIAR CONVERSA:
-                conversa, conv_created = Conversa.objects.get_or_create(
-                    contato=contato,
-                    status__in=['entrada', 'atendimento'],
-                    defaults={
-                        'status': 'entrada',
-                        'origem': 'whatsapp',
-                        'assunto': 'Conversa WhatsApp'
-                    }
-                )
-                
-                if conv_created:
-                    logger.info(f"💬 Nova conversa criada: ID {conversa.pk}")
+        payload = request.data
+        print(f"📦 Payload recebido: {payload}")
+        logger.info(f"📦 Payload completo: {json.dumps(payload, indent=2, ensure_ascii=False)}")
 
-                # Só processa se houver conteúdo de texto ou mídia para salvar
-                if texto_mensagem or media_url:
-                    arquivo_local_url = None # Usar um nome de variável diferente para clareza
-                    
-                    if media_url and tipo_mensagem in ['imagem', 'audio', 'video', 'documento']:
-                        arquivo_salvo, sucesso, erro = baixar_e_salvar_media(
-                            media_url, 
-                            media_filename or f"{tipo_mensagem}_{int(time.time())}.bin",
-                            tipo_mensagem
-                        )
-                        
-                        if sucesso:
-                            logger.info(f"📁 Arquivo salvo localmente: {arquivo_salvo}")
-                            # URL para ser acessada pelo sistema
-                            arquivo_local_url = request.build_absolute_uri(arquivo_salvo)
-                        else:
-                            logger.warning(f"⚠️ Falha ao baixar mídia: {erro}")
-                            # Salva a URL temporária como fallback
-                            arquivo_local_url = media_url
-                    
-                    # Cria a interação no banco de dados
-                    interacao = Interacao.objects.create(
-                        conversa=conversa,
-                        mensagem=texto_mensagem,
-                        remetente='cliente',
-                        tipo=tipo_mensagem,
-                        whatsapp_id=message_id,
-                        media_url=arquivo_local_url,
-                        media_filename=media_filename,
-                        media_size=media_size,
-                        media_duration=media_duration
-                    )
-                    
-                    logger.info(f"💾 Mensagem salva: ID {interacao.pk} | Tipo: {tipo_mensagem}")
-                    if arquivo_local_url: 
-                        logger.info(f"🔗 MÍDIA SALVA: {arquivo_local_url}")
-                        
-                    # Atualizar timestamp da conversa
-                    conversa.atualizado_em = timezone.now()
-                    conversa.save()
-                
-                    return Response({
-                        'status': 'processed',
-                        'contato_id': contato.pk,
-                        'conversa_id': conversa.pk,
-                        'interacao_id': interacao.pk,
-                        'has_media': bool(arquivo_local_url),
-                        'message': f'Mensagem {tipo_mensagem} processada com sucesso'
-                    })
-                else:
-                    logger.info("ℹ️ Mensagem ignorada (sem texto ou mídia).")
+        if not payload:
+            logger.error("PAYLOAD VAZIO")
+            return Response({'status': 'empty_payload'}, status=400)
 
-        # Processar outros eventos
-        elif event_type == 'connection.update':
-            connection_state = event_data.get('state')
-            logger.info(f"🔌 Estado da conexão: {connection_state}")
-        
-        # Resposta padrão para eventos recebidos mas não processados (ou mensagens 'fromMe')
-        return Response({
-            'status': 'received_ok',
-            'event': event_type,
-            'message': 'Event received but no action taken.'
-        })
-        
-    except Exception as e:
-        logger.error(f"💥 Erro no webhook: {str(e)}", exc_info=True) # exc_info=True para logar o traceback
-        return Response({'status': 'error', 'error': str(e)}, status=500)
+        event_type = payload.get('event')
+        data = payload.get('data', {})
+        if event_type != 'messages.upsert':
+            logger.info(f"ℹ️ Evento ignorado: {event_type}")
+            return Response({'status': f'event_ignored_{event_type}'}, status=200)
 
-def processar_mensagem_media(message_data):
-    """
-    Processa diferentes tipos de mensagem e extrai mídia
-    Retorna: (texto_mensagem, tipo_mensagem, media_url, media_filename, media_size, media_duration)
-    """
-    try:
-        logger.info(f"🔍 Processando mensagem: {list(message_data.keys())}")
-        
-        # ✅ TEXTO SIMPLES
-        if message_data.get('conversation'):
-            return (
-                message_data.get('conversation'),
-                'texto',
-                None, None, None, None
-            )
-        
-        # ✅ TEXTO EXTENDIDO (com formatação)
-        elif message_data.get('extendedTextMessage'):
-            return (
-                message_data.get('extendedTextMessage', {}).get('text', ''),
-                'texto',
-                None, None, None, None
-            )
-        
-        # ✅ IMAGEM - VERSÃO MELHORADA
-        elif message_data.get('imageMessage'):
-            image_msg = message_data.get('imageMessage', {})
-            caption = image_msg.get('caption', '')
-            
-            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
-            media_url = (
-                image_msg.get('url') or 
-                image_msg.get('directPath') or 
-                image_msg.get('mediaUrl') or
-                image_msg.get('thumbnail')
-            )
-            
-            # ✅ OUTROS DADOS DA IMAGEM:
-            filename = image_msg.get('fileName') or f"imagem_{int(time.time())}.jpg"
-            file_size = image_msg.get('fileLength') or image_msg.get('size')
-            
-            logger.info(f"📷 Imagem detectada - URL: {media_url}")
-            logger.info(f"📷 Dados da imagem: {image_msg}")
-            
-            return (
-                f"📷 Imagem enviada{': ' + caption if caption else ''}",
-                'imagem',
-                media_url,
-                filename,
-                file_size,
-                None
-            )
-        
-        # ✅ ÁUDIO - VERSÃO MELHORADA
-        elif message_data.get('audioMessage'):
-            audio_msg = message_data.get('audioMessage', {})
-            
-            # ✅ TENTAR DIFERENTES CAMPOS DE URL:
-            media_url = (
-                audio_msg.get('url') or 
-                audio_msg.get('directPath') or 
-                audio_msg.get('mediaUrl')
-            )
-            
-            # ✅ OUTROS DADOS DO ÁUDIO:
-            duration = audio_msg.get('seconds', 0)
-            filename = audio_msg.get('fileName') or f"audio_{int(time.time())}.ogg"
-            file_size = audio_msg.get('fileLength') or audio_msg.get('size')
-            
-            logger.info(f"🎵 Áudio detectado - URL: {media_url} - Duração: {duration}s")
-            logger.info(f"🎵 Dados do áudio: {audio_msg}")
-            
-            return (
-                f"🎵 Áudio enviado ({duration}s)",
-                'audio',
-                media_url,
-                filename,
-                file_size,
-                duration
-            )
-        
-        # ✅ VÍDEO - VERSÃO MELHORADA
-        elif message_data.get('videoMessage'):
-            video_msg = message_data.get('videoMessage', {})
-            caption = video_msg.get('caption', '')
-            
-            media_url = (
-                video_msg.get('url') or 
-                video_msg.get('directPath') or 
-                video_msg.get('mediaUrl')
-            )
-            
-            filename = video_msg.get('fileName') or f"video_{int(time.time())}.mp4"
-            file_size = video_msg.get('fileLength') or video_msg.get('size')
-            duration = video_msg.get('seconds', 0)
-            
-            logger.info(f"🎥 Vídeo detectado - URL: {media_url}")
-            
-            return (
-                f"🎥 Vídeo enviado{': ' + caption if caption else ''}",
-                'video',
-                media_url,
-                filename,
-                file_size,
-                duration
-            )
-        
-        # ✅ STICKER/FIGURINHA
-        elif message_data.get('stickerMessage'):
-            sticker_msg = message_data.get('stickerMessage', {})
-            
-            media_url = (
-                sticker_msg.get('url') or 
-                sticker_msg.get('directPath') or 
-                sticker_msg.get('mediaUrl')
-            )
-            
-            filename = f"sticker_{int(time.time())}.webp"
-            
-            logger.info(f"😄 Sticker detectado - URL: {media_url}")
-            
-            return (
-                "😄 Figurinha enviada",
-                'sticker',
-                media_url,
-                filename,
-                None,
-                None
-            )
-        
-        # ✅ DOCUMENTO
-        elif message_data.get('documentMessage'):
-            doc_msg = message_data.get('documentMessage', {})
-            
-            media_url = (
-                doc_msg.get('url') or 
-                doc_msg.get('directPath') or 
-                doc_msg.get('mediaUrl')
-            )
-            
-            filename = doc_msg.get('fileName', 'documento')
-            file_size = doc_msg.get('fileLength') or doc_msg.get('size')
-            
-            return (
-                f"📄 Documento: {filename}",
-                'documento',
-                media_url,
-                filename,
-                file_size,
-                None
-            )
-        
-        # ✅ LOCALIZAÇÃO
-        elif message_data.get('locationMessage'):
-            location_msg = message_data.get('locationMessage', {})
-            lat = location_msg.get('degreesLatitude', 0)
-            lng = location_msg.get('degreesLongitude', 0)
-            
-            return (
-                f"📍 Localização: {lat}, {lng}",
-                'localizacao',
-                f"https://maps.google.com/maps?q={lat},{lng}",
-                None,
-                None,
-                None
-            )
-        
-        # ✅ CONTATO
-        elif message_data.get('contactMessage'):
-            contact_msg = message_data.get('contactMessage', {})
-            name = contact_msg.get('displayName', 'Contato')
-            
-            return (
-                f"👤 Contato compartilhado: {name}",
-                'contato',
-                None,
-                None,
-                None,
-                None
-            )
-        
-        # ✅ MENSAGEM NÃO SUPORTADA
-        else:
-            logger.warning(f"⚠️ Tipo de mensagem não reconhecido: {list(message_data.keys())}")
-            return (
-                "[Mensagem não suportada]",
-                'outros',
-                None,
-                None,
-                None,
-                None
-            )
-            
-    except Exception as e:
-        logger.error(f"💥 Erro ao processar mídia: {str(e)}")
-        return (
-            "[Erro ao processar mensagem]",
-            'erro',
-            None,
-            None,
-            None,
-            None
+        # Extração dos dados principais
+        key = data.get('key', {})
+        message = data.get('message', {})
+        if body := data.get('body'):
+            message['body'] = body
+        push_name = data.get('pushName', 'Usuário')
+        remote_jid = key.get('remoteJid', '')
+        from_me = key.get('fromMe', False)
+        message_id = key.get('id', '')
+
+        logger.info(f"Remote JID: {remote_jid} | From me: {from_me} | ID: {message_id}")
+
+        if from_me:
+            logger.info("Mensagem própria ignorada")
+            return Response({'status': 'own_message_ignored'}, status=200)
+
+        # Buscar ou criar contato
+        numero_contato = remote_jid.split('@')[0]
+        contato, _ = Contato.objects.get_or_create(
+            telefone=numero_contato,
+            defaults={'nome': push_name}
         )
+        conversa, _ = Conversa.objects.get_or_create(
+            contato=contato,
+            defaults={'status': 'entrada'}
+        )
+
+        # Processar mensagem e mídia usando o novo sistema unificado
+        message_with_base64 = message.copy()
+        message_with_base64['base64'] = data.get('base64', '')
+        texto_mensagem, tipo_mensagem, message_info, media_filename, media_size, media_duration, media_mimetype, base64Text = processar_mensagem_media(message_with_base64)
+
+        logger.info(f"📝 Texto: {texto_mensagem}")
+        logger.info(f"🏷️ Tipo: {tipo_mensagem}")
+        logger.info(f"📦 Dados estruturados: {'SIM' if message_info else 'NÃO'}")
+
+        media_local_path = None
+
+        try:
+            # Processar mídia usando o novo processador unificado
+            if tipo_mensagem in ['imagem', 'audio', 'video', 'documento', 'sticker']:
+                from .media_processor import WhatsAppMediaProcessor
+                
+                logger.info(f"🔄 Processando {tipo_mensagem} com processador unificado...")
+                
+                # Usar o novo processador unificado
+                result = WhatsAppMediaProcessor.process_media(
+                    message_info, 
+                    tipo_mensagem, 
+                    base64Text
+                )
+                
+                if result['success']:
+                    media_local_path = result['media_local_path']
+                    media_filename = result['filename']
+                    media_size = result['size']
+                    
+                    if result.get('conversion_applied'):
+                        logger.info(f"✅ {tipo_mensagem.capitalize()} processado com conversão: {media_filename}")
+                    else:
+                        logger.info(f"✅ {tipo_mensagem.capitalize()} processado: {media_filename}")
+                else:
+                    logger.error(f"❌ Erro no processamento de {tipo_mensagem}: {result.get('error', 'Erro desconhecido')}")
+                    media_local_path = None
+                    media_size = None
+            elif tipo_mensagem == 'texto':
+                logger.info("💬 Mensagem de texto - nenhum processamento de mídia necessário")
+            else:
+                logger.info(f"ℹ️ Tipo de mensagem não processável: {tipo_mensagem}")
+
+        except Exception as e:
+            logger.error(f"💥 Erro ao processar mídia: {str(e)}")
+            media_local_path = None
+            media_size = None
+
+        # Salva a interação
+        if texto_mensagem and texto_mensagem.strip():
+            interacao = Interacao.objects.create(
+                conversa=conversa,
+                mensagem=texto_mensagem,
+                remetente='cliente',
+                tipo=tipo_mensagem,
+                whatsapp_id=message_id,
+                media_url=media_local_path,
+                media_filename=media_filename,
+                media_size=media_size,
+                media_duration=media_duration
+            )
+            logger.info(f"✅ Interação criada: ID {interacao.pk}")
+            logger.info(f"🔍 NOME ARQUIVO NO BANCO: {media_filename}")
+            
+            # ✅ ATUALIZAR timestamp da conversa para ordenação correta
+            conversa.atualizado_em = timezone.now()
+            
+            if conversa.status == 'finalizada':
+                conversa.status = 'entrada'
+            
+            conversa.save()
+            logger.info("📝 Conversa atualizada para ordenação correta.")
+
+        return Response({
+            'status': 'processed',
+            'contato_id': contato.id,
+            'conversa_id': conversa.id,
+            'tipo': tipo_mensagem,
+            'media_downloaded': bool(media_local_path)
+        }, status=200)
+
+    except Exception as e:
+        logger.error(f"💥 ERRO GERAL NO WEBHOOK: {str(e)}")
+        logger.error(f"💥 TRACEBACK: {traceback.format_exc()}")
+        return Response({'status': 'error', 'error': str(e)}, status=500)
     
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -1399,3 +1422,106 @@ def debug_webhook(request):
             'status': 'debug_error',
             'error': str(e)
         })
+
+@api_view(['GET'])
+def atendimento_stats(request):
+    agora = timezone.now()
+    hoje = agora.date()
+
+    total_conversas = Conversa.objects.count()
+    aguardando = Conversa.objects.filter(status='entrada').count()
+    em_andamento = Conversa.objects.filter(status='atendimento').count()
+    resolvidas_hoje = Conversa.objects.filter(finalizada_em__date=hoje).count()
+
+    primeiras = (
+        Interacao.objects
+        .values('conversa')
+        .annotate(
+            primeira_msg=Min('criado_em'),
+            primeira_resposta=Min('criado_em', filter=Q(operador__isnull=False))
+        )
+    )
+
+    tempos_resposta = []
+    for p in primeiras:
+        if p['primeira_msg'] and p['primeira_resposta']:
+            delta = (p['primeira_resposta'] - p['primeira_msg']).total_seconds() / 60
+            tempos_resposta.append(delta)
+
+    tempo_resposta_medio_min = round(sum(tempos_resposta) / len(tempos_resposta), 2) if tempos_resposta else 0
+    tempo_espera_max_min = round(max(tempos_resposta), 2) if tempos_resposta else 0
+
+    operadores = Operador.objects.all()
+    operadores_online = operadores.filter(status='online').count() if hasattr(Operador, 'status') else 0
+
+    operadores_perf = []
+    for op in operadores:
+        conversas_ativas = Conversa.objects.filter(operador=op, status='atendimento').count()
+        conversas_resolvidas = Conversa.objects.filter(operador=op, status='finalizada').count()
+
+        respostas = Interacao.objects.filter(operador=op)
+        medias = []
+        for r in respostas:
+            msg_anterior = (
+                Interacao.objects
+                .filter(conversa=r.conversa, criado_em__lt=r.criado_em, operador__isnull=True)
+                .order_by('-criado_em')
+                .first()
+            )
+            if msg_anterior:
+                diff = (r.criado_em - msg_anterior.criado_em).total_seconds() / 60
+                medias.append(diff)
+
+        tempo_medio_min = round(sum(medias) / len(medias), 2) if medias else 0
+
+        operadores_perf.append({
+            "id": op.id,
+            "nome": getattr(op, "nome", "Sem nome"),
+            "conversas_ativas": conversas_ativas,
+            "conversas_resolvidas": conversas_resolvidas,
+            "tempo_medio_min": tempo_medio_min,
+            "status": getattr(op, "status", "online")
+        })
+
+    distrib = Conversa.objects.values('status').annotate(total=Count('id'))
+    distrib_status = {
+        'entrada': next((d['total'] for d in distrib if d['status'] == 'entrada'), 0),
+        'atendimento': next((d['total'] for d in distrib if d['status'] == 'atendimento'), 0),
+        'resolvida': next((d['total'] for d in distrib if d['status'] == 'finalizada'), 0),
+    }
+
+    interacoes = (
+        Interacao.objects
+        .filter(criado_em__date=hoje)
+        .annotate(hora=F('criado_em__hour'))
+        .values('hora')
+        .annotate(conversas=Count('id'))
+        .order_by('hora')
+    )
+    atividade_por_hora = [
+        {"hora": f"{i['hora']:02d}:00", "conversas": i['conversas']}
+        for i in interacoes
+    ]
+
+    taxa_resolucao_percent = (
+        round((distrib_status['resolvida'] / total_conversas) * 100, 2)
+        if total_conversas else 0
+    )
+    pico = max(atividade_por_hora, key=lambda x: x['conversas'], default={"hora": "00:00", "conversas": 0})
+
+    data = {
+        "conversas_totais": total_conversas,
+        "conversas_aguardando": aguardando,
+        "conversas_em_andamento": em_andamento,
+        "conversas_resolvidas_hoje": resolvidas_hoje,
+        "tempo_resposta_medio_min": tempo_resposta_medio_min,
+        "tempo_espera_max_min": tempo_espera_max_min,
+        "operadores_online": operadores_online,
+        "taxa_resolucao_percent": taxa_resolucao_percent,
+        "pico_horario": pico,
+        "distribuicao_status": distrib_status,
+        "operadores_performance": operadores_perf,
+        "atividade_por_hora": atividade_por_hora,
+    }
+
+    return Response(data)

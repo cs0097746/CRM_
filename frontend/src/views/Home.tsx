@@ -377,11 +377,7 @@ const Home = () => {
                             className="h-100 module-card"
                             style={{ animation: modulo.urgente ? 'pulse 2s infinite' : 'none' }}
                             onClick={() => {
-                            if (modulo.externo) {
-                                window.open(modulo.url, '_blank');
-                            } else {
                                 window.location.href = modulo.url;
-                            }
                             }}
                         >
                             <div style={{
