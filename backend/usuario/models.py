@@ -23,8 +23,8 @@ def default_vencimento():
     return timezone.now() + timedelta(days=30)
 
 class PlanoUsuario(models.Model):
-    usuario = models.OneToOneField(User, on_delete=models.CASCADE)
-    plano = models.OneToOneField(Plano, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    plano = models.ForeignKey(Plano, on_delete=models.CASCADE)
 
     adquirido_em = models.DateTimeField(default=timezone.now)
     vence_em = models.DateTimeField(default=default_vencimento)

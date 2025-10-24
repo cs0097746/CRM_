@@ -275,8 +275,10 @@ def criar_subordinado(request):
         password = request.data.get('password')
         email = request.data.get('email')
         chefe_username = request.data.get('chefe_username')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
 
-        if not all([username, password, email, chefe_username]):
+        if not all([username, password, email, chefe_username, first_name]):
             return Response({'success': False, 'message': 'Todos os campos são obrigatórios'})
 
         try:
@@ -303,8 +305,8 @@ def criar_subordinado(request):
             username=username,
             defaults={
                 'email': email,
-                'first_name': 'Sub',
-                'last_name': 'Usuario',
+                'first_name': first_name,
+                'last_name': last_name,
                 'criado_por': chefe
             }
         )

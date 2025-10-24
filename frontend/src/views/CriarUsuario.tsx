@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { User, Lock, Mail, ServerCrash, CheckCircle, Save } from 'lucide-react';
+import { User, Lock, Mail, ServerCrash, CheckCircle, Save, Type, Type as IconType } from 'lucide-react';
 import axios from 'axios';
 import backend_url from "../config/env.ts";
 import {getToken} from "../function/validateToken.tsx";
@@ -9,6 +9,9 @@ export default function CriarUsuarioView() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -22,8 +25,8 @@ export default function CriarUsuarioView() {
     setError('');
     setSuccess('');
 
-    if (!username || !password || !email) {
-      setError("Todos os campos são obrigatórios.");
+    if (!username || !password || !email || !firstName || !lastName) {
+      setError("Todos os campos (Usuário, Nome, Sobrenome, Senha, Email) são obrigatórios.");
       setLoading(false);
       return;
     }
@@ -32,6 +35,8 @@ export default function CriarUsuarioView() {
     const token = await getToken();
     if (!token) {
       console.log("Autenticação falhou. Não foi possível salvar.");
+      setError("Falha na autenticação. Por favor, faça login novamente.");
+      setLoading(false);
       return;
     }
 
@@ -43,6 +48,8 @@ export default function CriarUsuarioView() {
           username,
           password,
           email,
+          first_name: firstName,
+          last_name: lastName,
           chefe_username: chefeUsername,
         },
         {
@@ -58,10 +65,13 @@ export default function CriarUsuarioView() {
       const data = response.data;
 
       if (data.success) {
-        setSuccess(`✅ Subordinado "${username}" criado com sucesso! User ID: ${data.user_id}`);
+        setSuccess(`✅ Subordinado "${username}" (Nome: ${firstName} ${lastName}) criado com sucesso! User ID: ${data.user_id}`);
+        // Limpar todos os campos
         setUsername('');
         setPassword('');
         setEmail('');
+        setFirstName('');
+        setLastName('');
       } else {
         setError(data.message || 'Erro desconhecido ao cadastrar subordinado.');
       }
@@ -152,6 +162,34 @@ export default function CriarUsuarioView() {
               )}
 
               <Form onSubmit={handleSubmit} className="needs-validation">
+
+                <Form.Group className="mb-3" controlId="formFirstName">
+                  <Form.Label className="d-flex align-items-center">
+                    <Type size={16} className="me-2" /> Primeiro Nome
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ex: João"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3" controlId="formLastName">
+                  <Form.Label className="d-flex align-items-center">
+                    <IconType size={16} className="me-2" /> Sobrenome
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ex: da Silva"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </Form.Group>
 
                 <Form.Group className="mb-3" controlId="formUsername">
                   <Form.Label className="d-flex align-items-center">
