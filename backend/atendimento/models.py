@@ -43,6 +43,8 @@ class Conversa(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
     finalizada_em = models.DateTimeField(null=True, blank=True)
 
+    # TODO: criado_por aqui tb
+
     def __str__(self):
         return f"Conversa com {self.contato.nome} - {self.get_status_display()}"
 

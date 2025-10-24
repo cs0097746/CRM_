@@ -4,44 +4,67 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.contrib.auth.models import User
 from .models import Estagio, Kanban
 from .serializers import EstagioSerializer, KanbanSerializer
 from negocio.models import Negocio
 from negocio.serializers import NegocioSerializer
+from core.utils import get_ids_visiveis
+from usuario.models import PlanoUsuario
+from rest_framework.exceptions import ValidationError
+
 # ===== CRM/KANBAN =====
 
 class EstagioListView(generics.ListCreateAPIView):
     """API: Lista estágios"""
-    queryset = Estagio.objects.all()
     serializer_class = EstagioSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         kanban_id = self.kwargs.get("kanban_id")
-        return Estagio.objects.filter(kanban_id=kanban_id)
+        ids_visiveis = get_ids_visiveis(self.request.user)
 
-    def post(self, request, *args, **kwargs):
+        return Estagio.objects.filter(kanban__id=kanban_id, kanban__criado_por__id__in=ids_visiveis)
+
+    def perform_create(self, serializer):
         kanban_id = self.kwargs.get("kanban_id")
-        kanban = get_object_or_404(Kanban, id=kanban_id)
-
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(kanban=kanban)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        kanban = get_object_or_404(Kanban, id=kanban_id, criado_por=self.request.user)
+        serializer.save(kanban=kanban)
 
 class EstagioDetailView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalhe, update e delete de estágio"""
-    queryset = Estagio.objects.all()
     serializer_class = EstagioSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+
+        return Estagio.objects.filter(kanban__criado_por__id__in=ids_visiveis)
+
 class KanbanListView(generics.ListCreateAPIView):
     """API: Lista kanban"""
-    queryset = Kanban.objects.all()
     serializer_class = KanbanSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+
+        return Kanban.objects.filter(criado_por__id__in=ids_visiveis)
+
+    def perform_create(self, serializer):
+        plano_chefe = None
+        if self.request.user.criado_por is None:
+            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user).plano
+        else:
+            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user.criado_por).plano
+
+        limite_pipelines = plano_chefe.pipelines_inclusos
+        pipelines_inclusos = Kanban.objects.filter(criado_por__id__in=get_ids_visiveis(self.request.user)).count()
+
+        if pipelines_inclusos >= limite_pipelines:
+            raise ValidationError(f"Limite de {limite_pipelines} pipelines atingido para este plano.")
+
+        serializer.save(criado_por=self.request.user)
 
 class KanbanUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     """API: Detalha e atualiza kanban"""

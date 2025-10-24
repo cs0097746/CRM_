@@ -1,9 +1,10 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
-import { lazy, Suspense, useState, useEffect } from "react";
-import './App.css'; 
+import { lazy, Suspense, useState } from "react";
+import './App.css';
 import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm';
+import {useAuthValidation} from "./function/useAuthValidation.tsx";
 
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
@@ -18,31 +19,24 @@ const ListarGatilhos = lazy(()=>import('./views/ListarGatilhos'));
 const ListarPresets = lazy(() => import('./views/ListarPresets'));
 const Presets = lazy(() => import('./views/Presets'));
 const EditarPreset = lazy(() => import('./views/EditarPreset'));
+const CriarUsuario = lazy(()=>import('./views/CriarUsuario'));
+const UsoPLano = lazy(()=>import('./views/UsoPlano'));
+const GerarTokenBearer = lazy(()=>import('./views/GerarTokenBearer'));
 const MessageTranslator = lazy(() => import('./pages/MessageTranslator'));
 
 const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
-    if (token && user) {
-      console.log('✅ Usuário já logado');
-      setIsLoggedIn(true);
-    } else {
-      console.log('❌ Usuário não logado');
-      setIsLoggedIn(false);
-    }
-    
-    setLoading(false);
-  }, []);
+  useAuthValidation(setIsLoggedIn, setLoading);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('access_token_time');
+    localStorage.removeItem('is_chefe');
     setIsLoggedIn(false);
   };
 
@@ -69,9 +63,7 @@ const AppContent = () => {
 
   return (
     <div className="app-container">
-      {/* 🎨 SIDEBAR HOVER - Recolhida por padrão, expande ao passar o mouse */}
       <aside className="sidebar">
-        {/* Logo/Header */}
         <div className="sidebar-header">
           <div className="logo-container">
             <div className="logo-circle">
@@ -84,13 +76,12 @@ const AppContent = () => {
           </div>
         </div>
 
-        {/* Menu Principal */}
         <nav className="sidebar-nav">
           <div className="nav-section">
             <div className="nav-section-title">
               <span>MENU PRINCIPAL</span>
             </div>
-            
+
             <NavLink to="/" className="nav-item" title="Dashboard">
               <i className="bi bi-house-door"></i>
               <span>Dashboard</span>
@@ -142,10 +133,29 @@ const AppContent = () => {
               <i className="bi bi-bookmarks"></i>
               <span>Presets</span>
             </NavLink>
+
+            {localStorage.getItem("is_chefe") === "true" && (
+              <>
+                <NavLink to="/uso-plano" className="nav-item" title="Uso Plano">
+                  <i className="bi bi-card-checklist"></i>
+                  <span>Uso Plano</span>
+                </NavLink>
+
+                <NavLink to="/criar-usuario" className="nav-item" title="Criar Usuário">
+                  <i className="bi bi-person-plus"></i>
+                  <span>Criar Usuário</span>
+                </NavLink>
+              </>
+            )}
+
+            <NavLink to="/token-bearer" className="nav-item" title="Token Bearer">
+              <i className="bi bi-key"></i>
+              <span>Token Bearer</span>
+            </NavLink>
+
           </div>
         </nav>
 
-        {/* Botão de Sair (Footer) */}
         <div className="sidebar-footer">
           <button className="logout-btn" onClick={handleLogout} title="Sair">
             <i className="bi bi-box-arrow-right"></i>
@@ -164,6 +174,8 @@ const AppContent = () => {
             <Route path="/atendimento" element={<Atendimento />} />
             <Route path="/contatos" element={<Contatos />} />
             <Route path="/dashboard-atendimento" element={<AtendimentoDashboard />} />
+            <Route path="*" element={<NotFound />} />
+            <Route path="/token-bearer" element={<GerarTokenBearer />} />
             <Route path="/criar_tarefas" element={<CriarTarefas />} />
             <Route path="/tarefas" element={<ListarTarefas />} />
             <Route path="/gatilhos"  element={<ListarGatilhos />} />
@@ -171,6 +183,26 @@ const AppContent = () => {
             <Route path="/presets" element={<ListarPresets />} />
             <Route path="/criar_preset" element={<Presets />} />
             <Route path="/presets/:presetId/editar" element={<EditarPreset />} />
+            <Route
+              path="/criar-usuario"
+              element={
+                localStorage.getItem("is_chefe") === "true" ? (
+                  <CriarUsuario />
+                ) : (
+                  <Home />
+                )
+              }
+            />
+            <Route
+              path="/uso-plano"
+              element={
+                localStorage.getItem("is_chefe") === "true" ? (
+                  <UsoPLano />
+                ) : (
+                  <Home />
+                )
+              }
+            />
             <Route path="/message-translator" element={<MessageTranslator />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

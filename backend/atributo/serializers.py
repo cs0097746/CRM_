@@ -8,8 +8,8 @@ class AtributoPersonalizavelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AtributoPersonalizavel
-        fields = ['id', 'label', 'valor', 'type', 'arquivo']
-        read_only_fields = ['id']
+        fields = ['id', 'label', 'valor', 'type', 'arquivo', 'criado_por']
+        read_only_fields = ['id', 'criado_por']
 
     def validate_type(self, value):
         valid_types = [choice[0] for choice in TypeChoices.choices]
@@ -49,7 +49,8 @@ class PresetAtributosSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PresetAtributos
-        fields = ['id', 'nome', 'descricao', 'atributos']
+        fields = ['id', 'nome', 'descricao', 'atributos', 'criado_por']
+        read_only_fields = ['id', 'criado_por']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

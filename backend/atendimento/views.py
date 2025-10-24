@@ -7,8 +7,7 @@ import os
 import time
 import traceback
 import uuid
-
-# Third-Party Libraries (Django, DRF, Requests)
+from core.utils import get_ids_visiveis
 import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -23,15 +22,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
-
-# Imports de outros apps do seu projeto
 from core.models import ConfiguracaoSistema
 from core.utils import get_user_operador
 from core.ffmpeg_service import FFmpegService
 from contato.models import Contato, Operador
-
 from .utils import baixar_e_salvar_media, get_instance_config
-# Imports do app atual ('atendimento')
 from .models import (
     Conversa,
     Interacao,
@@ -50,7 +45,6 @@ from .serializers import (
 )
 from .utils import baixar_e_salvar_media
 
-# Configuração do Logger
 logger = logging.getLogger(__name__)
 
 
@@ -1434,7 +1428,9 @@ def atendimento_stats(request):
     tempo_resposta_medio_min = round(sum(tempos_resposta) / len(tempos_resposta), 2) if tempos_resposta else 0
     tempo_espera_max_min = round(max(tempos_resposta), 2) if tempos_resposta else 0
 
-    operadores = Operador.objects.all()
+    operadores = Operador.objects.filter(
+        user__id__in=get_ids_visiveis(request.user)
+    )
     operadores_online = operadores.filter(status='online').count() if hasattr(Operador, 'status') else 0
 
     operadores_perf = []
@@ -1457,9 +1453,11 @@ def atendimento_stats(request):
 
         tempo_medio_min = round(sum(medias) / len(medias), 2) if medias else 0
 
+        nome = f"{op.user.first_name} {op.user.last_name}"
+
         operadores_perf.append({
             "id": op.id,
-            "nome": getattr(op, "nome", "Sem nome"),
+            "nome": nome,
             "conversas_ativas": conversas_ativas,
             "conversas_resolvidas": conversas_resolvidas,
             "tempo_medio_min": tempo_medio_min,

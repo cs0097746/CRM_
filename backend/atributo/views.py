@@ -6,13 +6,17 @@ from rest_framework.exceptions import NotFound
 from .models import AtributoPersonalizavel, PresetAtributos
 from .serializers import AtributoPersonalizavelSerializer, PresetAtributosSerializer
 from negocio.models import Negocio
+from core.utils import get_ids_visiveis
 from django.db import models
 
 class AtributoPersonalizavelDeleteView(generics.DestroyAPIView):
-    queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
+
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return AtributoPersonalizavel.objects.filter(criado_por__id__in=ids_visiveis)
 
     def get_object(self):
         try:
@@ -21,11 +25,14 @@ class AtributoPersonalizavelDeleteView(generics.DestroyAPIView):
             raise NotFound("AtributoPersonalizavel não encontrado.")
 
 class AtributoPersonalizavelCreateView(generics.CreateAPIView):
-    queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
     permission_classes = [IsAuthenticated]
 
     parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return AtributoPersonalizavel.objects.filter(criado_por__id__in=ids_visiveis)
 
     def perform_create(self, serializer):
         negocio_id = self.kwargs.get('negocio_id')
@@ -38,46 +45,58 @@ class AtributoPersonalizavelCreateView(generics.CreateAPIView):
         except Negocio.DoesNotExist:
             raise NotFound(f"Negócio com ID {negocio_id} não encontrado.")
 
-        atributo = serializer.save()
-
+        atributo = serializer.save(criado_por=self.request.user)
         negocio.atributos_personalizados.add(atributo)
         negocio.save(update_fields=['atualizado_em'])
 
 class PresetAtributosListView(generics.ListCreateAPIView):
-    queryset = PresetAtributos.objects.prefetch_related(
-        models.Prefetch(
-            'atributos',
-            queryset=AtributoPersonalizavel.objects.order_by('id')
-        )
-    ).all()
     serializer_class = PresetAtributosSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return PresetAtributos.objects.prefetch_related(
+            models.Prefetch(
+                'atributos',
+                queryset=AtributoPersonalizavel.objects.order_by('id')
+            )
+        ).filter(criado_por__id__in=ids_visiveis)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        preset = serializer.save()
+        preset = serializer.save(criado_por=request.user)
+        for atributo in preset.atributos.all():
+            if not atributo.criado_por:
+                atributo.criado_por = request.user
+                atributo.save(update_fields=['criado_por'])
         return Response(
             PresetAtributosSerializer(preset).data,
             status=status.HTTP_201_CREATED
         )
 
 class PresetAtributosDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = PresetAtributos.objects.prefetch_related(
-        models.Prefetch(
-            'atributos',
-            queryset=AtributoPersonalizavel.objects.order_by('id')
-        )
-    ).all()
     serializer_class = PresetAtributosSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'pk'
 
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return PresetAtributos.objects.prefetch_related(
+            models.Prefetch(
+            'atributos',
+            queryset=AtributoPersonalizavel.objects.order_by('id')
+            )
+        ).filter(criado_por__id__in=ids_visiveis)
+
 class AtributoPersonalizavelUpdateView(generics.UpdateAPIView):
-    queryset = AtributoPersonalizavel.objects.all()
     serializer_class = AtributoPersonalizavelSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return AtributoPersonalizavel.objects.filter(criado_por__id__in=ids_visiveis)
 
     def patch(self, request, *args, **kwargs):
         try:

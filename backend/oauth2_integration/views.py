@@ -13,6 +13,12 @@ from .serializers import ContatoOAuthSerializer, ConversaOAuthSerializer, Intera
 from rest_framework.permissions import AllowAny, IsAuthenticated
 import time
 import json
+from oauth2_provider.views import TokenView
+from rest_framework.views import APIView
+from django.utils import timezone
+from datetime import timedelta
+from oauth2_provider.models import AccessToken, Application
+from oauthlib.common import generate_token
 
 # ===== CONFIGURAÇÃO DE AUTENTICAÇÃO =====
 
@@ -924,3 +930,79 @@ def conversations_public_endpoint(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+class CustomTokenView(TokenView):
+    def create_token_response(self, request):
+        url, headers, body, status = super().create_token_response(request)
+
+        body_data = json.loads(body)
+
+        access_token_value = body_data.get("access_token")
+        try:
+            token = AccessToken.objects.select_related("user").get(token=access_token_value)
+            user = token.user
+            body_data["is_chefe"] = user.criado_por is None
+        except AccessToken.DoesNotExist:
+            body_data["is_chefe"] = False
+
+        body = json.dumps(body_data)
+        return url, headers, body, status
+
+class GenerateApiTokenView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            expires_in_hours = int(request.data.get('expires_in_hours'))
+        except (TypeError, ValueError):
+            return Response(
+                {"message": "O campo 'expires_in_hours' é obrigatório e deve ser um número inteiro."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if expires_in_hours <= 0 or expires_in_hours > 87600:
+            return Response(
+                {"message": "O tempo de expiração deve ser positivo e não pode exceder 10 anos (87600 horas)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            api_application = Application.objects.first()
+            if not api_application:
+                api_application, _ = Application.objects.get_or_create(
+                    name="API Internal Token",
+                    user=request.user,
+                    client_type=Application.CLIENT_CONFIDENTIAL,
+                    authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE
+                )
+
+        except Exception as e:
+            return Response(
+                {"message": f"Erro ao obter Application para o token: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        new_token_string = generate_token()
+        expires_at = timezone.now() + timedelta(hours=expires_in_hours)
+
+        try:
+            access_token = AccessToken.objects.create(
+                user=request.user,
+                application=api_application,
+                token=new_token_string,
+                expires=expires_at,
+                scope="read write"
+            )
+
+            return Response({
+                "token": access_token.token,
+                "expires_at": access_token.expires.isoformat(),
+                "message": "Token de acesso API gerado com sucesso."
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"message": f"Erro interno ao salvar o token: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

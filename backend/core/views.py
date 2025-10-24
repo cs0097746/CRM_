@@ -16,6 +16,9 @@ from contato.serializers import ContatoSerializer
 from atendimento.views import verificar_status_instancia
 from core.models import ConfiguracaoSistema
 from django.http import JsonResponse
+from usuario.models import PlanoUsuario
+from core.utils import get_ids_visiveis
+from rest_framework.exceptions import ValidationError
 
 
 @api_view(['GET'])
@@ -79,7 +82,8 @@ def webhook_n8n_lead(request):
             defaults={
                 'nome': nome,
                 'observacoes': f'Interesse: {tipo_interesse}'
-            }
+            },
+            criado_por=request.user
         )
 
         # Criar conversa se não existir
@@ -264,7 +268,75 @@ def criar_usuario_teste(request):
             'error': f'Erro interno: {str(e)}'
         }, status=500)
     
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_subordinado(request):
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        email = request.data.get('email')
+        chefe_username = request.data.get('chefe_username')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
 
+        if not all([username, password, email, chefe_username, first_name]):
+            return Response({'success': False, 'message': 'Todos os campos são obrigatórios'})
+
+        try:
+            chefe = User.objects.get(username=chefe_username)
+        except User.DoesNotExist:
+            return Response({'success': False, 'message': 'Chefe não encontrado'})
+
+        plano_chefe = None
+        if request.user.criado_por is None:
+            plano_chefe = PlanoUsuario.objects.get(usuario=request.user).plano
+        else:
+            plano_chefe = PlanoUsuario.objects.get(usuario=request.user.criado_por).plano
+
+        limite_usuarios = plano_chefe.usuarios_inclusos
+        usuarios_inclusos = User.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
+
+        if usuarios_inclusos >= limite_usuarios:
+            return Response(
+                {'error': f"Limite de {limite_usuarios} usuários atingido para este plano."},
+                status=400
+            )
+
+        user, created = User.objects.get_or_create(
+            username=username,
+            defaults={
+                'email': email,
+                'first_name': first_name,
+                'last_name': last_name,
+                'criado_por': chefe
+            }
+        )
+
+        if created:
+            user.set_password(password)
+            user.save()
+
+            operador, op_created = Operador.objects.get_or_create(
+                user=user,
+                defaults={
+                    'ativo': True,
+                    'ramal': '1001',
+                    'setor': 'Atendimento'
+                }
+            )
+
+            return Response({
+                'success': True,
+                'message': 'Subordinado criado com sucesso',
+                'user_id': user.pk,
+                'operador_id': operador.pk
+            })
+
+        else:
+            return Response({'success': False, 'message': 'Usuário já existe'})
+
+    except Exception as e:
+        return Response({'error': f'Erro interno: {str(e)}'}, status=500)
 
 
 @api_view(['GET', 'PUT'])
