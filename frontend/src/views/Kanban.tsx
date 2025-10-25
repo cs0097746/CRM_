@@ -224,6 +224,7 @@ export default function Kanban() {
                 onNegocioUpdate={handleNegocioUpdate}
                 onNegocioDelete={handleNegocioDelete}
                 onCustomAttributeChange={handleNativeAttributeChange}
+                onEstagioRemoved={(id) => setEstagios(prev => prev.filter(e => e.id !== id))}
               />
             );
           })}

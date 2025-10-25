@@ -3,7 +3,8 @@ from django.dispatch import receiver
 from negocio.models import Negocio
 from gatilho.models import Gatilho
 from gatilho.utils import executar_acao_gatilho
-
+from django.db.models.signals import pre_delete, m2m_changed
+from atributo.models import PresetAtributos, AtributoPersonalizavel
 
 @receiver(pre_save, sender=Negocio)
 def detectar_troca_estagio(sender, instance, **kwargs):
@@ -46,3 +47,13 @@ def acionar_gatilhos_negocio(sender, instance, created, **kwargs):
 
         except Exception as e:
             print(f"❌ Erro ao executar gatilho '{g.nome}' para negócio {instance.pk}: {e}")
+
+@receiver(pre_delete, sender=PresetAtributos)
+def delete_atributos_on_preset_delete(sender, instance, **kwargs):
+    atributos_ids = instance.atributos.values_list('id', flat=True)
+    AtributoPersonalizavel.objects.filter(id__in=atributos_ids).delete()
+
+@receiver(pre_delete, sender=Negocio)
+def delete_atributos_on_negocio_delete(sender, instance, **kwargs):
+    atributos_ids = instance.atributos_personalizados.values_list('id', flat=True)
+    AtributoPersonalizavel.objects.filter(id__in=atributos_ids).delete()

@@ -8,9 +8,10 @@ interface RemoverEstagioButtonProps {
   estagioId: number;
   estagioNome: string;
   token: string;
+  onRemoved?: () => void;
 }
 
-export function RemoverEstagioButton({ estagioId, estagioNome, token }: RemoverEstagioButtonProps) {
+export function RemoverEstagioButton({ estagioId, estagioNome, token, onRemoved }: RemoverEstagioButtonProps) {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export function RemoverEstagioButton({ estagioId, estagioNome, token }: RemoverE
   const handleClose = () => {
     setShowModal(false);
     setError(null);
-  }
+  };
   const handleShow = () => setShowModal(true);
 
   const handleDelete = async () => {
@@ -34,9 +35,16 @@ export function RemoverEstagioButton({ estagioId, estagioNome, token }: RemoverE
       setLoading(false);
       handleClose();
 
-    } catch (err: any) {
-      console.error("Erro ao remover estágio", err.response?.data || err);
-      const errorDetail = err.response?.data ? JSON.stringify(err.response.data) : 'Erro de rede ou servidor.';
+      onRemoved?.();
+
+    } catch (err: unknown) {
+      let errorDetail = "Erro de rede ou servidor.";
+
+      if (axios.isAxiosError(err)) {
+        errorDetail = err.response?.data ? JSON.stringify(err.response.data) : errorDetail;
+      }
+
+      console.error("Erro ao remover estágio", err);
       setError(`Falha ao remover estágio. Erro: ${errorDetail}`);
       setLoading(false);
     }
@@ -59,7 +67,7 @@ export function RemoverEstagioButton({ estagioId, estagioNome, token }: RemoverE
         </Modal.Header>
         <Modal.Body>
           {error && <Alert variant="danger">{error}</Alert>}
-          <p>Você tem certeza que deseja **remover permanentemente** o estágio **{estagioNome}**?</p>
+          <p>Você tem certeza que deseja <strong>remover permanentemente</strong> o estágio <strong>{estagioNome}</strong>?</p>
           <p className="text-danger small">Esta ação não pode ser desfeita.</p>
         </Modal.Body>
         <Modal.Footer>

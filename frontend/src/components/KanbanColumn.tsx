@@ -14,6 +14,7 @@ interface KanbanColumnProps {
   onNegocioUpdate: (updatedNegocio: Negocio) => void;
   onNegocioDelete: (negocioId: number) => void;
   onCustomAttributeChange: (negocioId: number, attribute: string, value: any) => void;
+  onEstagioRemoved?: (estagioId: number) => void;
 }
 
 export default function KanbanColumn({
@@ -23,7 +24,8 @@ export default function KanbanColumn({
     onNegocioCreated,
     onNegocioUpdate,
     onNegocioDelete,
-    onCustomAttributeChange
+    onCustomAttributeChange,
+    onEstagioRemoved
 }: KanbanColumnProps) {
 
     return (
@@ -61,6 +63,7 @@ export default function KanbanColumn({
                             estagioId={estagio.id}
                             estagioNome={estagio.nome}
                             token={token}
+                            onRemoved={() => onEstagioRemoved?.(estagio.id)}
                         />
                     </div>
                   )}

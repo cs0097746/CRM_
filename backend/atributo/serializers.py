@@ -61,7 +61,10 @@ class PresetAtributosSerializer(serializers.ModelSerializer):
         atributos_data = validated_data.pop('atributos', [])
         preset = PresetAtributos.objects.create(**validated_data)
 
+        usuario_criador = preset.criado_por
+
         for attr_data in atributos_data:
+            attr_data['criado_por'] = usuario_criador
             atributo = AtributoPersonalizavel.objects.create(**attr_data)
             preset.atributos.add(atributo)
 
@@ -95,7 +98,7 @@ class PresetAtributosSerializer(serializers.ModelSerializer):
 
             elif not attr_id:
                 attr_data.pop('id', None)
-
+                attr_data['criado_por'] = instance.criado_por
                 novo_atributo = AtributoPersonalizavel.objects.create(**attr_data)
                 instance.atributos.add(novo_atributo)
                 atributos_novos_ids.add(novo_atributo.id)
