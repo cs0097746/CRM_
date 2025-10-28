@@ -2,7 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import backend_url from '../config/env.ts';
 import { getToken } from '../function/validateToken.tsx';
-import { Container, Spinner, Alert, Card, Row, Col, Button, ListGroup } from 'react-bootstrap';
+import {
+    Container,
+    Spinner,
+    Alert,
+    Card,
+    Row,
+    Col,
+    Button,
+    ListGroup,
+    Modal
+} from 'react-bootstrap';
 import type { Plano } from "../types/Plano.ts";
 import { FaUser, FaPhoneAlt, FaCodeBranch } from 'react-icons/fa';
 
@@ -16,6 +26,8 @@ const ListaPlanos: React.FC = () => {
     const [carregando, setCarregando] = useState<boolean>(true);
     const [erro, setErro] = useState<string | null>(null);
     const [processando, setProcessando] = useState<number | null>(null);
+    const [planoSelecionado, setPlanoSelecionado] = useState<Plano | null>(null);
+    const [showModal, setShowModal] = useState<boolean>(false);
 
     const buscarPlanos = useCallback(async () => {
         setCarregando(true);
@@ -48,21 +60,17 @@ const ListaPlanos: React.FC = () => {
         buscarPlanos();
     }, [buscarPlanos]);
 
-    const handleAssinarPlano = async (planoId: number) => {
+    const iniciarAssinatura = async (planoId: number) => {
         try {
             setProcessando(planoId);
             const token = await getToken();
             const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-
-            console.log("Config:", config);
 
             const response = await api.post<{ url: string }>(
                 `${ASSINAR_ENDPOINT}${planoId}/`,
                 {},
                 config
             );
-
-            console.log("Response:", response);
 
             // @ts-ignore
             const dataUrl = response.data?.data?.url;
@@ -76,7 +84,19 @@ const ListaPlanos: React.FC = () => {
             alert('Falha ao iniciar a assinatura. Tente novamente.');
         } finally {
             setProcessando(null);
+            setShowModal(false);
+            setPlanoSelecionado(null);
         }
+    };
+
+    const abrirModalAviso = (plano: Plano) => {
+        setPlanoSelecionado(plano);
+        setShowModal(true);
+    };
+
+    const fecharModal = () => {
+        setShowModal(false);
+        setPlanoSelecionado(null);
     };
 
     return (
@@ -113,12 +133,13 @@ const ListaPlanos: React.FC = () => {
                         <Col key={plano.id}>
                             <Card className="shadow-lg h-100 border-0 text-center" style={{ borderRadius: '15px', overflow: 'hidden' }}>
                                 <Card.Header
-                                    className={`text-white py-4 ${plano.nome.toLowerCase().includes('premium')
-                                        ? 'bg-primary'
-                                        : plano.nome.toLowerCase().includes('basic')
+                                    className={`text-white py-4 ${
+                                        plano.nome.toLowerCase().includes('premium')
+                                            ? 'bg-primary'
+                                            : plano.nome.toLowerCase().includes('basic')
                                             ? 'bg-secondary'
                                             : 'bg-success'
-                                        }`}
+                                    }`}
                                     style={{ borderBottom: 'none' }}
                                 >
                                     <h3 className="fw-bold mb-0">{plano.nome}</h3>
@@ -154,7 +175,7 @@ const ListaPlanos: React.FC = () => {
                                         size="lg"
                                         className="w-100 fw-bold"
                                         disabled={processando === plano.id}
-                                        onClick={() => handleAssinarPlano(plano.id)}
+                                        onClick={() => abrirModalAviso(plano)}
                                     >
                                         {processando === plano.id ? (
                                             <>
@@ -172,9 +193,37 @@ const ListaPlanos: React.FC = () => {
                 </Row>
             )}
 
-            <div className="text-center mt-5">
-                <p className="text-muted">Todos os planos podem ser cancelados a qualquer momento.</p>
-            </div>
+            <Modal show={showModal} onHide={fecharModal} centered>
+                <Modal.Header closeButton className="bg-warning bg-opacity-25">
+                    <Modal.Title className="fw-bold text-warning">
+                        ⚠️ Atenção antes de prosseguir
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center">
+                    <p className="fw-semibold mb-3">
+                        Para que seu pagamento seja reconhecido corretamente:
+                    </p>
+                    <p>
+                        <strong>Use o mesmo e-mail</strong> que você utilizou para criar sua conta
+                        na plataforma.
+                    </p>
+                    <p className="text-muted small mb-0">
+                        Caso utilize outro e-mail na tela de pagamento, o sistema não conseguirá
+                        vincular a assinatura automaticamente ao seu perfil.
+                    </p>
+                </Modal.Body>
+                <Modal.Footer className="d-flex justify-content-between">
+                    <Button variant="secondary" onClick={fecharModal}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="success"
+                        onClick={() => planoSelecionado && iniciarAssinatura(planoSelecionado.id)}
+                    >
+                        Entendi, continuar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };
