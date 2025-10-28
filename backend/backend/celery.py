@@ -10,3 +10,10 @@ app = Celery('backend',
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
+
+app.conf.beat_schedule = {
+    "cancelar-planos-expirados-diariamente": {
+        "task": "plano.tasks.cancelar_planos_expirados",
+        "schedule": crontab(hour=0, minute=0),
+    },
+}

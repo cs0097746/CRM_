@@ -28,7 +28,8 @@ class EstagioListView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         kanban_id = self.kwargs.get("kanban_id")
-        kanban = get_object_or_404(Kanban, id=kanban_id, criado_por=self.request.user)
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        kanban = get_object_or_404(Kanban, id=kanban_id, criado_por__id__in=ids_visiveis)
         serializer.save(kanban=kanban)
 
 class EstagioDetailView(generics.RetrieveUpdateDestroyAPIView):

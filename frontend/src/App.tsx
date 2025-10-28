@@ -1,5 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { BrowserRouter, Routes, Route, NavLink, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import { lazy, Suspense, useState } from "react";
 import './App.css';
 import AtendimentoDashboard from './views/AtendimentoDashboard';
@@ -23,6 +23,7 @@ const CriarUsuario = lazy(()=>import('./views/CriarUsuario'));
 const UsoPLano = lazy(()=>import('./views/UsoPlano'));
 const GerarTokenBearer = lazy(()=>import('./views/GerarTokenBearer'));
 const MessageTranslator = lazy(() => import('./pages/MessageTranslator'));
+const Planos = lazy(()=>import('./views/Plano'));
 
 const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -145,6 +146,11 @@ const AppContent = () => {
                   <i className="bi bi-person-plus"></i>
                   <span>Criar Usuário</span>
                 </NavLink>
+
+                <NavLink to="/planos" className="nav-item" title="Criar Usuário">
+                  <i className="bi bi-person-plus"></i>
+                  <span>Planos</span>
+                </NavLink>
               </>
             )}
 
@@ -198,6 +204,16 @@ const AppContent = () => {
               element={
                 localStorage.getItem("is_chefe") === "true" ? (
                   <UsoPLano />
+                ) : (
+                  <Home />
+                )
+              }
+            />
+            <Route
+              path="/planos"
+              element={
+                localStorage.getItem("is_chefe") === "true" ? (
+                  <Planos />
                 ) : (
                   <Home />
                 )

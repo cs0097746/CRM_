@@ -12,6 +12,7 @@ from notificacao import views as notificacao_views
 from tarefas import views as tarefas_views
 from gatilho import views as gatilho_views
 from usuario.views import uso_plano
+from plano import views as plano_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
@@ -125,6 +126,11 @@ urlpatterns = [
 
     # api de uso de planos
     path('plan_usage/', uso_plano, name='plan_usage'),
+
+    # api de planos
+    path('planos/', plano_views.PlanoListView.as_view(), name='planos'),
+    path('assinaturas/iniciar/<int:plano_id>/', plano_views.IniciarAssinaturaAbacatePayView.as_view(), name='assinatura-abacate-pay'),
+    path('assinaturas/ativar_plano/', plano_views.webhook_pagamento, name='assinatura-abacate-pay-webhook'),
 
     # ===== ROUTER URLS =====
     path("health/", core_views.health),

@@ -141,7 +141,7 @@ export default function PlanUsageDashboard() {
                     </h1>
                     <Button
                         className="btn-upgrade-plan"
-                        onClick={() => window.location.href = "/upgrade-plan"}
+                        onClick={() => window.location.href = "/planos"}
                     >
                         🚀 Mudar de Plano
                     </Button>
@@ -200,7 +200,7 @@ export default function PlanUsageDashboard() {
 
                 <Alert variant="info" className="text-center">
                     Sua produtividade não pode parar!
-                    <Link to="/upgrade-plan" className="alert-link ms-2 fw-bold">
+                    <Link to="/planos" className="alert-link ms-2 fw-bold">
                         Veja o que nossos planos superiores podem oferecer.
                     </Link>
                 </Alert>

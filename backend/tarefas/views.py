@@ -150,8 +150,9 @@ def listar_tarefas(request):
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def excluir_tarefa(request, tarefa_id):
+    ids_visiveis = get_ids_visiveis(request.user)
     try:
-        tarefa = Tarefa.objects.get(pk=tarefa_id, criado_por=request.user)
+        tarefa = Tarefa.objects.get(pk=tarefa_id, criado_por__id__in=ids_visiveis)
     except Tarefa.DoesNotExist:
         return Response({"detail": "Tarefa não encontrada."}, status=status.HTTP_404_NOT_FOUND)
 
