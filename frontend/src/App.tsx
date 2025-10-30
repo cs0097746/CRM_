@@ -115,9 +115,9 @@ const AppContent = () => {
               <span>CONFIGURAÇÕES</span>
             </div>
 
-            <NavLink to="/message-translator" className="nav-item" title="WhatsApp">
-              <i className="bi bi-whatsapp"></i>
-              <span>WhatsApp</span>
+            <NavLink to="/message-translator" className="nav-item" title="Canais">
+              <i className="bi bi-broadcast"></i>
+              <span>Canais</span>
             </NavLink>
 
             <NavLink to="/tarefas" className="nav-item" title="Tarefas">

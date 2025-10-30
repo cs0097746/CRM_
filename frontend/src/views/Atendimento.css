@@ -222,6 +222,11 @@
   color: #7c3aed;
 }
 
+.status-perdida {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 /* Botões de ação */
 .btn-primary-custom {
   background: #316dbd;

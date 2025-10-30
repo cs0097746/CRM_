@@ -1,4 +1,5 @@
 export interface AtendimentoStats {
+    // Propriedades originais
     conversas_totais: number;
     conversas_aguardando: number;
     conversas_em_andamento: number;
@@ -28,4 +29,11 @@ export interface AtendimentoStats {
       hora: string;
       conversas: number;
     }[];
+    
+    // Propriedades alternativas (aliases para compatibilidade)
+    total?: number;
+    em_atendimento?: number;
+    finalizados?: number;
+    aguardando?: number;
+    atendimentos_por_hora?: number[];
   }
