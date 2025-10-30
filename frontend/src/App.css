@@ -334,6 +334,13 @@ body, #root {
   padding: 30px;
 }
 
+/* Remove padding para a página de Atendimento - Tela cheia */
+.main-content:has(.atendimento-container) {
+  padding: 0;
+  margin-left: 0;
+  overflow: hidden;
+}
+
 /* ============================================
    📱 RESPONSIVIDADE
    ============================================ */

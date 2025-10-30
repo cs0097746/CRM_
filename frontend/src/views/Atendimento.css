@@ -9,7 +9,11 @@
 .atendimento-container {
   display: flex;
   gap: 0;
-  height: calc(100vh - 60px); /* Altura total menos padding do App */
+  height: 100vh; /* Altura total da viewport */
+  width: 100vw; /* Largura total da viewport */
+  position: fixed; /* Fixa na tela */
+  top: 0;
+  left: 70px; /* Alinha após a sidebar recolhida */
   background: #f0f2f5;
   overflow: hidden; /* IMPORTANTE: Previne scroll no container */
 }
