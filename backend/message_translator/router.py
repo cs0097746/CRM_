@@ -76,12 +76,22 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
         logger.info(f"📤 [CRM] Processando mensagem: {loomie_message.message_id}")
         logger.info(f"📝 [CRM] Tipo: {loomie_message.content_type}, Texto: {loomie_message.text[:50] if loomie_message.text else 'N/A'}")
         
-        # Extrair número WhatsApp
-        sender = loomie_message.sender.replace('whatsapp:', '').replace('evo:', '').replace('telegram:', '')
+        # ⭐ DETERMINAR SE É from_me
+        from_me = loomie_message.metadata.get('from_me', False) if loomie_message.metadata else False
+        
+        # Extrair número WhatsApp corretamente
+        if from_me:
+            # Se from_me=True, o RECIPIENT é o cliente (para quem você enviou)
+            telefone_contato = loomie_message.recipient.replace('whatsapp:', '').replace('evo:', '').replace('telegram:', '').replace('instagram:', '')
+        else:
+            # Se from_me=False, o SENDER é o cliente (quem te enviou)
+            telefone_contato = loomie_message.sender.replace('whatsapp:', '').replace('evo:', '').replace('telegram:', '').replace('instagram:', '')
+        
+        logger.info(f"📱 [CRM] Telefone do contato: {telefone_contato}, from_me={from_me}")
         
         # Buscar/criar contato
         contato, created = Contato.objects.get_or_create(
-            telefone=sender,
+            telefone=telefone_contato,
             defaults={'nome': loomie_message.sender_name or 'Usuário'}
         )
         
@@ -142,9 +152,9 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
             logger.info(f"📦 [CRM] Dados da mídia: URL={media_url}, Nome={media_filename}, Tamanho={media_size}")
         
         # ⭐ DETERMINAR REMETENTE: cliente ou operador?
-        # Se from_me=True, foi enviado pelo operador (você no celular)
+        # Se from_me=True, foi enviado pelo operador (você no celular ou app externo)
         # Se from_me=False, foi recebido do cliente
-        from_me = loomie_message.metadata.get('from_me', False) if loomie_message.metadata else False
+        # (from_me já foi determinado lá em cima)
         
         if from_me:
             remetente = 'operador'

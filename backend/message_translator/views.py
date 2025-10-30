@@ -144,8 +144,8 @@ def webhook_evolution(request):
         instance = request.data.get('instance')
         data = request.data.get('data')
         
-        # Filtrar apenas mensagens recebidas
-        if event != 'messages.upsert':
+        # Filtrar apenas mensagens recebidas E mensagens enviadas
+        if event not in ['messages.upsert', 'SEND_MESSAGE']:
             logger.debug(f"⏭️ Evento ignorado: {event}")
             return Response({'success': True, 'message': 'Evento ignorado'})
         

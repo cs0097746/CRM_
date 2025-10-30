@@ -64,8 +64,10 @@ class WhatsAppTranslator(BaseTranslator):
             
             # ✅ CORREÇÃO: Determinar remetente corretamente
             if from_me:
-                # Mensagem enviada pelo CRM (você)
-                sender = remote_jid.replace('@s.whatsapp.net', '').replace('@g.us', '')
+                # Mensagem enviada pelo sistema (você/operador)
+                # sender = quem enviou (sistema/operador)
+                # recipient = destinatário (cliente)
+                sender = "system:crm"  # Indica que foi enviado pelo CRM
                 recipient = remote_jid.replace('@s.whatsapp.net', '').replace('@g.us', '')
             else:
                 # Mensagem recebida (cliente)
@@ -85,6 +87,7 @@ class WhatsAppTranslator(BaseTranslator):
                 sender_name=data.get('pushName', ''),
                 channel_type='whatsapp',
                 timestamp=datetime.fromtimestamp(data.get('messageTimestamp', 0)),
+                metadata={'from_me': from_me}  # ⭐ ADICIONAR fromMe ao metadata
             )
             
             # Extrair conteúdo
