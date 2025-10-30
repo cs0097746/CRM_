@@ -146,16 +146,22 @@ body, #root {
 
 /* Scrollbar personalizada */
 .sidebar-nav::-webkit-scrollbar {
-  width: 4px;
+  width: 8px;
 }
 
 .sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f0f0f0;
+  border-radius: 5px;
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 2px;
+  background: #ccc;
+  border-radius: 5px;
+  transition: background 0.2s ease;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .sidebar:hover .sidebar-nav::-webkit-scrollbar-thumb {
