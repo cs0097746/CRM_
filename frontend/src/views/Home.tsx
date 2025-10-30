@@ -33,12 +33,41 @@ interface HomeMetrics {
 
 const Home = () => {
   const [loading, setLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState<{
+    username: string;
+    full_name: string;
+    email: string;
+    is_chefe: boolean;
+  } | null>(null);
   const [metrics, setMetrics] = useState<HomeMetrics>({
     conversas: { aguardando: 0, emAtendimento: 0, finalizadasHoje: 0, total: 0 },
     equipe: { operadoresOnline: 0, totalOperadores: 0 },
     performance: { tempoMedioResposta: 0, taxaResolucao: 0, satisfacaoMedia: 0 },
     tendencias: []
   });
+
+  const fetchUserInfo = useCallback(async () => {
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Token não encontrado");
+
+      const response = await api.get('usuario/me/', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        setUserInfo(response.data.user);
+        
+        // Atualizar localStorage com informações completas
+        localStorage.setItem('username', response.data.user.username);
+        localStorage.setItem('full_name', response.data.user.full_name);
+        localStorage.setItem('user_email', response.data.user.email);
+        localStorage.setItem('is_chefe', response.data.user.is_chefe.toString());
+      }
+    } catch (error) {
+      console.error('Erro ao buscar informações do usuário:', error);
+    }
+  }, []);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -108,14 +137,19 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    // Buscar informações do usuário primeiro
+    fetchUserInfo();
+    
+    // Depois buscar dados do dashboard
     fetchDashboardData();
+    
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, fetchUserInfo]);
 
   const horaAtual = new Date().getHours();
   const saudacao = horaAtual < 12 ? 'Bom dia' : horaAtual < 18 ? 'Boa tarde' : 'Boa noite';
-  const nomeUsuario = localStorage.getItem('username') || 'Usuário';
+  const nomeUsuario = userInfo?.full_name || userInfo?.username || localStorage.getItem('full_name') || localStorage.getItem('username') || 'Usuário';
 
   // Dados para gráficos
   const pieData = [
@@ -338,7 +372,44 @@ const Home = () => {
                 Aqui está um resumo completo do seu CRM em tempo real
               </p>
             </Col>
-            <Col xs="auto">
+            <Col xs="auto" className="d-flex gap-3 align-items-center">
+              {/* Card de Informações do Usuário */}
+              {userInfo && (
+                <div style={{ 
+                  background: 'white', 
+                  padding: '10px 16px', 
+                  borderRadius: '12px',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #316dbd, #4a8fd9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '1.1rem'
+                  }}>
+                    {userInfo.full_name?.charAt(0).toUpperCase() || userInfo.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, color: '#1d2129', fontSize: '0.9rem' }}>
+                      {userInfo.full_name || userInfo.username}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#6c757d' }}>
+                      {userInfo.is_chefe ? '👑 Administrador' : '👤 Operador'}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Card de Última Atualização */}
               <div style={{ 
                 background: 'white', 
                 padding: '12px 20px', 

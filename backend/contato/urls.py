@@ -11,7 +11,7 @@ from atributo import views as atributos_views
 from notificacao import views as notificacao_views
 from tarefas import views as tarefas_views
 from gatilho import views as gatilho_views
-from usuario.views import uso_plano
+from usuario.views import uso_plano, usuario_info
 from plano import views as plano_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
@@ -27,6 +27,9 @@ urlpatterns = [
     path('auth/register/', core_views.criar_usuario_teste, name='criar_usuario'),
     path('auth/register/subordinado/', core_views.criar_subordinado, name='criar_subordinado'),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
+    
+    # ===== USUÁRIO =====
+    path('usuario/me/', usuario_info, name='usuario_info'),
     # ===== DASHBOARD & STATS =====
     path('dashboard/stats/', core_views.dashboard_stats, name='dashboard_stats'),
     path('health/', core_views.health_check, name='health_check'),

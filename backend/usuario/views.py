@@ -40,6 +40,53 @@ def register(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+def usuario_info(request):
+    """
+    Retorna informações do usuário logado
+    
+    GET /api/usuario/me/
+    
+    Returns:
+    {
+        "id": 1,
+        "username": "christian",
+        "email": "christian@email.com",
+        "first_name": "Christian",
+        "last_name": "Schneider",
+        "is_chefe": true,
+        "criado_por": null,
+        "criado_em": "2025-10-01T10:00:00Z"
+    }
+    """
+    try:
+        user = request.user
+        
+        return Response({
+            "success": True,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "full_name": f"{user.first_name} {user.last_name}".strip() or user.username,
+                "is_chefe": user.criado_por is None,  # Se não tem criado_por, é chefe
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser,
+                "criado_por_id": user.criado_por.id if user.criado_por else None,
+                "criado_por_username": user.criado_por.username if user.criado_por else None,
+                "date_joined": user.date_joined.isoformat() if hasattr(user, 'date_joined') else None
+            }
+        })
+    except Exception as e:
+        return Response({
+            "success": False,
+            "error": f"Erro ao buscar informações do usuário: {str(e)}"
+        }, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def uso_plano(request):
     try:
         if request.user.criado_por is None:
