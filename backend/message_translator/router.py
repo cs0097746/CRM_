@@ -194,7 +194,14 @@ def enviar_para_crm(loomie_message: LoomieMessage) -> bool:
         else:
             loomie_message.metadata['atendimento_humano_ate'] = None
         
+        # 🆕 ADICIONAR CONVERSA_ID AO METADATA (para webhooks customizados)
+        loomie_message.metadata['conversa_id'] = conversa.id
+        loomie_message.metadata['contato_id'] = contato.id
+        loomie_message.metadata['contato_nome'] = contato.nome
+        loomie_message.metadata['contato_telefone'] = contato.telefone
+        
         logger.info(f"✅ [CRM] Conversa atualizada: ID {conversa.id}, Atend. Humano: {conversa.atendimento_humano}")
+        logger.info(f"🆔 [CRM] IDs adicionados ao metadata: conversa_id={conversa.id}, contato_id={contato.id}")
         
         return True
     

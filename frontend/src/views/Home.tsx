@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Row, Col, Button, Card, Spinner } from 'react-bootstrap';
+import { Row, Col, Button, Card, Spinner, Badge, ProgressBar } from 'react-bootstrap';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, AreaChart } from 'recharts';
 import axios from 'axios';
 import type { Conversa } from "../types/Conversa.ts";
@@ -132,6 +132,15 @@ const Home = () => {
         /* ============================================
            🎨 HOME PREMIUM - LOOMIE CRM SAAS
            ============================================ */
+        
+        .dashboard-container {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          padding: 30px;
+          width: 100%;
+          padding-left: 100px;
+          box-sizing: border-box;
+        }
         
         .home-container {
           min-height: 100vh;
@@ -751,7 +760,163 @@ const Home = () => {
               </Col>
             </Row>
 
-            {/* Acesso Rápido aos Módulos - Linha 4 */}
+            {/* Gráficos de Tendência - Linha 4 */}
+            <Row className="g-4 mb-4">
+              <Col md={8}>
+                <Card style={{ 
+                  background: 'white', 
+                  borderRadius: '16px',
+                  border: 'none',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                  padding: '24px',
+                  height: '100%'
+                }}>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 style={{ fontWeight: 700, color: '#1d2129', margin: 0 }}>
+                      📈 Tendência de Atendimentos (Últimas 7 horas)
+                    </h5>
+                    <Badge bg="primary" style={{ fontSize: '0.75rem' }}>
+                      Tempo Real
+                    </Badge>
+                  </div>
+
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart data={metrics.tendencias}>
+                      <defs>
+                        <linearGradient id="colorAtendimentos" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#316dbd" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#316dbd" stopOpacity={0.1}/>
+                        </linearGradient>
+                        <linearGradient id="colorResolucoes" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#7ed957" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#7ed957" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
+                      <XAxis 
+                        dataKey="hora" 
+                        stroke="#6c757d" 
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                      <YAxis 
+                        stroke="#6c757d" 
+                        style={{ fontSize: '0.85rem' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'white', 
+                          border: '1px solid #e9ecef', 
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '0.85rem', fontWeight: 600 }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="atendimentos" 
+                        stroke="#316dbd" 
+                        strokeWidth={3}
+                        fillOpacity={1} 
+                        fill="url(#colorAtendimentos)"
+                        name="Atendimentos"
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="resolucoes" 
+                        stroke="#7ed957" 
+                        strokeWidth={3}
+                        fillOpacity={1} 
+                        fill="url(#colorResolucoes)"
+                        name="Resoluções"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card>
+              </Col>
+
+              <Col md={4}>
+                <Card style={{ 
+                  background: 'white', 
+                  borderRadius: '16px',
+                  border: 'none',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                  padding: '24px',
+                  height: '100%'
+                }}>
+                  <h5 style={{ fontWeight: 700, color: '#1d2129', marginBottom: '20px' }}>
+                    🎯 Distribuição de Status
+                  </h5>
+
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'white', 
+                          border: '1px solid #e9ecef', 
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  <div style={{ marginTop: '20px' }}>
+                    {pieData.map((item, idx) => (
+                      <div 
+                        key={idx}
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          background: '#f8f9fa',
+                          borderRadius: '8px',
+                          marginBottom: '8px'
+                        }}
+                      >
+                        <div className="d-flex align-items-center">
+                          <div style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '3px',
+                            background: item.color,
+                            marginRight: '8px'
+                          }}></div>
+                          <small style={{ fontWeight: 600, color: '#1d2129' }}>
+                            {item.name}
+                          </small>
+                        </div>
+                        <Badge 
+                          style={{ 
+                            background: item.color,
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          {item.value}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Acesso Rápido aos Módulos - Linha 5 */}
             <Row className="g-4">
               <Col>
                 <Card style={{ 
@@ -769,9 +934,9 @@ const Home = () => {
                     {[
                       { name: 'Atendimento', icon: '💬', url: '/atendimento', color: '#316dbd', badge: metrics.conversas.aguardando > 0 ? `${metrics.conversas.aguardando} aguardando` : null },
                       { name: 'Contatos', icon: '👥', url: '/contatos', color: '#316dbd' },
-                      { name: 'Pipelines', icon: '🎯', url: '/kanbans', color: '#316dbd' },
+                      { name: 'Pipelines', icon: '🎯', url: '/kanbans', color: '#7ed957' },
                       { name: 'Relatórios', icon: '📊', url: '/dashboard-atendimento', color: '#316dbd' },
-                      { name: 'Tarefas', icon: '✓', url: '/tarefas', color: '#316dbd' },
+                      { name: 'Tarefas', icon: '✓', url: '/tarefas', color: '#8c52ff' },
                       { name: 'Gatilhos', icon: '⚡', url: '/gatilhos', color: '#316dbd' },
                     ].map((module, idx) => (
                       <Col md={2} key={idx}>
