@@ -37,7 +37,6 @@ ALLOWED_HOSTS = [
     "crm.localhost",
     ".ngrok-free.app",  # 🔧 NGROK: Permitir qualquer subdomínio ngrok
     ".ngrok.io",
-    "crm.backend.localhost",
 
              # 🔧 NGROK: Formato antigo também
 ]

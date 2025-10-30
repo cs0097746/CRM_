@@ -6,7 +6,6 @@ services:
     container_name: crm_postgres
     restart: unless-stopped
     environment:
-      DEBUG: "True"
       POSTGRES_DB: crmdb
       POSTGRES_USER: crmuser
       POSTGRES_PASSWORD: crmpassword
