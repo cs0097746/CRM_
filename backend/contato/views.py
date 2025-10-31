@@ -63,7 +63,7 @@ class ContatoListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         plano_chefe = None
         user_profile = PerfilUsuario.objects.get(
-            usuario=request.user,
+            usuario=self.request.user,
         )
         if user_profile.criado_por is None:
             plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user).plano
