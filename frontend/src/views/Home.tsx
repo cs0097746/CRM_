@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Row, Col, Button, Card, Container } from 'react-bootstrap';
 import { getToken } from "../function/validateToken.tsx";
 
@@ -6,45 +6,45 @@ const Home = () => {
   const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
-    const name = localStorage.getItem('full_name') || localStorage.getItem('username') || 'Usuário';
+    const name = localStorage.getItem('full_name') || localStorage.getItem('username') || 'Usuario';
     setUserName(name);
   }, []);
 
   const features = [
     {
-      icon: '💬',
+      icon: '',
       title: 'Conversas Unificadas',
-      description: 'Centralize WhatsApp, e-mail e mensagens em uma interface única',
+      description: 'Centralize WhatsApp, e-mail e mensagens em uma interface unica',
       color: '#316dbd'
     },
     {
-      icon: '🎯',
-      title: 'Gestão de Negócios',
+      icon: '',
+      title: 'Gestao de Negocios',
       description: 'Acompanhe oportunidades pelo funil visual de vendas Kanban',
       color: '#7ed957'
     },
     {
-      icon: '⚡',
-      title: 'Gatilhos Automáticos',
-      description: 'Configure respostas e ações inteligentes sem esforço manual',
+      icon: '',
+      title: 'Gatilhos Automaticos',
+      description: 'Configure respostas e acoes inteligentes sem esforco manual',
       color: '#ffc107'
     },
     {
-      icon: '📊',
-      title: 'Análises Estratégicas',
-      description: 'Dashboards completos com dados acionáveis do seu negócio',
+      icon: '',
+      title: 'Analises Estrategicas',
+      description: 'Dashboards completos com dados acionaveis do seu negocio',
       color: '#8c52ff'
     },
     {
-      icon: '👥',
+      icon: '',
       title: 'Controle de Acesso',
-      description: 'Defina permissões e gerencie toda sua equipe operacional',
+      description: 'Defina permissoes e gerencie toda sua equipe operacional',
       color: '#316dbd'
     },
     {
-      icon: '🔔',
+      icon: '',
       title: 'Alertas Inteligentes',
-      description: 'Receba notificações instantâneas sobre eventos importantes',
+      description: 'Receba notificacoes instantaneas sobre eventos importantes',
       color: '#7ed957'
     }
   ];
@@ -53,17 +53,17 @@ const Home = () => {
     {
       number: '24/7',
       label: 'Suporte Ativo',
-      icon: '🛟'
+      icon: ''
     },
     {
       number: '100%',
       label: 'Cloud Seguro',
-      icon: '☁️'
+      icon: ''
     },
     {
-      number: '∞',
-      label: 'Integrações',
-      icon: '🔗'
+      number: '',
+      label: 'Integracoes',
+      icon: ''
     }
   ];
 
@@ -77,11 +77,12 @@ const Home = () => {
           margin: 0;
           width: 100%;
           overflow-x: hidden;
+          box-sizing: border-box;
         }
 
         .hero-section {
           background: linear-gradient(135deg, #316dbd 0%, #4a8fd9 100%);
-          padding: 80px 0 100px 0;
+          padding: 60px 50px 80px 120px;
           position: relative;
           overflow: hidden;
         }
@@ -281,24 +282,6 @@ const Home = () => {
           text-align: center;
         }
 
-        .footer-links {
-          display: flex;
-          justify-content: center;
-          gap: 40px;
-          margin-bottom: 24px;
-        }
-
-        .footer-link {
-          color: rgba(255, 255, 255, 0.7);
-          text-decoration: none;
-          font-size: 0.95rem;
-          transition: color 0.3s ease;
-        }
-
-        .footer-link:hover {
-          color: white;
-        }
-
         @media (max-width: 768px) {
           .hero-title {
             font-size: 2.5rem;
@@ -311,6 +294,10 @@ const Home = () => {
           .section-title {
             font-size: 2rem;
           }
+          
+          .hero-section {
+            padding: 40px 20px 60px 20px;
+          }
         }
       `}</style>
 
@@ -322,25 +309,25 @@ const Home = () => {
               <Col lg={7}>
                 <div style={{ position: 'relative', zIndex: 2 }}>
                   <h1 className="hero-title">
-                    Transforme seu<br/>
-                    Atendimento em<br/>
-                    <span style={{ color: '#7ed957' }}>Resultados</span>
+                    Seja Bem-vindo ao<br/>
+                    Loomie CRM<br/>
+                    <span style={{ color: '#7ed957' }}>{userName}</span>
                   </h1>
                   <p className="hero-subtitle">
-                    O CRM completo que une atendimento multicanal, automações inteligentes e análises poderosas em uma única plataforma.
+                    Acesse rapidamente seus atendimentos, pipelines e todas as ferramentas do seu CRM em um so lugar.
                   </p>
                   <div className="d-flex gap-3 flex-wrap">
                     <Button 
                       className="cta-button cta-primary"
                       onClick={() => window.location.href = '/atendimento'}
                     >
-                      🚀 Começar Agora
+                       Iniciar Atendimento
                     </Button>
                     <Button 
                       className="cta-button cta-secondary"
                       onClick={() => window.location.href = '/dashboard-atendimento'}
                     >
-                      📊 Ver Demonstração
+                       Ver Analises
                     </Button>
                   </div>
                 </div>
@@ -355,12 +342,12 @@ const Home = () => {
                   position: 'relative',
                   zIndex: 2
                 }}>
-                  <div style={{ fontSize: '6rem', marginBottom: '16px' }}>💼</div>
+                  <div style={{ fontSize: '6rem', marginBottom: '16px' }}></div>
                   <h3 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px' }}>
                     Bem-vindo, {userName}!
                   </h3>
                   <p style={{ color: 'rgba(255, 255, 255, 0.9)', margin: 0 }}>
-                    Gerencie tudo em um só lugar
+                    Gerencie tudo em um so lugar
                   </p>
                 </div>
               </Col>
@@ -388,9 +375,9 @@ const Home = () => {
         {/* Features Section */}
         <div className="features-section">
           <Container>
-            <h2 className="section-title">Recursos que Potencializam seu Negócio</h2>
+            <h2 className="section-title">Acesso Rapido aos Modulos</h2>
             <p className="section-subtitle">
-              Ferramentas modernas e intuitivas para elevar o nível do seu atendimento e vendas
+              Navegue pelas principais funcionalidades do seu CRM
             </p>
 
             <Row className="g-4">
@@ -417,16 +404,16 @@ const Home = () => {
         {/* CTA Section */}
         <div className="cta-section">
           <Container>
-            <h2 className="cta-section-title">Pronto para Revolucionar seu CRM?</h2>
+            <h2 className="cta-section-title">Tudo Pronto para Voce!</h2>
             <p className="cta-section-subtitle">
-              Junte-se a milhares de empresas que já transformaram seu atendimento
+              Seu CRM esta configurado e pronto para impulsionar seus resultados
             </p>
             <Button 
               className="cta-button cta-primary"
               onClick={() => window.location.href = '/atendimento'}
               style={{ fontSize: '1.2rem' }}
             >
-              🎯 Iniciar Atendimento Agora
+               Comecar Atendimentos
             </Button>
           </Container>
         </div>
@@ -434,14 +421,8 @@ const Home = () => {
         {/* Footer */}
         <div className="footer-section">
           <Container>
-            <div className="footer-links">
-              <a href="#" className="footer-link">Sobre</a>
-              <a href="#" className="footer-link">Recursos</a>
-              <a href="#" className="footer-link">Suporte</a>
-              <a href="#" className="footer-link">Contato</a>
-            </div>
             <p style={{ margin: 0, fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-              © 2025 Loomie CRM. Todos os direitos reservados.
+               2025 Loomie CRM  v1.0.0
             </p>
           </Container>
         </div>

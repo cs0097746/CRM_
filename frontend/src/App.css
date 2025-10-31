@@ -341,6 +341,13 @@ body, #root {
   overflow: hidden;
 }
 
+/* Remove padding para a página Home - Layout Clean Full Width */
+.main-content:has(.home-clean-container) {
+  padding: 0;
+  margin-left: 0;
+  overflow: hidden;
+}
+
 /* ============================================
    📱 RESPONSIVIDADE
    ============================================ */

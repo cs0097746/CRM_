@@ -83,9 +83,9 @@ const AppContent = () => {
               <span>MENU PRINCIPAL</span>
             </div>
 
-            <NavLink to="/" className="nav-item" title="Dashboard">
+            <NavLink to="/" className="nav-item" title="Home">
               <i className="bi bi-house-door"></i>
-              <span>Dashboard</span>
+              <span>Home</span>
             </NavLink>
 
             <NavLink to="/kanbans" className="nav-item" title="Pipelines">

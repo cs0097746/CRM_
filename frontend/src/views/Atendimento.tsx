@@ -496,25 +496,9 @@ export default function Atendimento() {
               <div className="chat-header">
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
-                    <div className="d-flex align-items-center gap-2 mb-1">
-                      <h6 className="mb-0" style={{ fontWeight: 600, fontSize: '16px' }}>
-                        {conversaAtiva.contato.nome}
-                      </h6>
-                      <span 
-                        style={{ 
-                          fontSize: '11px', 
-                          fontWeight: 600,
-                          padding: '3px 8px',
-                          background: '#e4e6eb',
-                          borderRadius: '6px',
-                          color: '#050505',
-                          fontFamily: 'monospace'
-                        }}
-                        title="ID da Conversa"
-                      >
-                        ID: {conversaAtiva.id}
-                      </span>
-                    </div>
+                    <h6 className="mb-1" style={{ fontWeight: 600, fontSize: '16px' }}>
+                      {conversaAtiva.contato.nome}
+                    </h6>
                     <small style={{ color: '#65676b' }}>
                       {conversaAtiva.contato.telefone}
                     </small>
