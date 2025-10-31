@@ -9,7 +9,7 @@ from datetime import timedelta
 @receiver(post_save, sender=User)
 def criar_perfil_usuario(sender, instance, created, **kwargs):
     if created:
-        UserProfile.objects.get_or_create(usuario=instance)
+        PerfilUsuario.objects.get_or_create(usuario=instance)
 
 @receiver(post_save, sender=User)
 def criar_plano_free_para_usuario(sender, instance, created, **kwargs):
