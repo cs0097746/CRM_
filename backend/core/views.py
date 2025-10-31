@@ -297,7 +297,7 @@ def criar_subordinado(request):
             plano_chefe = PlanoUsuario.objects.get(usuario=perfil_usuario.criado_por).plano
 
         limite_usuarios = plano_chefe.usuarios_inclusos
-        usuarios_inclusos = User.objects.filter(perfil_usuario__criado_por__id__in=get_ids_visiveis(request.user)).count()
+        usuarios_inclusos = User.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
 
         if usuarios_inclusos >= limite_usuarios:
             return Response(

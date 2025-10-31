@@ -7,7 +7,6 @@ from contato.models import Contato
 from core.utils import get_ids_visiveis
 from kanban.models import Kanban
 from usuario.models import PlanoUsuario, PerfilUsuario
-import re
 
 @api_view(["POST"])
 def register(request):
@@ -20,22 +19,8 @@ def register(request):
     if not username or not password or not email:
         return Response({"success": False, "message": "Todos os campos são obrigatórios"})
 
-    # Valida formato do email
-    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    if not re.match(email_regex, email.strip()):
-        return Response({
-            "success": False, 
-            "message": "Email inválido. Use o formato: usuario@dominio.com"
-        })
-
-    # Normaliza email
-    email = email.strip().lower()
-
     if User.objects.filter(username=username).exists():
         return Response({"success": False, "message": "Usuário já existe"})
-    
-    if User.objects.filter(email=email).exists():
-        return Response({"success": False, "message": "Email já cadastrado"})
 
     criado_por = None
     if criado_por_id:
