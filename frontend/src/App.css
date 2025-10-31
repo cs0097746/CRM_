@@ -341,7 +341,7 @@ body, #root {
   overflow: hidden;
 }
 
-/* Remove padding para a página Home - Layout Clean Full Width */
+/* Remove padding e margin para a página Home - Layout completo */
 .main-content:has(.home-clean-container) {
   padding: 0;
   margin-left: 0;

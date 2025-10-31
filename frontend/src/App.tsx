@@ -103,9 +103,9 @@ const AppContent = () => {
               <span>Contatos</span>
             </NavLink>
 
-            <NavLink to="/dashboard-atendimento" className="nav-item" title="Dashboard Suporte">
+            <NavLink to="/dashboard-atendimento" className="nav-item" title="Dashboard Atendimento">
               <i className="bi bi-bar-chart-line"></i>
-              <span>Dashboard Suporte</span>
+              <span>Dashboard Atendimento</span>
             </NavLink>
           </div>
 
