@@ -355,6 +355,13 @@ body, #root {
   overflow: hidden;
 }
 
+/* Remove padding para a página de Contatos - Tela cheia */
+.main-content:has(.contatos-container) {
+  padding: 0;
+  margin-left: 70px; /* Mantém espaço para sidebar */
+  overflow: hidden;
+}
+
 /* ============================================
    📱 RESPONSIVIDADE
    ============================================ */

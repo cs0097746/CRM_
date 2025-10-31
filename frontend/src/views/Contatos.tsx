@@ -23,118 +23,218 @@ interface Contato {
 }
 
 const styles = `
-    .professional-layout {
-      height: 100vh;
-      overflow: hidden;
+    .contatos-container {
+      min-height: 100vh;
       background: #f8f9fa;
+      width: 100%;
+    }
+
+    .contatos-header {
+      background-color: #316dbd;
+      padding: 1.5rem 2rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .contatos-header-title {
+      color: white;
+      font-weight: 600;
+      font-size: 1.5rem;
+      margin: 0;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
     }
 
-    .top-bar {
-      background: #ffffff;
-      border-bottom: 1px solid #e1e5e9;
-      padding: 12px 20px;
-      flex-shrink: 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    .contatos-header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
     }
 
-    .main-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 30px;
+    .contatos-content {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .card-list {
+    .contatos-card {
       background: #ffffff;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(49, 109, 189, 0.08);
       overflow: hidden;
+      border: 1px solid #e1e8ed;
     }
     
-    .list-header {
-        padding: 20px;
-        border-bottom: 1px solid #e1e5e9;
+    .contatos-card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #e1e8ed;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: #f8f9fa;
+        background: white;
     }
     
-    .list-header-controls {
+    .contatos-card-header-controls {
         display: flex;
-        gap: 15px;
+        gap: 1rem;
         align-items: center;
     }
 
 
-    .contact-item {
-      border-bottom: 1px solid #f0f2f5;
-      padding: 15px 20px;
-      transition: background 0.2s ease;
+    .contato-item {
+      border-bottom: 1px solid #e1e8ed;
+      padding: 1rem 1.5rem;
+      transition: all 0.2s ease;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .contact-item:last-child {
+    .contato-item:last-child {
         border-bottom: none;
     }
 
-    .contact-item:hover {
+    .contato-item:hover {
       background: #f8f9fa;
     }
-    
-    .contact-details {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-grow: 1;
+
+    .contato-info {
+        flex: 1;
     }
 
-    .contact-info strong {
+    .contato-info strong {
         font-weight: 600;
         font-size: 15px;
-        color: #1d2129;
-    }
-
-    .contact-info small {
+        color: #316dbd;
         display: block;
-        color: #65676b;
-        font-size: 13px;
-        margin-top: 2px;
+        margin-bottom: 0.25rem;
     }
 
-    .contact-actions {
+    .contato-info small {
+        display: block;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    .contato-actions {
         display: flex;
         align-items: center;
-        gap: 15px;
+        gap: 0.75rem;
         flex-shrink: 0;
     }
 
-    .contact-actions small {
-        color: #8a8d91; 
-        font-size: 11px;
-    }
-    
-    .remove-btn {
-        margin-left: 10px;
+    .contato-actions small {
+        color: #6c757d; 
+        font-size: 12px;
+        min-width: 100px;
+        text-align: right;
     }
 
     .search-input {
-      border: 1px solid #e1e5e9;
+      border: 1px solid #dee2e6;
       border-radius: 6px;
-      padding: 8px 12px;
+      padding: 0.5rem 0.75rem;
       font-size: 14px;
-      transition: border-color 0.2s ease;
+      transition: all 0.2s ease;
       width: 250px;
-      font-family: inherit;
     }
 
     .search-input:focus {
       outline: none;
-      border-color: #1877f2;
-      box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.1);
+      border-color: #316dbd;
+      box-shadow: 0 0 0 0.2rem rgba(49, 109, 189, 0.1);
+    }
+
+    .btn-create-contact {
+        background-color: #7ed957;
+        border: none;
+        color: white;
+        font-weight: 600;
+        border-radius: 6px;
+        padding: 0.5rem 1.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-create-contact:hover {
+        background-color: #6bc542;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(126, 217, 87, 0.25);
+    }
+
+    .btn-header-action {
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: white;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-header-action:hover {
+        background-color: white;
+        color: #316dbd;
+        border-color: white;
+    }
+
+    /* Estilos do Modal */
+    .modal-content {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0.65rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        border-color: #316dbd;
+        box-shadow: 0 0 0 0.2rem rgba(49, 109, 189, 0.1);
+    }
+
+    /* Estado de loading */
+    .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 3rem;
+    }
+
+    .spinner-border {
+        color: #316dbd !important;
+    }
+
+    /* Mensagem vazia */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
     }
 `;
 
@@ -159,12 +259,73 @@ interface ContactFormModalProps {
     onContactSuccess: (contact: Contato, isNew: boolean) => void;
 }
 
+// Funções de validação
+const validateEmail = (email: string): { valid: boolean; message: string } => {
+    if (!email || !email.trim()) {
+        return { valid: true, message: '' }; // Email é opcional
+    }
+    
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+        return { 
+            valid: false, 
+            message: '❌ Email inválido. Use o formato: usuario@dominio.com' 
+        };
+    }
+    
+    return { valid: true, message: '✓ Email válido' };
+};
+
+const validateTelefone = (telefone: string): { valid: boolean; message: string } => {
+    if (!telefone || !telefone.trim()) {
+        return { valid: false, message: '❌ Telefone é obrigatório' };
+    }
+    
+    // Remove tudo que não é número
+    const apenasNumeros = telefone.replace(/\D/g, '');
+    
+    // Remove código do país se houver
+    let numero = apenasNumeros;
+    if (numero.startsWith('55') && numero.length > 11) {
+        numero = numero.substring(2);
+    }
+    
+    // Valida quantidade de dígitos
+    if (numero.length < 10 || numero.length > 11) {
+        return { 
+            valid: false, 
+            message: '❌ Telefone deve ter 10 ou 11 dígitos. Ex: (11) 98765-4321' 
+        };
+    }
+    
+    // Valida DDD
+    const ddd = parseInt(numero.substring(0, 2));
+    if (ddd < 11 || ddd > 99) {
+        return { 
+            valid: false, 
+            message: '❌ DDD inválido. Use um código de área válido (11-99)' 
+        };
+    }
+    
+    // Valida celular (se tiver 11 dígitos, o terceiro deve ser 9)
+    if (numero.length === 11 && numero[2] !== '9') {
+        return { 
+            valid: false, 
+            message: '❌ Celular deve começar com 9. Ex: (11) 98765-4321' 
+        };
+    }
+    
+    return { valid: true, message: '✓ Telefone válido' };
+};
+
 function ContactFormModal({ show, onHide, contactId, onContactSuccess }: ContactFormModalProps) {
     const isEditMode = contactId !== null;
     const [formData, setFormData] = useState<typeof initialFormData>(initialFormData);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEditMode);
     const [error, setError] = useState<string | null>(null);
+    const [emailValidation, setEmailValidation] = useState<{ valid: boolean; message: string } | null>(null);
+    const [telefoneValidation, setTelefoneValidation] = useState<{ valid: boolean; message: string } | null>(null);
 
     const fetchContactData = useCallback(async (id: number) => {
         setFetching(true);
@@ -214,10 +375,20 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
     }, [show, contactId, isEditMode, fetchContactData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [name]: value,
         });
+        
+        // Validação em tempo real
+        if (name === 'email') {
+            setEmailValidation(validateEmail(value));
+        } else if (name === 'telefone') {
+            setTelefoneValidation(validateTelefone(value));
+        }
+        
         if (error) setError(null);
     };
 
@@ -226,10 +397,29 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
         setLoading(true);
         setError(null);
 
+        // Validações antes de submeter
         if (!formData.nome || !formData.telefone) {
-            setError('Nome e Telefone são campos obrigatórios.');
+            setError('❌ Nome e Telefone são campos obrigatórios.');
             setLoading(false);
             return;
+        }
+
+        const telefoneCheck = validateTelefone(formData.telefone);
+        if (!telefoneCheck.valid) {
+            setError(telefoneCheck.message);
+            setTelefoneValidation(telefoneCheck);
+            setLoading(false);
+            return;
+        }
+
+        if (formData.email && formData.email.trim()) {
+            const emailCheck = validateEmail(formData.email);
+            if (!emailCheck.valid) {
+                setError(emailCheck.message);
+                setEmailValidation(emailCheck);
+                setLoading(false);
+                return;
+            }
         }
 
         try {
@@ -298,22 +488,21 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
         onHide();
     }
 
-    const modalTitle = isEditMode ? 'Editar Contato' : 'Criar Novo Contato';
+    const modalTitle = isEditMode ? '✏️ Editar Contato' : '➕ Criar Novo Contato';
     const submitText = isEditMode ? 'Salvar Alterações' : 'Salvar Contato';
-    const submitVariant = isEditMode ? 'warning' : 'success';
 
 
     return (
         <Modal show={show} onHide={handleHide} centered size="lg">
-            <Modal.Header closeButton>
-                <Modal.Title style={{ fontSize: '1.25rem', fontWeight: 600 }}>{modalTitle}</Modal.Title>
+            <Modal.Header closeButton style={{ backgroundColor: '#316dbd', color: 'white', borderBottom: 'none' }}>
+                <Modal.Title style={{ fontSize: '1.1rem', fontWeight: 600 }}>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Form onSubmit={handleSubmit}>
                 {fetching && isEditMode ? (
-                    <div className="text-center p-5">
+                    <div className="loading-container">
                         <Spinner animation="border" />
-                        <div className="mt-2" style={{ fontSize: '14px', color: '#65676b' }}>
-                            Carregando dados...
+                        <div className="mt-3" style={{ fontSize: '14px', color: '#6c757d' }}>
+                            Carregando dados do contato...
                         </div>
                     </div>
                 ) : (
@@ -328,13 +517,40 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
                                 </Form.Group>
                                 <Form.Group className="mb-3 col-md-6" controlId="formContactPhone">
                                     <Form.Label style={{ fontWeight: 500 }}>Telefone <span className="text-danger">*</span></Form.Label>
-                                    <Form.Control type="text" placeholder="(99) 99999-9999" name="telefone" value={formData.telefone} onChange={handleChange} required/>
+                                    <Form.Control 
+                                        type="text" 
+                                        placeholder="(11) 98765-4321" 
+                                        name="telefone" 
+                                        value={formData.telefone} 
+                                        onChange={handleChange} 
+                                        required
+                                        isInvalid={telefoneValidation ? !telefoneValidation.valid : false}
+                                        isValid={telefoneValidation ? telefoneValidation.valid && formData.telefone.length > 0 : false}
+                                    />
+                                    {telefoneValidation && (
+                                        <Form.Control.Feedback type={telefoneValidation.valid ? 'valid' : 'invalid'}>
+                                            {telefoneValidation.message}
+                                        </Form.Control.Feedback>
+                                    )}
                                 </Form.Group>
                             </div>
                             <div className="row">
                                 <Form.Group className="mb-3 col-md-6" controlId="formContactEmail">
                                     <Form.Label style={{ fontWeight: 500 }}>E-mail</Form.Label>
-                                    <Form.Control type="email" placeholder="email@exemplo.com" name="email" value={formData.email || ''} onChange={handleChange}/>
+                                    <Form.Control 
+                                        type="email" 
+                                        placeholder="usuario@dominio.com" 
+                                        name="email" 
+                                        value={formData.email || ''} 
+                                        onChange={handleChange}
+                                        isInvalid={emailValidation ? !emailValidation.valid : false}
+                                        isValid={emailValidation ? emailValidation.valid && formData.email && formData.email.length > 0 : false}
+                                    />
+                                    {emailValidation && emailValidation.message && (
+                                        <Form.Control.Feedback type={emailValidation.valid ? 'valid' : 'invalid'}>
+                                            {emailValidation.message}
+                                        </Form.Control.Feedback>
+                                    )}
                                 </Form.Group>
                                 <Form.Group className="mb-3 col-md-6" controlId="formContactBirthDate">
                                     <Form.Label style={{ fontWeight: 500 }}>Data de Nascimento</Form.Label>
@@ -379,7 +595,16 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
                             <Button variant="secondary" onClick={handleHide} disabled={loading}>
                                 Cancelar
                             </Button>
-                            <Button variant={submitVariant} type="submit" disabled={loading}>
+                            <Button 
+                                type="submit" 
+                                disabled={loading}
+                                style={{
+                                    backgroundColor: isEditMode ? '#316dbd' : '#7ed957',
+                                    border: 'none',
+                                    color: 'white',
+                                    fontWeight: 600
+                                }}
+                            >
                                 {loading ? (
                                     <>
                                         <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
@@ -501,46 +726,42 @@ export default function Contatos() {
         <>
             <style>{styles}</style>
 
-            <div className="professional-layout">
-                <div className="top-bar">
+            <div className="contatos-container">
+                <div className="contatos-header">
                     <div className="d-flex justify-content-between align-items-center">
-                        <div className="d-flex align-items-center gap-3">
-                            <img src="/Loomie.svg" alt="Logo" style={{ width: "28px", height: "28px" }} />
-                            <div>
-                                <h5 className="mb-0" style={{ fontWeight: 600, fontSize: '18px' }}>
-                                    Lista de Contatos
-                                </h5>
-                                <small style={{ color: '#65676b' }}>Gerenciamento de Clientes</small>
-                            </div>
-                        </div>
-                        <div className="d-flex gap-2">
-                            <Button variant="outline-primary" href="/atendimento" size="sm">
+                        <h1 className="contatos-header-title">
+                            👥 Gestão de Contatos
+                        </h1>
+                        <div className="contatos-header-actions">
+                            <a href="/atendimento" className="btn-header-action">
                                 Atendimento
-                            </Button>
-                            <Button variant="outline-success" href="/dashboard-atendimento" size="sm">
+                            </a>
+                            <a href="/dashboard-atendimento" className="btn-header-action">
                                 Dashboard
-                            </Button>
+                            </a>
                         </div>
                     </div>
                 </div>
 
-                <div className="main-content">
-                    <div className="card-list" style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <div className="contatos-content">
+                    <div className="contatos-card">
 
-                        <div className="list-header">
-                            <h5 className="mb-0" style={{ fontWeight: 600 }}>Contatos Cadastrados ({contatos.length})</h5>
+                        <div className="contatos-card-header">
+                            <h5 className="mb-0" style={{ fontWeight: 600, color: '#316dbd' }}>
+                                📋 Contatos Cadastrados ({contatos.length})
+                            </h5>
 
-                            <div className="list-header-controls">
+                            <div className="contatos-card-header-controls">
                                 <input
                                     type="text"
                                     className="search-input"
-                                    placeholder="Buscar por nome, tel ou e-mail..."
+                                    placeholder="🔍 Buscar contato..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
-                                <Button variant="primary" onClick={openCreateModal}>
+                                <button className="btn-create-contact" onClick={openCreateModal}>
                                     + Novo Contato
-                                </Button>
+                                </button>
                             </div>
                         </div>
 
@@ -561,54 +782,63 @@ export default function Contatos() {
                         )}
 
                         {loading ? (
-                            <div className="text-center p-5">
+                            <div className="loading-container">
                                 <Spinner animation="border" />
-                                <div className="mt-2" style={{ fontSize: '14px', color: '#65676b' }}>
+                                <div className="mt-3" style={{ fontSize: '14px', color: '#6c757d' }}>
                                     Carregando contatos...
                                 </div>
                             </div>
                         ) : (
                             <>
                                 {contatosFiltrados.length === 0 ? (
-                                    <div className="text-center p-5" style={{ color: '#8a8d91' }}>
-                                        <div style={{ fontSize: '16px' }}>Nenhum contato encontrado</div>
+                                    <div className="empty-state">
+                                        <div className="empty-state-icon">
+                                            {searchTerm ? '🔍' : '👥'}
+                                        </div>
+                                        <div style={{ fontSize: '16px', fontWeight: 500 }}>
+                                            {searchTerm ? 'Nenhum contato encontrado' : 'Nenhum contato cadastrado'}
+                                        </div>
                                         {searchTerm && (
-                                            <small style={{ fontSize: '13px' }}>
-                                                Nenhum resultado para "{searchTerm}".
+                                            <small style={{ fontSize: '13px', display: 'block', marginTop: '0.5rem' }}>
+                                                Nenhum resultado para "{searchTerm}"
+                                            </small>
+                                        )}
+                                        {!searchTerm && (
+                                            <small style={{ fontSize: '13px', display: 'block', marginTop: '0.5rem' }}>
+                                                Clique em "Novo Contato" para começar
                                             </small>
                                         )}
                                     </div>
                                 ) : (
                                     contatosFiltrados.map((contato) => (
-                                        <div key={contato.id} className="contact-item">
-                                            <div className="contact-info">
+                                        <div key={contato.id} className="contato-item">
+                                            <div className="contato-info">
                                                 <strong>{contato.nome}</strong>
                                                 <small>
-                                                    Telefone: {contato.telefone}
-                                                    {contato.email && ` | E-mail: ${contato.email}`}
+                                                    📞 {contato.telefone}
+                                                    {contato.email && ` • 📧 ${contato.email}`}
                                                 </small>
                                             </div>
 
-                                            <div className="contact-actions">
+                                            <div className="contato-actions">
                                                 <small>
-                                                    Criado em: {new Date(contato.criado_em).toLocaleDateString('pt-BR')}
+                                                    {new Date(contato.criado_em).toLocaleDateString('pt-BR')}
                                                 </small>
 
-                                                {/* NOVO BOTÃO DE EDIÇÃO */}
                                                 <Button
-                                                    variant="outline-warning"
+                                                    variant="outline-primary"
                                                     size="sm"
                                                     onClick={() => openEditModal(contato.id)}
+                                                    style={{ borderColor: '#316dbd', color: '#316dbd' }}
                                                 >
-                                                    Editar
+                                                    ✏️ Editar
                                                 </Button>
 
                                                 <Button
-                                                    variant="danger"
+                                                    variant="outline-danger"
                                                     size="sm"
                                                     onClick={() => removeContato(contato.id)}
                                                     disabled={deleteStatus?.loading && deleteStatus.id === contato.id}
-                                                    className="remove-btn"
                                                 >
                                                     {deleteStatus?.loading && deleteStatus.id === contato.id ? (
                                                         <Spinner
@@ -618,7 +848,7 @@ export default function Contatos() {
                                                             role="status"
                                                             aria-hidden="true"
                                                         />
-                                                    ) : 'Remover'}
+                                                    ) : '🗑️'}
                                                 </Button>
                                             </div>
                                         </div>
