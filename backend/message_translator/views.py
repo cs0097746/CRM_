@@ -226,12 +226,19 @@ def webhook_saida(request):
     inicio = time.time()
     
     try:
-        # Formato simplificado
-        if 'canal_tipo' in request.data:
-            canal_tipo = request.data.get('canal_tipo')
-            destinatario = request.data.get('destinatario')
-            texto = request.data.get('texto')
-            media_url = request.data.get('media_url')
+        # Formato simplificado (suporte a PT e EN)
+        if 'canal_tipo' in request.data or 'channel_type' in request.data:
+            # 🌍 Suporte bilíngue (PT-BR e EN)
+            canal_tipo = request.data.get('canal_tipo') or request.data.get('channel_type')
+            destinatario = request.data.get('destinatario') or request.data.get('recipient') or request.data.get('number')
+            texto = request.data.get('texto') or request.data.get('text') or request.data.get('message')
+            media_url = request.data.get('media_url') or request.data.get('media')
+            
+            # 🔧 IMPORTANTE: Manter "evolution" separado de "whatsapp" (API oficial futura)
+            # "evolution" e "evo" → Evolution API (não oficial)
+            # "whatsapp" → WhatsApp Business API (oficial) - FUTURO
+            if canal_tipo == 'evolution':
+                canal_tipo = 'evo'  # Normalizar para "evo"
             
             # Criar LoomieMessage
             loomie_message = LoomieMessage(
@@ -251,15 +258,23 @@ def webhook_saida(request):
             loomie_message = LoomieMessage.from_dict(request.data)
         
         # Buscar canal configurado
-        # 🔧 WhatsApp pode ser tipo 'whatsapp' ou 'evo' (Evolution API)
         canal_tipo = loomie_message.channel_type
-        if canal_tipo == 'whatsapp':
-            # Buscar canal whatsapp OU evo
+        
+        # 🔧 Evolution API (não oficial)
+        if canal_tipo in ['evo', 'evolution']:
             canal = CanalConfig.objects.filter(
-                tipo__in=['whatsapp', 'evo'],
+                tipo='evo',
                 ativo=True,
                 envia_saida=True
             ).first()
+        # 🔧 WhatsApp Business API (oficial) - FUTURO
+        elif canal_tipo == 'whatsapp':
+            canal = CanalConfig.objects.filter(
+                tipo='whatsapp',
+                ativo=True,
+                envia_saida=True
+            ).first()
+        # Outros canais
         else:
             canal = CanalConfig.objects.filter(
                 tipo=canal_tipo,

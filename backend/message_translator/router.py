@@ -274,13 +274,25 @@ def enviar_mensagem_saida(loomie_message: LoomieMessage, canal: CanalConfig, pay
                 # Extrair número do destinatário
                 recipient = loomie_message.recipient.replace('whatsapp:', '').replace('evo:', '').replace('telegram:', '').replace('instagram:', '')
                 
-                # Buscar contato e conversa
-                contato = Contato.objects.filter(telefone=recipient).first()
+                # 🔧 Buscar ou CRIAR contato e conversa (para mensagens enviadas via n8n)
+                contato, contato_created = Contato.objects.get_or_create(
+                    telefone=recipient,
+                    defaults={'nome': recipient}  # Se não existir, usa o telefone como nome
+                )
                 
-                if contato:
-                    conversa = Conversa.objects.filter(contato=contato).first()
-                    
-                    if conversa:
+                if contato_created:
+                    logger.info(f"👤 [CRM SAÍDA] Novo contato criado: {contato.telefone}")
+                
+                # Buscar ou criar conversa
+                conversa, conversa_created = Conversa.objects.get_or_create(
+                    contato=contato,
+                    defaults={'status': 'atendimento'}  # Conversa já inicia em atendimento
+                )
+                
+                if conversa_created:
+                    logger.info(f"💬 [CRM SAÍDA] Nova conversa criada: ID {conversa.pk}")
+                
+                if conversa:
                         # Determinar tipo de mensagem
                         if loomie_message.content_type == 'text':
                             tipo_mensagem = 'texto'
@@ -340,14 +352,10 @@ def enviar_mensagem_saida(loomie_message: LoomieMessage, canal: CanalConfig, pay
                         conversa.atualizado_em = timezone.now()
                         conversa.save()
                         
-                        logger.info(f"✅ [CRM SAÍDA] Interação criada: ID {interacao.id}, Tipo: {tipo_mensagem}, Operador: {operador.user.username if operador else 'N/A'}")
+                        logger.info(f"✅ [CRM SAÍDA] Interação criada: ID {interacao.pk}, Tipo: {tipo_mensagem}, Operador: {operador.user.username if operador else 'N/A'}")
                         
                         # Adicionar ID da interação ao resultado
-                        resultado['interacao_id'] = interacao.id
-                    else:
-                        logger.warning(f"⚠️ [CRM SAÍDA] Conversa não encontrada para contato {recipient}")
-                else:
-                    logger.warning(f"⚠️ [CRM SAÍDA] Contato não encontrado: {recipient}")
+                        resultado['interacao_id'] = interacao.pk
             
             except Exception as e:
                 logger.error(f"❌ [CRM SAÍDA] Erro ao criar interação: {e}", exc_info=True)
