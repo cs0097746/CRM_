@@ -10,93 +10,179 @@ import { FaThLarge, FaList, FaSearch } from 'react-icons/fa';
 const styles = `
     .kanbans-container {
         min-height: 100vh;
-        background-color: #f8f9fa; /* Fundo cinza claro */
+        background: #f8f9fa;
+        width: 100%;
     }
 
-    /* Estilo do Card Kanban (Visualização em Grid) */
+    .kanbans-content {
+        padding: 2rem;
+        width: 100%;
+    }
+
+    /* Estilo do Card Kanban (Visualização em Grid) - Predominância Azul e Branco */
     .kanban-card {
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        transition: all 0.2s ease;
-        border: 1px solid #e1e5e9;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(49, 109, 189, 0.08);
+        transition: all 0.3s ease;
+        border: 1px solid #e1e8ed;
+        background: white;
         height: 100%;
         cursor: pointer;
     }
     .kanban-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 12px rgba(49, 109, 189, 0.15);
+        border-color: #316dbd;
     }
     .kanban-card .card-title {
-        color: #316dbd; /* Azul primário */
-        font-size: 1.25rem;
+        color: #316dbd;
+        font-size: 1.1rem;
+        font-weight: 600;
     }
 
-    /* Estilo da Visualização em Lista */
+    /* Estilo da Visualização em Lista - Simples e Clean */
     .kanban-list-item {
         background-color: white;
-        border: 1px solid #e1e5e9;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 12px;
-        transition: background-color 0.2s;
+        border: 1px solid #e1e8ed;
+        border-left: 3px solid #316dbd;
+        border-radius: 6px;
+        padding: 16px 20px;
+        margin-bottom: 10px;
+        transition: all 0.2s ease;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
     .kanban-list-item:hover {
-        background-color: #f0f4f7;
+        background-color: #f8f9fa;
+        border-left-color: #2557a0;
+        box-shadow: 0 2px 8px rgba(49, 109, 189, 0.1);
     }
     .kanban-list-item .list-title {
         color: #316dbd;
         font-weight: 600;
     }
 
-    /* Estilo do Modal Profissional (Mantido) */
+    /* Estilo do Modal - Clean e Profissional */
     .modal-professional .modal-content {
-        border-radius: 12px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        border: none;
     }
     .modal-professional .modal-header {
-        background-color: #316dbd; 
+        background-color: #316dbd;
         color: white;
         border-bottom: none;
-        border-top-left-radius: 12px;
-        border-top-right-radius: 12px;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 1.2rem 1.5rem;
+    }
+    .modal-professional .modal-title {
+        font-weight: 600;
+        font-size: 1.1rem;
     }
     .modal-professional .form-control {
-        border-radius: 8px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 0.65rem;
+    }
+    .modal-professional .form-control:focus {
+        border-color: #316dbd;
+        box-shadow: 0 0 0 0.2rem rgba(49, 109, 189, 0.1);
     }
 
-    /* Botões de Ação (Mantido) */
+    /* Botões - Azul predominante, verde apenas no criar */
     .btn-create-kanban {
-        background-color: #7ed957; 
-        border-color: #7ed957;
+        background-color: #7ed957;
+        border: none;
+        color: white;
         font-weight: 600;
-        border-radius: 8px;
+        border-radius: 6px;
         padding: 0.6rem 1.5rem;
-        box-shadow: 0 4px 12px rgba(126, 217, 87, 0.4);
+        transition: all 0.2s ease;
+    }
+    .btn-create-kanban:hover {
+        background-color: #6bc542;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(126, 217, 87, 0.25);
     }
     .btn-primary-kanban {
         background-color: #316dbd;
-        border-color: #316dbd;
+        border: none;
+        color: white;
         font-weight: 600;
-        border-radius: 8px;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
     }
     .btn-primary-kanban:hover {
-        background-color: #2a5a9c;
-        border-color: #2a5a9c;
+        background-color: #2557a0;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(49, 109, 189, 0.2);
     }
-    /* Estilo para o Toggle Group (Mantido) */
-    .view-toggle button {
-        border: 1px solid #ced4da !important;
+    
+    /* Toggle View - Simples */
+    .kanbans-header .view-toggle button {
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        background-color: transparent;
+        color: white;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+    }
+    .kanbans-header .view-toggle button:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: white !important;
+    }
+    .kanbans-header .view-toggle .active,
+    .kanbans-header .view-toggle button.btn-primary {
+        background-color: white !important;
+        color: #316dbd !important;
+        border-color: white !important;
+    }
+
+    /* Badge - Azul discreto */
+    .badge.bg-secondary {
+        background-color: #6c757d !important;
+        border: none;
+        font-weight: 500;
+    }
+
+    /* Input de busca - Clean */
+    .kanbans-header .input-group .input-group-text {
         background-color: white;
-        color: #495057;
+        border: none;
+        color: #6c757d;
+        border-radius: 6px 0 0 6px;
     }
-    .view-toggle .active {
-        background-color: #316dbd !important;
-        color: white !important;
-        border-color: #316dbd !important;
+    .kanbans-header .input-group .form-control {
+        border: none;
+        border-radius: 0 6px 6px 0;
+        background-color: white;
+    }
+    .kanbans-header .input-group .form-control:focus {
+        border: none;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+    }
+    .kanbans-header .input-group .form-control::placeholder {
+        color: #999;
+    }
+
+    /* Header - Azul sólido simples */
+    .kanbans-header {
+        background-color: #316dbd;
+        padding: 1.5rem 2rem;
+        margin: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Título - Clean */
+    .page-title {
+        color: white;
+        font-weight: 600;
+        font-size: 1.5rem;
+        margin: 0;
     }
 `;
 
@@ -158,7 +244,8 @@ export default function Kanbans() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState("");
 
-  const api = axios.create({ baseURL: `${backend_url}` });
+  // Criar api fora do componente ou usar useMemo para evitar recriação
+  const api = useMemo(() => axios.create({ baseURL: `${backend_url}` }), []);
 
   const fetchKanbans = useCallback(async () => {
     try {
@@ -180,7 +267,7 @@ export default function Kanbans() {
 
   useEffect(() => {
     fetchKanbans();
-  }, [fetchKanbans]);
+  }, []);
 
   const openModal = (kanban?: Kanban) => {
     if (kanban) {
@@ -281,23 +368,25 @@ export default function Kanbans() {
 
 
   if (loading) return (
-    <Container className="py-5 text-center">
-        <Spinner animation="border" variant="primary" />
-        <p className="mt-2 text-muted">Carregando Pipelines...</p>
-    </Container>
+    <div className="kanbans-container d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+        <div className="text-center">
+            <Spinner animation="border" style={{ color: '#316dbd', width: '3rem', height: '3rem' }} />
+            <p className="mt-3" style={{ color: '#316dbd', fontSize: '1.1rem', fontWeight: 600 }}>Carregando Pipelines...</p>
+        </div>
+    </div>
   );
 
   return (
     <>
       <style>{styles}</style>
-      <Container className="py-5 kanbans-container">
-
-        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-            <h1 className="fw-bold mb-3" style={{ color: "#316dbd" }}>
-                🎯 Gestão de Pipeline
+      <div className="kanbans-container">
+        <div className="kanbans-header">
+          <div className="d-flex justify-content-between align-items-center flex-wrap">
+            <h1 className="page-title">
+              🎯 Gestão de Pipeline
             </h1>
 
-            <div className="d-flex gap-3 align-items-center mb-3 flex-wrap justify-content-end">
+            <div className="d-flex gap-3 align-items-center flex-wrap">
 
                 <InputGroup style={{ maxWidth: '300px' }}>
                     <InputGroup.Text>
@@ -334,8 +423,10 @@ export default function Kanbans() {
                     + Criar Kanban
                 </Button>
             </div>
+          </div>
         </div>
 
+        <div className="kanbans-content">
         {kanbans.length === 0 && !loading && (
             <div className="alert alert-info text-center" role="alert">
                 Nenhum Kanban encontrado. Crie um novo para começar!
@@ -408,7 +499,8 @@ export default function Kanbans() {
                 ))}
             </div>
         )}
-      </Container>
+        </div>
+      </div>
 
       {modalOpen && (
         <Modal

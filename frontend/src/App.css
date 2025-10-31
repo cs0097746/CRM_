@@ -348,6 +348,13 @@ body, #root {
   overflow: hidden;
 }
 
+/* Remove padding para a página de Kanbans/Pipeline - Tela cheia */
+.main-content:has(.kanbans-container) {
+  padding: 0;
+  margin-left: 70px; /* Mantém espaço para sidebar */
+  overflow: hidden;
+}
+
 /* ============================================
    📱 RESPONSIVIDADE
    ============================================ */
