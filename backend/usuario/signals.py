@@ -7,16 +7,15 @@ from django.utils import timezone
 from datetime import timedelta
 
 @receiver(post_save, sender=User)
-def criar_perfil_usuario(sender, instance, created, **kwargs):
-    if created:
-        PerfilUsuario.objects.get_or_create(usuario=instance)
-
-@receiver(post_save, sender=User)
-def criar_plano_free_para_usuario(sender, instance, created, **kwargs):
+def criar_plano_free_para_usuario_criar_perfil_usuario(sender, instance, created, **kwargs):
     if not created:
         return
 
-    if instance.criado_por is None:
+    perfil_usuario, _ = PerfilUsuario.objects.get_or_create(
+        usuario=instance
+    )
+
+    if perfil_usuario.criado_por is None:
         plano_free = Plano.objects.filter(nome__iexact="Free").first()
 
         if not plano_free:
