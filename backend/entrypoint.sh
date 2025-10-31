@@ -6,6 +6,9 @@ until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER"
   sleep 2
 done
 
+echo "Criando novas migrations se houver alterações..."
+python manage.py makemigrations
+
 echo "Rodando migrate..."
 python manage.py migrate
 

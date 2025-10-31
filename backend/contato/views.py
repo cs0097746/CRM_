@@ -40,7 +40,7 @@ from kanban.serializers import EstagioSerializer, KanbanSerializer
 from negocio.serializers import NegocioSerializer
 from atendimento.utils import get_instance_config
 from core.utils import get_ids_visiveis
-from usuario.models import PlanoUsuario
+from usuario.models import PlanoUsuario, PerfilUsuario
 from rest_framework.exceptions import ValidationError
 
 # ===== VIEWS DE API - CONTATOS =====
@@ -62,10 +62,13 @@ class ContatoListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         plano_chefe = None
-        if self.request.user.criado_por is None:
+        user_profile = PerfilUsuario.objects.get(
+            usuario=request.user,
+        )
+        if user_profile.criado_por is None:
             plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user).plano
         else:
-            plano_chefe = PlanoUsuario.objects.get(usuario=self.request.user.criado_por).plano
+            plano_chefe = PlanoUsuario.objects.get(usuario=user_profile.criado_por).plano
 
         limite_contatos = plano_chefe.contatos_inclusos
         contatos_inclusos = Contato.objects.filter(criado_por__id__in=get_ids_visiveis(self.request.user)).count()

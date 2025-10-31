@@ -16,7 +16,7 @@ from contato.serializers import ContatoSerializer
 from atendimento.views import verificar_status_instancia
 from core.models import ConfiguracaoSistema
 from django.http import JsonResponse
-from usuario.models import PlanoUsuario
+from usuario.models import PlanoUsuario, PerfilUsuario
 from core.utils import get_ids_visiveis
 from rest_framework.exceptions import ValidationError
 
@@ -288,10 +288,13 @@ def criar_subordinado(request):
             return Response({'success': False, 'message': 'Chefe não encontrado'})
 
         plano_chefe = None
-        if request.user.criado_por is None:
+        perfil_usuario = PerfilUsuario.objects.get(
+            usuario=request.user,
+        )
+        if perfil_usuario.criado_por is None:
             plano_chefe = PlanoUsuario.objects.get(usuario=request.user).plano
         else:
-            plano_chefe = PlanoUsuario.objects.get(usuario=request.user.criado_por).plano
+            plano_chefe = PlanoUsuario.objects.get(usuario=perfil_usuario.criado_por).plano
 
         limite_usuarios = plano_chefe.usuarios_inclusos
         usuarios_inclusos = User.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
@@ -308,9 +311,16 @@ def criar_subordinado(request):
                 'email': email,
                 'first_name': first_name,
                 'last_name': last_name,
-                'criado_por': chefe
             }
         )
+
+        perfil_usuario_sub, _ = PerfilUsuario.objects.get_or_create(
+            usuario=user,
+        )
+
+        perfil_usuario_sub.criado_por = request.user
+        perfil_usuario_sub.save()
+
 
         if created:
             user.set_password(password)

@@ -8,6 +8,7 @@ from django.db import models
 from django.conf import settings
 from contato.models import Contato, Operador
 from atendimento.models import Conversa, Interacao
+from usuario.models import PerfilUsuario
 from .models import CrmApplication, ApiUsageLog
 from .serializers import ContatoOAuthSerializer, ConversaOAuthSerializer, InteracaoOAuthSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -941,7 +942,8 @@ class CustomTokenView(TokenView):
         try:
             token = AccessToken.objects.select_related("user").get(token=access_token_value)
             user = token.user
-            body_data["is_chefe"] = user.criado_por is None
+            perfil_usuario = PerfilUsuario.objects.get(usuario=user)
+            body_data["is_chefe"] = perfil_usuario.criado_por is None
         except AccessToken.DoesNotExist:
             body_data["is_chefe"] = False
 

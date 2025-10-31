@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.contrib.auth.models import User
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -5,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from contato.models import Contato
 from core.utils import get_ids_visiveis
 from kanban.models import Kanban
-from usuario.models import PlanoUsuario
+from usuario.models import PlanoUsuario, PerfilUsuario
 
 @api_view(["POST"])
 def register(request):
@@ -33,8 +34,12 @@ def register(request):
         password=password,
         email=email,
     )
-    user.criado_por = criado_por
     user.save()
+
+    PerfilUsuario.objects.create(
+        usuario=user,
+        criado_por=criado_por,
+    )
 
     return Response({"success": True, "message": "Usuário criado com sucesso"})
 
@@ -89,14 +94,17 @@ def usuario_info(request):
 @permission_classes([IsAuthenticated])
 def uso_plano(request):
     try:
-        if request.user.criado_por is None:
+        perfil_usuario = PerfilUsuario.objects.get(
+            usuario=request.user,
+        )
+        if perfil_usuario.criado_por is None:
             plano_user = PlanoUsuario.objects.get(usuario=request.user)
         else:
-            plano_user = PlanoUsuario.objects.get(usuario=request.user.criado_por)
+            plano_user = PlanoUsuario.objects.get(usuario=perfil_usuario.criado_por)
 
         plano = plano_user.plano
 
-        usuarios_inclusos = User.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
+        usuarios_inclusos = User.objects.filter(perfil_usuario__criado_por__id__in=get_ids_visiveis(request.user)).count()
         limite_usuarios = plano.usuarios_inclusos
 
         pipelines_inclusos = Kanban.objects.filter(criado_por__id__in=get_ids_visiveis(request.user)).count()
@@ -116,4 +124,26 @@ def uso_plano(request):
             "pipelines_inclusos": pipelines_inclusos,
         })
     except Exception as e:
+        print(e)
         return Response({"error": f"Erro ao consultar uso do plano: {str(e)}"}, status=500)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def usuario_aceitou_termos(request):
+    try:
+        perfil = PerfilUsuario.objects.get(usuario=request.user)
+
+        if request.method == "GET":
+            return Response({"aceitou_termos": perfil.aceitou_termos})
+
+        elif request.method == "POST":
+            perfil.aceitou_termos = True
+            perfil.aceitou_quando = timezone.now()
+            perfil.save(update_fields=["aceitou_termos", "aceitou_quando"])
+            return Response({"message": "Termos aceitos com sucesso.", "aceitou_termos": True})
+
+    except PerfilUsuario.DoesNotExist:
+        return Response({"error": "Perfil do usuário não encontrado."}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
