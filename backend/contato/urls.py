@@ -11,7 +11,7 @@ from atributo import views as atributos_views
 from notificacao import views as notificacao_views
 from tarefas import views as tarefas_views
 from gatilho import views as gatilho_views
-from usuario.views import uso_plano
+from usuario.views import uso_plano, usuario_aceitou_termos
 from plano import views as plano_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
@@ -126,6 +126,9 @@ urlpatterns = [
 
     # api de uso de planos
     path('plan_usage/', uso_plano, name='plan_usage'),
+
+    # api de aceitou termos/aceitar termos
+    path('aceitou_termos/',usuario_aceitou_termos, name='aceitou_termos' ),
 
     # api de planos
     path('planos/', plano_views.PlanoListView.as_view(), name='planos'),

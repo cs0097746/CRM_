@@ -6,6 +6,9 @@ import json
 from django.db import transaction
 from django.contrib.auth.models import User
 
+from usuario.models import PerfilUsuario
+
+
 def get_user_operador(user):
     """Função auxiliar para obter operador do usuário de forma segura"""
     if hasattr(user, 'operador'):
@@ -13,20 +16,25 @@ def get_user_operador(user):
     return None
 
 def get_ids_visiveis(user):
+    try:
+        perfil = PerfilUsuario.objects.get(usuario=user)
+    except PerfilUsuario.DoesNotExist:
+        return [user.id]
 
-    subordinados = User.objects.filter(criado_por=user)
+    subordinados = PerfilUsuario.objects.filter(criado_por=user)
 
-    colegas = User.objects.filter(criado_por=user.criado_por) if user.criado_por else User.objects.none()
-
-    chefe = [user.criado_por.id] if user.criado_por else []
+    if perfil.criado_por:
+        colegas = User.objects.filter(perfil_usuario__criado_por=perfil.criado_por)
+        chefe = [perfil.criado_por.id]
+    else:
+        colegas = User.objects.none()
+        chefe = []
 
     ids_visiveis = (
-            list(subordinados.values_list("id", flat=True)) +
+            list(subordinados.values_list("usuario_id", flat=True)) +
             list(colegas.values_list("id", flat=True)) +
             chefe +
             [user.id]
     )
 
-    ids_visiveis = list(set(ids_visiveis))
-
-    return ids_visiveis
+    return list(set(ids_visiveis))

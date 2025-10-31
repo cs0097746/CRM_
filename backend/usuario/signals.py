@@ -2,9 +2,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from usuario.models import User
 from plano.models import Plano
-from usuario.models import PlanoUsuario
+from usuario.models import PlanoUsuario, PerfilUsuario
 from django.utils import timezone
 from datetime import timedelta
+
+@receiver(post_save, sender=User)
+def criar_perfil_usuario(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.get_or_create(usuario=instance)
 
 @receiver(post_save, sender=User)
 def criar_plano_free_para_usuario(sender, instance, created, **kwargs):
