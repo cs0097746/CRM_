@@ -1,14 +1,21 @@
 ﻿import { useState, useEffect } from 'react';
 import { Row, Col, Button, Card, Container } from 'react-bootstrap';
 import { getToken } from "../function/validateToken.tsx";
+import TermosModal from "../components/TermosModal.tsx";
 
 const Home = () => {
   const [userName, setUserName] = useState<string>('');
+  const [termosAceitos, setTermosAceitos] = useState<boolean>(false);
 
   useEffect(() => {
     const name = localStorage.getItem('full_name') || localStorage.getItem('username') || 'Usuário';
     setUserName(name);
   }, []);
+
+  const handleTermosAceitos = () => {
+    setTermosAceitos(true);
+    console.log('✅ Termos aceitos pelo usuário');
+  };
 
   const features = [
     {
@@ -69,6 +76,9 @@ const Home = () => {
 
   return (
     <>
+      {/* Modal de Termos de Serviço */}
+      <TermosModal onAceite={handleTermosAceitos} />
+      
       <style>{`
         .home-clean-container {
           min-height: 100vh;

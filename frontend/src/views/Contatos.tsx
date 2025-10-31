@@ -259,73 +259,12 @@ interface ContactFormModalProps {
     onContactSuccess: (contact: Contato, isNew: boolean) => void;
 }
 
-// Funções de validação
-const validateEmail = (email: string): { valid: boolean; message: string } => {
-    if (!email || !email.trim()) {
-        return { valid: true, message: '' }; // Email é opcional
-    }
-    
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email.trim())) {
-        return { 
-            valid: false, 
-            message: '❌ Email inválido. Use o formato: usuario@dominio.com' 
-        };
-    }
-    
-    return { valid: true, message: '✓ Email válido' };
-};
-
-const validateTelefone = (telefone: string): { valid: boolean; message: string } => {
-    if (!telefone || !telefone.trim()) {
-        return { valid: false, message: '❌ Telefone é obrigatório' };
-    }
-    
-    // Remove tudo que não é número
-    const apenasNumeros = telefone.replace(/\D/g, '');
-    
-    // Remove código do país se houver
-    let numero = apenasNumeros;
-    if (numero.startsWith('55') && numero.length > 11) {
-        numero = numero.substring(2);
-    }
-    
-    // Valida quantidade de dígitos
-    if (numero.length < 10 || numero.length > 11) {
-        return { 
-            valid: false, 
-            message: '❌ Telefone deve ter 10 ou 11 dígitos. Ex: (11) 98765-4321' 
-        };
-    }
-    
-    // Valida DDD
-    const ddd = parseInt(numero.substring(0, 2));
-    if (ddd < 11 || ddd > 99) {
-        return { 
-            valid: false, 
-            message: '❌ DDD inválido. Use um código de área válido (11-99)' 
-        };
-    }
-    
-    // Valida celular (se tiver 11 dígitos, o terceiro deve ser 9)
-    if (numero.length === 11 && numero[2] !== '9') {
-        return { 
-            valid: false, 
-            message: '❌ Celular deve começar com 9. Ex: (11) 98765-4321' 
-        };
-    }
-    
-    return { valid: true, message: '✓ Telefone válido' };
-};
-
 function ContactFormModal({ show, onHide, contactId, onContactSuccess }: ContactFormModalProps) {
     const isEditMode = contactId !== null;
     const [formData, setFormData] = useState<typeof initialFormData>(initialFormData);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEditMode);
     const [error, setError] = useState<string | null>(null);
-    const [emailValidation, setEmailValidation] = useState<{ valid: boolean; message: string } | null>(null);
-    const [telefoneValidation, setTelefoneValidation] = useState<{ valid: boolean; message: string } | null>(null);
 
     const fetchContactData = useCallback(async (id: number) => {
         setFetching(true);
@@ -375,20 +314,10 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
     }, [show, contactId, isEditMode, fetchContactData]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        
         setFormData({
             ...formData,
-            [name]: value,
+            [e.target.name]: e.target.value,
         });
-        
-        // Validação em tempo real
-        if (name === 'email') {
-            setEmailValidation(validateEmail(value));
-        } else if (name === 'telefone') {
-            setTelefoneValidation(validateTelefone(value));
-        }
-        
         if (error) setError(null);
     };
 
@@ -397,29 +326,10 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
         setLoading(true);
         setError(null);
 
-        // Validações antes de submeter
         if (!formData.nome || !formData.telefone) {
-            setError('❌ Nome e Telefone são campos obrigatórios.');
+            setError('Nome e Telefone são campos obrigatórios.');
             setLoading(false);
             return;
-        }
-
-        const telefoneCheck = validateTelefone(formData.telefone);
-        if (!telefoneCheck.valid) {
-            setError(telefoneCheck.message);
-            setTelefoneValidation(telefoneCheck);
-            setLoading(false);
-            return;
-        }
-
-        if (formData.email && formData.email.trim()) {
-            const emailCheck = validateEmail(formData.email);
-            if (!emailCheck.valid) {
-                setError(emailCheck.message);
-                setEmailValidation(emailCheck);
-                setLoading(false);
-                return;
-            }
         }
 
         try {
@@ -517,40 +427,13 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
                                 </Form.Group>
                                 <Form.Group className="mb-3 col-md-6" controlId="formContactPhone">
                                     <Form.Label style={{ fontWeight: 500 }}>Telefone <span className="text-danger">*</span></Form.Label>
-                                    <Form.Control 
-                                        type="text" 
-                                        placeholder="(11) 98765-4321" 
-                                        name="telefone" 
-                                        value={formData.telefone} 
-                                        onChange={handleChange} 
-                                        required
-                                        isInvalid={telefoneValidation ? !telefoneValidation.valid : false}
-                                        isValid={telefoneValidation ? telefoneValidation.valid && formData.telefone.length > 0 : false}
-                                    />
-                                    {telefoneValidation && (
-                                        <Form.Control.Feedback type={telefoneValidation.valid ? 'valid' : 'invalid'}>
-                                            {telefoneValidation.message}
-                                        </Form.Control.Feedback>
-                                    )}
+                                    <Form.Control type="text" placeholder="(99) 99999-9999" name="telefone" value={formData.telefone} onChange={handleChange} required/>
                                 </Form.Group>
                             </div>
                             <div className="row">
                                 <Form.Group className="mb-3 col-md-6" controlId="formContactEmail">
                                     <Form.Label style={{ fontWeight: 500 }}>E-mail</Form.Label>
-                                    <Form.Control 
-                                        type="email" 
-                                        placeholder="usuario@dominio.com" 
-                                        name="email" 
-                                        value={formData.email || ''} 
-                                        onChange={handleChange}
-                                        isInvalid={emailValidation ? !emailValidation.valid : false}
-                                        isValid={emailValidation ? emailValidation.valid && formData.email && formData.email.length > 0 : false}
-                                    />
-                                    {emailValidation && emailValidation.message && (
-                                        <Form.Control.Feedback type={emailValidation.valid ? 'valid' : 'invalid'}>
-                                            {emailValidation.message}
-                                        </Form.Control.Feedback>
-                                    )}
+                                    <Form.Control type="email" placeholder="email@exemplo.com" name="email" value={formData.email || ''} onChange={handleChange}/>
                                 </Form.Group>
                                 <Form.Group className="mb-3 col-md-6" controlId="formContactBirthDate">
                                     <Form.Label style={{ fontWeight: 500 }}>Data de Nascimento</Form.Label>
