@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Row, Col, Button, Card, Container } from 'react-bootstrap';
 import { getToken } from "../function/validateToken.tsx";
 
-const Home = () => {
+const HomeClean = () => {
   const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
@@ -13,38 +13,38 @@ const Home = () => {
   const features = [
     {
       icon: '💬',
-      title: 'Conversas Unificadas',
-      description: 'Centralize WhatsApp, e-mail e mensagens em uma interface única',
+      title: 'Atendimento Multicanal',
+      description: 'Unifique WhatsApp, e-mail e outros canais em um só lugar',
       color: '#316dbd'
     },
     {
       icon: '🎯',
-      title: 'Gestão de Negócios',
-      description: 'Acompanhe oportunidades pelo funil visual de vendas Kanban',
+      title: 'Pipelines Inteligentes',
+      description: 'Visualize seu funil de vendas e acompanhe cada negociação',
       color: '#7ed957'
     },
     {
       icon: '⚡',
-      title: 'Gatilhos Automáticos',
-      description: 'Configure respostas e ações inteligentes sem esforço manual',
+      title: 'Automações Poderosas',
+      description: 'Gatilhos automáticos que economizam tempo da sua equipe',
       color: '#ffc107'
     },
     {
       icon: '📊',
-      title: 'Análises Estratégicas',
-      description: 'Dashboards completos com dados acionáveis do seu negócio',
+      title: 'Relatórios Detalhados',
+      description: 'Métricas e insights para decisões mais assertivas',
       color: '#8c52ff'
     },
     {
       icon: '👥',
-      title: 'Controle de Acesso',
-      description: 'Defina permissões e gerencie toda sua equipe operacional',
+      title: 'Gestão de Equipe',
+      description: 'Controle completo sobre operadores e permissões',
       color: '#316dbd'
     },
     {
       icon: '🔔',
-      title: 'Alertas Inteligentes',
-      description: 'Receba notificações instantâneas sobre eventos importantes',
+      title: 'Notificações em Tempo Real',
+      description: 'Nunca perca uma mensagem importante dos seus clientes',
       color: '#7ed957'
     }
   ];
@@ -450,4 +450,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default HomeClean;
