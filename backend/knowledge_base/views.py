@@ -1,6 +1,9 @@
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from core.utils import get_ids_visiveis
 from .models import KnowledgeBaseSet, KnowledgeBaseField, KnowledgeBaseEntry, KnowledgeBaseValue
 from .serializers import (
     KnowledgeBaseSetSerializer,
@@ -19,20 +22,33 @@ def trigger_webhook(event_type, data):
     except Exception as e:
         print(f"Erro ao enviar webhook: {e}")
 
-class KnowledgeBaseSetViewSet(viewsets.ModelViewSet):
-    queryset = KnowledgeBaseSet.objects.all()
-    serializer_class = KnowledgeBaseSetSerializer
+class KnowledgeBaseValueViewSet(viewsets.ModelViewSet):
+    serializer_class = KnowledgeBaseValueSerializer
+    permission_classes = [IsAuthenticated]
 
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name']
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return KnowledgeBaseValue.objects.filter(entry__kb_set__client__id__in=ids_visiveis)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        trigger_webhook("value_deleted", KnowledgeBaseValueSerializer(instance).data)
 
 class KnowledgeBaseFieldViewSet(viewsets.ModelViewSet):
-    queryset = KnowledgeBaseField.objects.all()
+    permission_classes = [IsAuthenticated]
     serializer_class = KnowledgeBaseFieldSerializer
 
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return KnowledgeBaseField.objects.filter(kb_set__client__id__in=ids_visiveis)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        trigger_webhook("field_deleted", KnowledgeBaseFieldSerializer(instance).data)
+
 class KnowledgeBaseEntryViewSet(viewsets.ModelViewSet):
-    queryset = KnowledgeBaseEntry.objects.all()
     serializer_class = KnowledgeBaseEntrySerializer
+    permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         entry = serializer.save()
@@ -47,11 +63,39 @@ class KnowledgeBaseEntryViewSet(viewsets.ModelViewSet):
         instance.delete()
         trigger_webhook("entry_deleted", data)
 
+    def get_queryset(self):
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        return KnowledgeBaseEntry.objects.filter(kb_set__client__id__in=ids_visiveis)
+
 class KnowledgeBaseSetViewSet(viewsets.ModelViewSet):
-    queryset = KnowledgeBaseSet.objects.all()
     serializer_class = KnowledgeBaseSetSerializer
+    permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
+
+    def get_queryset(self):
+
+        ids_visiveis = get_ids_visiveis(self.request.user)
+        queryset = KnowledgeBaseSet.objects.filter(
+            client__id__in=ids_visiveis,
+        )
+
+        return queryset
+
+    def perform_destroy(self, instance):
+        data = KnowledgeBaseSetSerializer(instance).data
+        instance.delete()
+        trigger_webhook("kb_set_deleted", data)
+
+    def perform_create(self, serializer):
+        client_id = self.request.user.id
+
+        try:
+            kb_set = serializer.save(client_id=client_id)
+            trigger_webhook("kb_set_created", KnowledgeBaseSetSerializer(kb_set).data)
+        except Exception as e:
+            print("Erro ao criar KB Set:", e)
+            raise
 
     @action(detail=False, methods=["post"])
     def create_full(self, request):
