@@ -22,6 +22,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 from core.models import ConfiguracaoSistema
 from core.utils import get_user_operador
 from core.ffmpeg_service import FFmpegService
@@ -337,12 +338,23 @@ class InteracaoCreateView(generics.CreateAPIView):
 
 # ===== CONVERSAS E INTERAÇÕES =====
 
+class ConversaPagination(PageNumberPagination):
+    """
+    Paginação para conversas - 20 itens por página
+    Evita carregar todas as conversas de uma vez (performance)
+    """
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class ConversaListView(generics.ListAPIView):
     """
-    API: Lista conversas com URLs locais
+    API: Lista conversas com URLs locais e paginação
     """
     serializer_class = ConversaListSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = ConversaPagination  # ✅ PAGINAÇÃO ADICIONADA
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'operador']
     search_fields = ['contato__nome', 'contato__telefone']
@@ -359,6 +371,147 @@ class ConversaListView(generics.ListAPIView):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+
+class ConversaCreateView(generics.CreateAPIView):
+    """
+    API: Cria nova conversa manualmente com um contato
+    POST /conversas/criar/
+    Body: { "contato": <contato_id>, "assunto": "...", "origem": "manual" }
+    """
+    serializer_class = ConversaDetailSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        operador = get_user_operador(self.request.user)
+        contato_id = self.request.data.get('contato')
+        
+        if not contato_id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"contato": "Campo obrigatório"})
+        
+        # Verificar se já existe conversa ativa com esse contato
+        conversa_existente = Conversa.objects.filter(
+            contato_id=contato_id,
+            status__in=['entrada', 'atendimento']
+        ).first()
+        
+        if conversa_existente:
+            # Se já existe, atualiza operador e retorna a existente
+            if operador and not conversa_existente.operador:
+                conversa_existente.operador = operador
+                conversa_existente.status = 'atendimento'
+                conversa_existente.save()
+            
+            # Retornar conversa existente sem criar nova
+            return conversa_existente
+        
+        # Se não existe, cria nova conversa
+        serializer.save(
+            operador=operador,
+            origem=self.request.data.get('origem', 'manual'),
+            status='atendimento'
+        )
+    
+    def create(self, request, *args, **kwargs):
+        """Sobrescrever create para lidar com conversas existentes"""
+        import re
+        operador = get_user_operador(request.user)
+        contato_id = request.data.get('contato')
+        
+        if not contato_id:
+            return Response(
+                {"error": "Campo 'contato' é obrigatório"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar contato para normalizar telefone
+        from contato.models import Contato
+        try:
+            contato = Contato.objects.get(id=contato_id)
+        except Contato.DoesNotExist:
+            return Response(
+                {"error": "Contato não encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Normalizar telefone do contato (remover tudo que não é número)
+        telefone_normalizado = re.sub(r'\D', '', contato.telefone) if contato.telefone else ''
+        
+        # Buscar conversa existente por telefone normalizado OU por contato_id
+        # Isso evita duplicatas quando o telefone varia (999152039 vs 99152039)
+        conversa_existente = None
+        if telefone_normalizado:
+            # Buscar todos os contatos com telefone similar
+            contatos_similares = Contato.objects.filter(
+                criado_por=contato.criado_por
+            ).exclude(telefone__isnull=True).exclude(telefone='')
+            
+            # Filtrar por telefone normalizado
+            for c in contatos_similares:
+                telefone_c = re.sub(r'\D', '', c.telefone) if c.telefone else ''
+                # Comparar últimos 10 ou 11 dígitos (ignora código do país)
+                if telefone_c and telefone_normalizado:
+                    tel_curto = telefone_normalizado[-11:]
+                    tel_c_curto = telefone_c[-11:]
+                    if tel_curto == tel_c_curto or tel_curto[-10:] == tel_c_curto[-10:]:
+                        # Encontrou contato com telefone similar, buscar conversa ativa
+                        conversa_existente = Conversa.objects.filter(
+                            contato=c,
+                            status__in=['entrada', 'atendimento']
+                        ).first()
+                        if conversa_existente:
+                            break
+        
+        # Se não encontrou por telefone, buscar por contato_id direto
+        if not conversa_existente:
+            conversa_existente = Conversa.objects.filter(
+                contato_id=contato_id,
+                status__in=['entrada', 'atendimento']
+            ).first()
+        
+        if conversa_existente:
+            # Atualizar operador se necessário
+            if operador and not conversa_existente.operador:
+                conversa_existente.operador = operador
+                conversa_existente.status = 'atendimento'
+                conversa_existente.save()
+            
+            # Retornar conversa existente
+            serializer = self.get_serializer(conversa_existente)
+            return Response(
+                {
+                    "message": "Conversa já existe",
+                    "conversa": serializer.data,
+                    "created": False
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        # Se não existe, criar nova conversa
+        # (contato já foi buscado acima)
+        
+        # Criar conversa
+        conversa = Conversa.objects.create(
+            contato=contato,
+            operador=operador,
+            status='atendimento',
+            assunto=request.data.get('assunto', ''),
+            origem=request.data.get('origem', 'site'),
+            prioridade=request.data.get('prioridade', 'media')
+        )
+        
+        # Serializar para retornar
+        serializer = self.get_serializer(conversa)
+        
+        return Response(
+            {
+                "message": "Conversa criada com sucesso",
+                "conversa": serializer.data,
+                "created": True
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 
 class ConversaDetailView(generics.RetrieveUpdateAPIView):
