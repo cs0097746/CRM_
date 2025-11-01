@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.authtoken.models import Token
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 import requests
@@ -43,12 +44,20 @@ from core.utils import get_ids_visiveis
 from usuario.models import PlanoUsuario, PerfilUsuario
 from rest_framework.exceptions import ValidationError
 
+# ===== PAGINAÇÃO =====
+
+class ContatoPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 # ===== VIEWS DE API - CONTATOS =====
 
 class ContatoListCreateView(generics.ListCreateAPIView):
     """API: Listar e criar contatos"""
     serializer_class = ContatoSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = ContatoPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['nome', 'email', 'telefone']
     ordering_fields = ['nome', 'criado_em']
@@ -76,12 +85,29 @@ class ContatoListCreateView(generics.ListCreateAPIView):
         if contatos_inclusos >= limite_contatos:
             raise ValidationError(f"Limite de {limite_contatos} contatos atingido para este plano.")
 
+        # Verificar duplicata de telefone (normalizado)
         telefone = serializer.validated_data.get('telefone')
+        if telefone:
+            import re
+            # Normalizar telefone para comparação
+            telefone_limpo = re.sub(r'\D', '', telefone)
+            
+            # Adicionar código do país se necessário (mesma lógica do modelo)
+            if telefone_limpo.startswith('55') and len(telefone_limpo) in [12, 13]:
+                telefone_normalizado = telefone_limpo
+            elif len(telefone_limpo) in [10, 11]:
+                telefone_normalizado = f"55{telefone_limpo}"
+            else:
+                telefone_normalizado = telefone_limpo
+            
+            # Buscar contato com telefone normalizado igual
+            if Contato.objects.filter(criado_por=self.request.user, telefone=telefone_normalizado).exists():
+                raise ValidationError("Você já possui um contato com este telefone.")
+        
+        # Verificar duplicata de WhatsApp ID
         whatsapp_id = serializer.validated_data.get('whatsapp_id')
-        if (telefone and Contato.objects.filter(criado_por=self.request.user, telefone=telefone).exists()) or \
-           (whatsapp_id and Contato.objects.filter(criado_por=self.request.user, whatsapp_id=whatsapp_id).exists()):
-            raise ValidationError("Você já possui um contato com este telefone ou WhatsApp ID.")
-
+        if whatsapp_id and Contato.objects.filter(criado_por=self.request.user, whatsapp_id=whatsapp_id).exists():
+            raise ValidationError("Você já possui um contato com este WhatsApp ID.")
 
         serializer.save(criado_por=self.request.user)
 

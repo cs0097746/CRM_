@@ -28,6 +28,9 @@ export default function Atendimento() {
 
   const { playSound } = useNotificationSound();
 
+  // 🎯 Ler conversaId da URL para abrir conversa específica
+  const conversaIdFromUrl = new URLSearchParams(window.location.search).get('conversa');
+
   // Funções
   const showToastWithSound = (message: string, variant: 'success' | 'danger' | 'warning', soundType?: 'message' | 'alert' | 'success') => {
     setToastMessage(message);
@@ -275,16 +278,31 @@ export default function Atendimento() {
     fetchConversas();
   }, [fetchConversas]);
 
+  // 🎯 Abrir conversa específica da URL após carregar lista
+  useEffect(() => {
+    if (conversaIdFromUrl && conversas.length > 0 && !conversaAtiva) {
+      const conversaUrl = conversas.find(c => c.id === parseInt(conversaIdFromUrl));
+      if (conversaUrl) {
+        handleConversaSelect(conversaUrl);
+        // Limpar parâmetro da URL após abrir
+        window.history.replaceState({}, '', '/atendimento');
+      }
+    }
+  }, [conversaIdFromUrl, conversas, conversaAtiva]);
+
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         const token = await getToken();
         if (!token) return;
 
-        const response = await api.get<Conversa[]>('conversas/', { headers: { Authorization: `Bearer ${token}` } });
+        // ✅ Paginação: buscar página 1 com limite maior para polling
+        const response = await api.get<any>('conversas/?page_size=50', { 
+          headers: { Authorization: `Bearer ${token}` } 
+        });
 
-        // @ts-ignore
-        const novasConversas = response.data.results;
+        // ✅ Backend agora retorna: { count, next, previous, results }
+        const novasConversas = response.data.results || response.data;
 
         const conversasAnteriores = conversas;
         const novasMensagens = novasConversas.some((nova: Conversa) => {

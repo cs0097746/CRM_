@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from decimal import Decimal
+import re
 
 class Operador(models.Model):
     NIVEL_CHOICES = [
@@ -48,6 +49,26 @@ class Contato(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     criado_por = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    
+    def save(self, *args, **kwargs):
+        """
+        Normalizar telefone antes de salvar para evitar duplicatas
+        """
+        if self.telefone:
+            # Remover tudo que não é número
+            telefone_limpo = re.sub(r'\D', '', self.telefone)
+            
+            # Se começar com 55 e tiver 12 ou 13 dígitos, já tem código do país
+            if telefone_limpo.startswith('55') and len(telefone_limpo) in [12, 13]:
+                self.telefone = telefone_limpo
+            # Se não tem código do país (10 ou 11 dígitos), adicionar
+            elif len(telefone_limpo) in [10, 11]:
+                self.telefone = f"55{telefone_limpo}"
+            else:
+                # Manter como está se não for válido (será rejeitado pela validação)
+                self.telefone = telefone_limpo
+        
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return self.nome

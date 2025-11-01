@@ -367,19 +367,32 @@ function ContactFormModal({ show, onHide, contactId, onContactSuccess }: Contact
 
         } catch (err) {
             const defaultMessage = isEditMode ? 'Não foi possível atualizar o contato.' : 'Não foi possível criar o contato.';
-            let errorMessage = defaultMessage + ' Verifique os dados e a conexão com a API.';
+            let errorMessage = defaultMessage;
 
             if (axios.isAxiosError(err) && err.response) {
                 const errorData = err.response.data;
 
-                if (Array.isArray(errorData) && errorData.length > 0 && typeof errorData[0] === 'string') {
+                // 🎯 Priorizar erros de validação específicos (telefone, email)
+                if (errorData.telefone && Array.isArray(errorData.telefone) && errorData.telefone.length > 0) {
+                    errorMessage = '❌ Telefone inválido: ' + errorData.telefone[0];
+                }
+                else if (errorData.email && Array.isArray(errorData.email) && errorData.email.length > 0) {
+                    errorMessage = '❌ Email inválido: ' + errorData.email[0];
+                }
+                else if (errorData.nome && Array.isArray(errorData.nome) && errorData.nome.length > 0) {
+                    errorMessage = '❌ Nome inválido: ' + errorData.nome[0];
+                }
+                else if (Array.isArray(errorData) && errorData.length > 0 && typeof errorData[0] === 'string') {
                     errorMessage = errorData[0];
                 }
                 else if (errorData.detail) {
                     errorMessage = errorData.detail;
                 }
                 else if (errorData.non_field_errors && errorData.non_field_errors.length > 0) {
-                    errorMessage = errorData.non_field_errors[0];
+                    errorMessage = '❌ ' + errorData.non_field_errors[0];
+                }
+                else {
+                    errorMessage = defaultMessage + ' Verifique os dados e tente novamente.';
                 }
             }
 
@@ -515,7 +528,12 @@ export default function Contatos() {
     const [showContactModal, setShowContactModal] = useState(false);
     const [contactToEditId, setContactToEditId] = useState<number | null>(null);
 
-    const fetchContatos = useCallback(async () => {
+    // 📄 Estados de paginação
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+
+    const fetchContatos = useCallback(async (page: number = 1) => {
         try {
             setLoading(true);
             setError(null);
@@ -523,13 +541,18 @@ export default function Contatos() {
             const token = await getToken();
             if (!token) throw new Error("Autenticação falhou.");
 
-            const response = await api.get<{ results: Contato[] }>('contatos/', {
+            const response = await api.get<{ count: number; next: string | null; previous: string | null; results: Contato[] }>(`contatos/?page=${page}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
 
             setContatos(response.data.results);
+            setTotalCount(response.data.count);
+            setCurrentPage(page);
+            
+            // Calcular total de páginas (20 por página)
+            setTotalPages(Math.ceil(response.data.count / 20));
 
         } catch (err) {
             setError('Não foi possível carregar a lista de contatos.');
@@ -591,6 +614,36 @@ export default function Contatos() {
         setShowContactModal(true);
     };
 
+    const iniciarConversa = async (contatoId: number, contatoNome: string) => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                alert('Sessão expirada. Faça login novamente.');
+                return;
+            }
+
+            const response = await api.post(
+                '/conversas/criar/',
+                {
+                    contato: contatoId,
+                    assunto: `Conversa com ${contatoNome}`,
+                    origem: 'manual'
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            // Redirecionar para atendimento
+            const conversaId = response.data.conversa?.id || response.data.id;
+            window.location.href = `/atendimento?conversa=${conversaId}`;
+            
+        } catch (err: any) {
+            console.error('Erro ao iniciar conversa:', err);
+            alert('Erro ao iniciar conversa: ' + (err.response?.data?.error || err.message));
+        }
+    };
+
     const contatosFiltrados = contatos.filter(contato => {
         if (!searchTerm) return true;
 
@@ -631,7 +684,7 @@ export default function Contatos() {
 
                         <div className="contatos-card-header">
                             <h5 className="mb-0" style={{ fontWeight: 600, color: '#316dbd' }}>
-                                📋 Contatos Cadastrados ({contatos.length})
+                                📋 Contatos Cadastrados ({totalCount > 0 ? totalCount : contatos.length})
                             </h5>
 
                             <div className="contatos-card-header-controls">
@@ -709,6 +762,16 @@ export default function Contatos() {
                                                 </small>
 
                                                 <Button
+                                                    variant="outline-success"
+                                                    size="sm"
+                                                    onClick={() => iniciarConversa(contato.id, contato.nome)}
+                                                    title="Iniciar conversa no WhatsApp"
+                                                    style={{ borderColor: '#7ed957', color: '#7ed957' }}
+                                                >
+                                                    💬 Conversar
+                                                </Button>
+
+                                                <Button
                                                     variant="outline-primary"
                                                     size="sm"
                                                     onClick={() => openEditModal(contato.id)}
@@ -736,6 +799,43 @@ export default function Contatos() {
                                             </div>
                                         </div>
                                     ))
+                                )}
+
+                                {/* 📄 Paginação */}
+                                {totalPages > 1 && (
+                                    <div style={{ 
+                                        padding: '1.5rem',
+                                        borderTop: '1px solid #e1e8ed',
+                                        display: 'flex',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        gap: '1rem',
+                                        background: '#f8f9fa'
+                                    }}>
+                                        <Button
+                                            variant="outline-primary"
+                                            size="sm"
+                                            onClick={() => fetchContatos(currentPage - 1)}
+                                            disabled={currentPage === 1 || loading}
+                                            style={{ borderColor: '#316dbd', color: '#316dbd' }}
+                                        >
+                                            ← Anterior
+                                        </Button>
+                                        
+                                        <span style={{ fontSize: '14px', color: '#6c757d' }}>
+                                            Página {currentPage} de {totalPages} • {totalCount} contatos
+                                        </span>
+                                        
+                                        <Button
+                                            variant="outline-primary"
+                                            size="sm"
+                                            onClick={() => fetchContatos(currentPage + 1)}
+                                            disabled={currentPage === totalPages || loading}
+                                            style={{ borderColor: '#316dbd', color: '#316dbd' }}
+                                        >
+                                            Próxima →
+                                        </Button>
+                                    </div>
                                 )}
                             </>
                         )}

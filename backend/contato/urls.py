@@ -44,6 +44,7 @@ urlpatterns = [
     
     # ===== CONVERSAS =====
     path('conversas/', atendimento_views.ConversaListView.as_view(), name='conversa_list'),
+    path('conversas/criar/', atendimento_views.ConversaCreateView.as_view(), name='conversa_create'),
     path('conversas/<int:pk>/', atendimento_views.ConversaDetailView.as_view(), name='conversa_detail'),
     path('conversas/<int:conversa_id>/atendimento-humano/', atendimento_views.toggle_atendimento_humano, name='toggle_atendimento_humano'),
     

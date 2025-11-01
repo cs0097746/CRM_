@@ -10,6 +10,8 @@ from usuario.models import PlanoUsuario, PerfilUsuario
 
 @api_view(["POST"])
 def register(request):
+    import re
+    
     data = request.data
     username = data.get("username")
     password = data.get("password")
@@ -19,8 +21,19 @@ def register(request):
     if not username or not password or not email:
         return Response({"success": False, "message": "Todos os campos são obrigatórios"})
 
+    # Validar formato de email
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_regex, email):
+        return Response({"success": False, "message": "Email inválido. Use o formato: exemplo@dominio.com"})
+    
+    # Normalizar email
+    email = email.lower().strip()
+
     if User.objects.filter(username=username).exists():
         return Response({"success": False, "message": "Usuário já existe"})
+    
+    if User.objects.filter(email=email).exists():
+        return Response({"success": False, "message": "Email já está em uso"})
 
     criado_por = None
     if criado_por_id:
