@@ -6,6 +6,8 @@ import AtendimentoDashboard from './views/AtendimentoDashboard';
 import { LoginForm } from './components/LoginForm';
 import {useAuthValidation} from "./function/useAuthValidation.tsx";
 
+const KnowledgeBase = lazy(() => import('./views/KnowledgeBase'));
+const KnowledgeBaseDetail = lazy(() => import('./views/KnowledgeBaseDetail'));
 const Home = lazy(() => import("./views/Home"));
 const Kanban = lazy(() => import("./views/Kanban"));
 const Atendimento = lazy(() => import("./views/Atendimento"));
@@ -151,6 +153,11 @@ const AppContent = () => {
                   <i className="bi bi-person-plus"></i>
                   <span>Planos</span>
                 </NavLink>
+
+                <NavLink to="/base-conhecimento/" className="nav-item" title="Base Conhecimento">
+                  <i className="bi bi-database"></i>
+                  <span>Base de Conhecimento</span>
+                </NavLink>
               </>
             )}
 
@@ -214,6 +221,26 @@ const AppContent = () => {
               element={
                 localStorage.getItem("is_chefe") === "true" ? (
                   <Planos />
+                ) : (
+                  <Home />
+                )
+              }
+            />
+            <Route
+              path="/base-conhecimento"
+              element={
+                localStorage.getItem("is_chefe") === "true" ? (
+                  <KnowledgeBase />
+                ) : (
+                  <Home />
+                )
+              }
+            />
+            <Route
+              path="/kbsets/:kbSetId"
+              element={
+                localStorage.getItem("is_chefe") === "true" ? (
+                  <KnowledgeBaseDetail />
                 ) : (
                   <Home />
                 )

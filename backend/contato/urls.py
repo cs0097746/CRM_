@@ -16,9 +16,9 @@ from plano import views as plano_views
 
 # ===== CONFIGURAÇÃO DO ROUTER =====
 router = DefaultRouter()
-router.register(r"sets", KnowledgeBaseSetViewSet)
-router.register(r"fields", KnowledgeBaseFieldViewSet)
-router.register(r"entries", KnowledgeBaseEntryViewSet)
+router.register(r"sets", KnowledgeBaseSetViewSet, basename='sets')
+router.register(r"fields", KnowledgeBaseFieldViewSet, basename='fields')
+router.register(r"entries", KnowledgeBaseEntryViewSet, basename='entries')
 
 # ===== URLS PRINCIPAIS =====
 urlpatterns = [
